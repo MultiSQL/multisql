@@ -41,6 +41,7 @@ serde = { version = "1.0.117", features = ["derive"] }
 sqlparser = { version = "0.8.0", features = ["serde"] }
 thiserror = "1.0.21"
 fstrings = "0.2.3"
+regex = "1"
 
 # OPTIONAL DEPENDENCIES
 # dependencies for sled-storage
