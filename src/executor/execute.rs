@@ -5,7 +5,7 @@ use {
         alter::{create_table, drop},
         fetch::{fetch, fetch_columns},
         filter::Filter,
-        select::select_with_labels,
+        select::{select, select_with_labels},
         update::Update,
         validate::{validate_unique, ColumnValidation},
     },
@@ -75,6 +75,17 @@ pub async fn execute<T: 'static + Debug, U: Store<T> + StoreMut<T> + AlterTable 
             match $expr {
                 Err(e) => {
                     return Err(($storage, e));
+                }
+                Ok(v) => v,
+            }
+        };
+    }
+
+    macro_rules! try_into {
+        ($self: expr, $expr: expr) => {
+            match $expr {
+                Err(e) => {
+                    return Err(($self, e));
                 }
                 Ok(v) => v,
             }
