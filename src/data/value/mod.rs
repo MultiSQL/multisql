@@ -1,6 +1,7 @@
 use {
     super::Literal,
     crate::result::Result,
+    regex::Regex,
     serde::{Deserialize, Serialize},
     sqlparser::ast::{DataType, Expr},
     std::{
@@ -122,6 +123,50 @@ impl Value {
             (DataType::Int, value) => value.try_into().map(Value::I64),
             (DataType::Float(_), value) => value.try_into().map(Value::F64),
             (DataType::Text, value) => Ok(Value::Str(value.into())),
+
+            (DataType::Time, Value::Str(value)) => {
+                let regex =
+                    Regex::new(r"^(\d|[0-1]\d|2[0-3]):([0-5]\d)(:([0-5]\d))? ?([AaPp][Mm])?$");
+                if let Ok(regex) = regex {
+                    if let Some(captures) = regex.captures(value) {
+                        let modifier: bool = captures
+                            .iter()
+                            .last()
+                            .map(|capture| {
+                                capture
+                                    .map(|capture| {
+                                        Regex::new(r"^[Pp][Mm]$")
+                                            .ok()
+                                            .map(|regex| regex.is_match(capture.into()))
+                                    })
+                                    .flatten()
+                            })
+                            .flatten()
+                            .unwrap_or(false);
+                        let mut items: Vec<i64> = captures
+                            .iter()
+                            .skip(1)
+                            .filter_map(|capture| {
+                                capture
+                                    .map(|capture| {
+                                        let capture: &str = capture.into();
+                                        capture.parse::<i64>().ok()
+                                    })
+                                    .flatten()
+                            })
+                            .collect();
+                        items.resize(3, 0);
+                        let seconds = items.iter().fold(0, |acc, item| (acc * 60) + item)
+                            + if modifier { 12 * 60 * 60 } else { 0 };
+                        Ok(Value::I64(seconds))
+                    } else {
+                        Err(())
+                    }
+                } else {
+                    Err(())
+                }
+                .map_err(|_| ValueError::ImpossibleCast.into())
+            }
 
             _ => Err(ValueError::UnimplementedCast.into()),
         }
@@ -250,6 +295,11 @@ mod tests {
         cast!(F64(1.1)              => Int, I64(1));
         cast!(Str("11".to_owned())  => Int, I64(11));
         cast!(Null                  => Int, Null);
+
+        // Time
+        cast!(Str("11:00".to_owned())  => Time, I64(11*60*60));
+        cast!(Str("1:00PM".to_owned())  => Time, I64((12+1)*60*60));
+        cast!(Str("23:35".to_owned())  => Time, I64((23*60*60) + 35*60));
 
         // Float
         cast!(Bool(true)            => Float(None), F64(1.0));
