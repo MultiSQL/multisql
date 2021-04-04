@@ -11,9 +11,6 @@ use {
     thiserror::Error,
 };
 
-#[cfg(feature = "auto-increment")]
-use sqlparser::ast::Value as Literal;
-
 #[derive(Error, Serialize, Debug, PartialEq)]
 pub enum RowError {
     #[error("lack of required column: {0}")]
