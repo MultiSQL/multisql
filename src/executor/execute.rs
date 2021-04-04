@@ -1,11 +1,9 @@
-#[cfg(feature = "alter-table")]
-use super::alter::alter_table;
 use {
     super::{
         alter::{create_table, drop},
         fetch::{fetch, fetch_columns},
         filter::Filter,
-        select::{select, select_with_labels},
+        select::select_with_labels,
         update::Update,
         validate::{validate_unique, ColumnValidation},
     },
@@ -13,7 +11,7 @@ use {
         data::{bulk_build_rows_expr, bulk_build_rows_row, get_name, Row, Schema},
         parse_sql::Query,
         result::{MutResult, Result},
-        store::{AlterTable, Store, StoreMut},
+        store::{AlterTable, AutoIncrement, Store, StoreMut},
     },
     futures::stream::TryStreamExt,
     serde::Serialize,
@@ -75,28 +73,6 @@ pub async fn execute<T: 'static + Debug, U: Store<T> + StoreMut<T> + AlterTable 
             match $expr {
                 Err(e) => {
                     return Err(($storage, e));
-                }
-                Ok(v) => v,
-            }
-        };
-    }
-
-    macro_rules! try_into {
-        ($self: expr, $expr: expr) => {
-            match $expr {
-                Err(e) => {
-                    return Err(($self, e));
-                }
-                Ok(v) => v,
-            }
-        };
-    }
-
-    macro_rules! try_into {
-        ($self: expr, $expr: expr) => {
-            match $expr {
-                Err(e) => {
-                    return Err(($self, e));
                 }
                 Ok(v) => v,
             }
