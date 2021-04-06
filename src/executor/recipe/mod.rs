@@ -3,12 +3,11 @@ mod manual;
 mod method;
 mod resolve;
 
-pub use manual::Manual;
+pub use {manual::Manual, resolve::Resolve};
 
 use {
     crate::{Result, Row, Value},
     method::{Aggregate, BinaryOperator, BooleanCheck, Function, UnaryOperator},
-    resolve::Resolve,
     serde::Serialize,
     sqlparser::ast::{DataType, Expr},
     std::fmt::Debug,
@@ -82,14 +81,14 @@ type RecipeSolution = Option<Result<Value>>;
 type MethodRecipeSolution = Result<Value>;
 
 impl Recipe {
-    fn as_solution(&self) -> Option<Value> {
+    pub fn as_solution(&self) -> Option<Value> {
         if let Recipe::Ingredient(Ingredient::Value(value)) = self {
             Some(value.clone())
         } else {
             None
         }
     }
-    fn must_solve(self, row: RecipeKey) -> Result<Value> {
+    pub fn must_solve(self, row: RecipeKey) -> Result<Value> {
         self.solve(row)
             .unwrap_or(Err(RecipeError::MissingComponents.into()))
     }
