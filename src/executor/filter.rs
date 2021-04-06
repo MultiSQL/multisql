@@ -137,7 +137,7 @@ pub async fn check_expr<T: 'static + Debug>(
                 .next()
                 .unwrap_or(Ok(negated))
         }
-        Expr::InSubquery {
+        /*Expr::InSubquery {
             expr,
             subquery,
             negated,
@@ -163,7 +163,7 @@ pub async fn check_expr<T: 'static + Debug>(
                 .into_iter()
                 .next()
                 .unwrap_or(Ok(*negated))
-        }
+        }*/
         Expr::Between {
             expr,
             negated,
@@ -175,14 +175,14 @@ pub async fn check_expr<T: 'static + Debug>(
 
             Ok(negated ^ (evaluate(low).await? <= target && target <= evaluate(high).await?))
         }
-        Expr::Exists(query) => Ok(select(storage, query, filter_context)
-            .await?
-            .into_stream()
-            .take(1)
-            .try_collect::<Vec<_>>()
-            .await?
-            .get(0)
-            .is_some()),
+        /*Expr::Exists(query) => Ok(select(storage, query, filter_context)
+        .await?
+        .into_stream()
+        .take(1)
+        .try_collect::<Vec<_>>()
+        .await?
+        .get(0)
+        .is_some()),*/
         Expr::IsNull(expr) => Ok(!evaluate(expr).await?.is_some()),
         Expr::IsNotNull(expr) => Ok(evaluate(expr).await?.is_some()),
         _ => Err(FilterError::Unimplemented.into()),

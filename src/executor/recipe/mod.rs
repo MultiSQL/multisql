@@ -3,7 +3,10 @@ mod manual;
 mod method;
 mod resolve;
 
-pub use {manual::Manual, resolve::Resolve};
+pub use {
+    manual::{Join, Manual},
+    resolve::Resolve,
+};
 
 use {
     crate::{Result, Row, Value},
@@ -76,7 +79,7 @@ pub enum RecipeError {
     Failed(String),
 }
 
-type RecipeKey = &'static Option<Row>;
+type RecipeKey<'a> = Option<&'a Row>;
 type RecipeSolution = Option<Result<Value>>;
 type MethodRecipeSolution = Result<Value>;
 
@@ -88,8 +91,11 @@ impl Recipe {
             None
         }
     }
-    pub fn must_solve(self, row: RecipeKey) -> Result<Value> {
-        self.solve(row)
+    pub fn must_solve(self, row: &Row) -> Result<Value> {
+        self.solve(Some(row))
             .unwrap_or(Err(RecipeError::MissingComponents.into()))
+    }
+    pub fn confirm(self, row: &Row) -> Result<bool> {
+        Ok(self.must_solve(row)? == Value::Bool(true))
     }
 }

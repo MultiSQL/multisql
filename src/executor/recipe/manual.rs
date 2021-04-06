@@ -11,21 +11,21 @@ use {
     std::convert::TryInto,
 };
 
-type Join = (TableIdentity, (JoinOperator, Recipe, Vec<Column>));
+pub type Join = (TableIdentity, (JoinOperator, Recipe, Vec<Column>));
 type TableIdentity = (String /*alias*/, String /*name*/);
 
 pub struct Manual {
-    initial_table: TableIdentity,
-    joins: Vec<Join>,
-    selections: Vec<Selection>,
-    columns: Vec<Column>,
-    groups: Vec<usize>,
-    constraint: Recipe,
-    contains_aggregate: bool,
+    pub initial_table: TableIdentity,
+    pub joins: Vec<Join>,
+    pub selections: Vec<Selection>,
+    pub columns: Vec<Column>,
+    pub groups: Vec<usize>,
+    pub constraint: Recipe,
+    pub contains_aggregate: bool,
 }
 
 impl Manual {
-    fn write(query: Query) -> Result<Self> {
+    pub fn write(query: Query) -> Result<Self> {
         if let SetExpr::Select(statement) = query.body {
             if statement.from.len() > 1 {
                 panic!("What is this query???");
@@ -55,7 +55,7 @@ impl Manual {
                     let recipe =
                         recipe_set_aggregate(expression, &mut columns, &mut contains_aggregate)
                             .unwrap(); // TODO: Handle!
-                    let recipe = recipe.simplify(&None).unwrap(); // TODO: Handle!
+                    let recipe = recipe.simplify(None).unwrap(); // TODO: Handle!
                     Selection { alias, recipe }
                 })
                 .collect();
@@ -77,7 +77,7 @@ impl Manual {
     }
 }
 
-enum JoinOperator {
+pub enum JoinOperator {
     Inner,
     Left,
     Right,
@@ -212,9 +212,9 @@ fn column_recipe(identifier: Vec<Ident>, columns: &mut Vec<Column>) -> Recipe {
     Recipe::Ingredient(Ingredient::Column(index))
 }
 
-struct Selection {
-    alias: Option<Ident>,
-    recipe: Recipe,
+pub struct Selection {
+    pub alias: Option<Ident>,
+    pub recipe: Recipe,
 }
 
 type Column = Vec<Ident>;

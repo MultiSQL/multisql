@@ -1,24 +1,12 @@
-use boolinator::Boolinator;
-use futures::stream::{self, Stream, StreamExt, TryStream, TryStreamExt};
-use iter_enum::Iterator;
-use serde::Serialize;
-use std::fmt::Debug;
-use std::iter::once;
-use std::rc::Rc;
-use thiserror::Error as ThisError;
-
-use sqlparser::ast::{Expr, Ident, Query, SelectItem, SetExpr, TableWithJoins};
-
-use super::aggregate::Aggregate;
-use super::blend::Blend;
-use super::context::{BlendContext, FilterContext};
-use super::fetch::fetch_columns;
-use super::filter::Filter;
-use super::join::Join;
-use super::limit::Limit;
-use crate::data::{get_name, Row, Table};
-use crate::result::{Error, Result};
-use crate::store::Store;
+use {
+    super::recipe::{Join, Manual, Recipe},
+    crate::{executor::fetch::fetch_columns, store::Store, Result, Row, Value},
+    futures::stream::{self, StreamExt, TryStreamExt},
+    serde::Serialize,
+    sqlparser::ast::{Ident, Query},
+    std::fmt::Debug,
+    thiserror::Error as ThisError,
+};
 
 #[derive(ThisError, Serialize, Debug, PartialEq)]
 pub enum SelectError {
@@ -32,229 +20,187 @@ pub enum SelectError {
     Unreachable,
 }
 
-async fn fetch_blended<'a, T: 'static + Debug>(
-    storage: &dyn Store<T>,
-    table: Table<'a>,
-    columns: Rc<[Ident]>,
-) -> Result<impl Stream<Item = Result<BlendContext<'a>>> + 'a> {
-    let rows = storage.scan_data(table.get_name()).await?.map(move |data| {
-        let (_, row) = data?;
-        let row = Some(row);
-        let columns = Rc::clone(&columns);
-
-        Ok(BlendContext::new(table.get_alias(), columns, row, None))
-    });
-
-    Ok(stream::iter(rows))
-}
-
-fn get_labels<'a>(
-    projection: &[SelectItem],
-    table_alias: &str,
-    columns: &'a [Ident],
-    join_columns: &'a [(&String, Vec<Ident>)],
-) -> Result<Vec<String>> {
-    #[derive(Iterator)]
-    enum Labeled<I1, I2, I3, I4> {
-        Err(I1),
-        Wildcard(I2),
-        QualifiedWildcard(I3),
-        Once(I4),
-    }
-
-    let err = |e| Labeled::Err(once(Err(e)));
-
-    macro_rules! try_into {
-        ($v: expr) => {
-            match $v {
-                Ok(v) => v,
-                Err(e) => {
-                    return err(e);
-                }
-            }
-        };
-    }
-
-    let to_labels = |columns: &'a [Ident]| columns.iter().map(|ident| ident.value.to_string());
-
-    projection
-        .iter()
-        .flat_map(|item| match item {
-            SelectItem::Wildcard => {
-                let labels = to_labels(columns);
-                let join_labels = join_columns
-                    .iter()
-                    .flat_map(|(_, columns)| to_labels(columns));
-                let labels = labels.chain(join_labels).map(Ok);
-
-                Labeled::Wildcard(labels)
-            }
-            SelectItem::QualifiedWildcard(target) => {
-                let target_table_alias = try_into!(get_name(target));
-
-                if table_alias == target_table_alias {
-                    return Labeled::QualifiedWildcard(to_labels(columns).map(Ok));
-                }
-
-                let columns = join_columns
-                    .iter()
-                    .find(|(table_alias, _)| table_alias == &target_table_alias)
-                    .map(|(_, columns)| columns)
-                    .ok_or_else(|| {
-                        SelectError::TableAliasNotFound(target_table_alias.to_string()).into()
-                    });
-                let columns = try_into!(columns);
-                let labels = to_labels(columns).map(Ok);
-
-                Labeled::QualifiedWildcard(labels)
-            }
-            SelectItem::UnnamedExpr(expr) => {
-                let label = match expr {
-                    Expr::CompoundIdentifier(idents) => try_into!(idents
-                        .last()
-                        .map(|ident| ident.value.to_string())
-                        .ok_or_else(|| SelectError::Unreachable.into())),
-                    _ => expr.to_string(),
-                };
-
-                Labeled::Once(once(Ok(label)))
-            }
-            SelectItem::ExprWithAlias { alias, .. } => {
-                Labeled::Once(once(Ok(alias.value.to_string())))
-            }
-        })
-        .collect::<Result<_>>()
-}
-
-pub async fn select_with_labels<'a, T: 'static + Debug>(
-    storage: &'a dyn Store<T>,
-    query: &'a Query,
-    filter_context: Option<Rc<FilterContext<'a>>>,
-    with_labels: bool,
-) -> Result<(Vec<String>, impl TryStream<Ok = Row, Error = Error> + 'a)> {
-    macro_rules! err {
-        ($err: expr) => {{
-            return Err($err.into());
-        }};
-    }
-
-    let (table_with_joins, where_clause, projection, group_by, having) = match &query.body {
-        SetExpr::Select(statement) => {
-            let tables = &statement.from;
-            let table_with_joins = match tables.len() {
-                1 => &tables[0],
-                0 => err!(SelectError::Unreachable),
-                _ => err!(SelectError::TooManyTables),
-            };
-
-            (
-                table_with_joins,
-                statement.selection.as_ref(),
-                statement.projection.as_ref(),
-                &statement.group_by,
-                statement.having.as_ref(),
-            )
-        }
-        _ => err!(SelectError::Unreachable),
-    };
-
-    let TableWithJoins { relation, joins } = &table_with_joins;
-    let table = Table::new(relation)?;
-
-    let columns = fetch_columns(storage, table.get_name()).await?;
-    let join_columns = stream::iter(joins.iter())
-        .map(Ok::<_, Error>)
-        .and_then(|join| {
-            let table = Table::new(&join.relation);
-
-            async move {
-                let table = table?;
-                let table_alias = table.get_alias();
-                let table_name = table.get_name();
-
-                let columns = fetch_columns(storage, table_name).await?;
-
-                Ok((table_alias, columns))
-            }
-        })
-        .try_collect::<Vec<_>>()
-        .await?;
-
-    let labels = if with_labels {
-        get_labels(&projection, table.get_alias(), &columns, &join_columns)?
-    } else {
-        vec![]
-    };
-
-    let columns = Rc::from(columns);
-    let join_columns = join_columns
-        .into_iter()
-        .map(|(_, columns)| columns)
-        .map(Rc::from)
-        .collect::<Vec<_>>();
-    let join_columns = Rc::from(join_columns);
-
-    let join = Rc::new(Join::new(
-        storage,
-        joins,
-        filter_context.as_ref().map(Rc::clone),
-    ));
-    let aggregate = Aggregate::new(
-        storage,
-        projection,
-        group_by,
-        having,
-        filter_context.as_ref().map(Rc::clone),
-    );
-    let blend = Rc::new(Blend::new(storage, projection));
-    let filter = Rc::new(Filter::new(storage, where_clause, filter_context, None));
-    let limit = Rc::new(Limit::new(query.limit.as_ref(), query.offset.as_ref())?);
-
-    let rows = fetch_blended(storage, table, columns)
-        .await?
-        .then(move |blend_context| {
-            let join_columns = Rc::clone(&join_columns);
-            let join = Rc::clone(&join);
-
-            async move { join.apply(blend_context, join_columns).await }
-        })
-        .try_flatten()
-        .try_filter_map(move |blend_context| {
-            let filter = Rc::clone(&filter);
-
-            async move {
-                filter
-                    .check(Rc::clone(&blend_context))
-                    .await
-                    .map(|pass| pass.as_some(blend_context))
-            }
-        })
-        .enumerate()
-        .filter_map(move |(i, item)| {
-            let limit = Rc::clone(&limit);
-
-            async move { limit.check(i).as_some(item) }
-        });
-
-    let rows = aggregate
-        .apply(rows)
-        .await?
-        .into_stream()
-        .and_then(move |aggregate_context| {
-            let blend = Rc::clone(&blend);
-
-            async move { blend.apply(Ok(aggregate_context)).await }
-        });
-
-    Ok((labels, rows))
-}
+type ColumnsAndRows = (Vec<Vec<Ident>>, Vec<Row>);
 
 pub async fn select<'a, T: 'static + Debug>(
     storage: &'a dyn Store<T>,
     query: &'a Query,
-    filter_context: Option<Rc<FilterContext<'a>>>,
-) -> Result<impl TryStream<Ok = Row, Error = Error> + 'a> {
-    select_with_labels(storage, query, filter_context, false)
-        .await
-        .map(|(_, rows)| rows)
+) -> Result<(Vec<String> /* Labels */, Vec<Row>)> {
+    let manual = Manual::write(query.clone())?;
+    let Manual {
+        initial_table,
+        joins,
+        selections,
+        columns: needed_columns,
+        groups: _,
+        constraint: _,
+        contains_aggregate: _,
+    } = manual;
+
+    let table_name = initial_table.1.as_str();
+    let columns = get_columns(storage, table_name).await?;
+    let rows = get_rows(storage, table_name).await?;
+
+    let joins: Vec<Result<Join>> = joins.into_iter().map(Ok).collect();
+
+    let (columns, rows) = stream::iter(joins)
+        .try_fold((columns, rows), |columns_and_rows, join| {
+            join_table(storage, columns_and_rows, join)
+        })
+        .await?;
+
+    // TODO: Constraint
+
+    let needed_column_indexes = needed_column_indexes(needed_columns, columns.clone());
+    let rows = condensed_column_rows(needed_column_indexes, rows);
+
+    let cooked_rows = rows
+        .into_iter()
+        .map(|row| {
+            row.0
+                .iter()
+                .enumerate()
+                .map(|(index, _column)| {
+                    selections
+                        .get(index)
+                        .unwrap() /* TODO: Handle */
+                        .recipe
+                        .clone()
+                        .must_solve(&row)
+                })
+                .collect::<Result<Vec<Value>>>()
+                .map(Row)
+        })
+        .collect::<Result<Vec<Row>>>()?;
+
+    let labels = selections
+        .into_iter()
+        .enumerate()
+        .map(|(index, selection)| {
+            selection
+                .alias
+                .unwrap_or(
+                    columns
+                        .get(index)
+                        .unwrap() /* TODO: Handle */
+                        .get(0)
+                        .unwrap() /* TODO: Handle */
+                        .clone(),
+                )
+                .value
+        })
+        .collect();
+
+    // TODO: Group
+
+    Ok((labels, cooked_rows))
+}
+
+async fn join_table<'a, T: 'static + Debug>(
+    storage: &'a dyn Store<T>,
+    columns_and_rows: ColumnsAndRows,
+    join: Join,
+) -> Result<ColumnsAndRows> {
+    let (columns, rows) = columns_and_rows;
+    let mut columns = columns;
+    let (table, (_join_operation, recipe, needed_columns)) = join;
+    let table_name = table.1.as_str();
+
+    let mut join_columns = get_columns(storage, table_name).await?;
+    columns.append(&mut join_columns);
+
+    let join_rows = get_rows(storage, table_name).await?;
+
+    let joined_rows = rows.into_iter().fold(vec![], |joined_rows, to_join| {
+        join_fold(join_rows.clone(), joined_rows, to_join)
+    });
+
+    let needed_column_indexes: Vec<usize> = needed_column_indexes(needed_columns, columns.clone());
+
+    // Only inner for now
+    let confirmed_joined_rows = confirm_rows(joined_rows, needed_column_indexes, recipe);
+
+    Ok((columns, confirmed_joined_rows))
+}
+
+fn confirm_rows(
+    joined_rows: Vec<Row>,
+    needed_column_indexes: Vec<usize>,
+    recipe: Recipe,
+) -> Vec<Row> {
+    let check_rows = condensed_column_rows(needed_column_indexes, joined_rows.clone());
+    joined_rows
+        .into_iter()
+        .enumerate()
+        .filter(
+            |(index, _row)| recipe.clone().confirm(&check_rows[*index]).unwrap(), /* TODO: Handle */
+        )
+        .map(|(_, row)| row)
+        .collect()
+}
+
+async fn get_columns<'a, T: 'static + Debug>(
+    storage: &'a dyn Store<T>,
+    table_name: &str,
+) -> Result<Vec<Vec<Ident>>> {
+    Ok(fetch_columns(storage, table_name)
+        .await?
+        .into_iter()
+        .map(|column| vec![column])
+        .collect())
+}
+
+async fn get_rows<'a, T: 'static + Debug>(
+    storage: &'a dyn Store<T>,
+    table_name: &str,
+) -> Result<Vec<Row>> {
+    storage
+        .scan_data(table_name)
+        .await?
+        .map(|result| result.map(|(_, row)| row))
+        .collect::<Result<Vec<Row>>>()
+}
+
+fn needed_column_indexes(
+    needed_columns: Vec<Vec<Ident>>,
+    all_columns: Vec<Vec<Ident>>,
+) -> Vec<usize> {
+    needed_columns
+        .into_iter()
+        .map(|needed_column| {
+            all_columns
+                .clone()
+                .into_iter()
+                .enumerate()
+                .find(|(_index, column)| needed_column == *column)
+                .map(|(index, _)| index)
+                .unwrap() /* TODO: Handle */
+        })
+        .collect()
+}
+
+fn condensed_column_rows(needed_column_indexes: Vec<usize>, rows: Vec<Row>) -> Vec<Row> {
+    rows.into_iter()
+        .map(|row| {
+            Row(needed_column_indexes
+                .clone()
+                .into_iter()
+                .map(
+                    |index| row.get_value(index).unwrap().clone(), /* TODO: Handle */
+                )
+                .collect())
+        })
+        .collect()
+}
+
+fn join_fold(join_rows: Vec<Row>, mut joined_rows: Vec<Row>, to_join: Row) -> Vec<Row> {
+    let mut join_rows = join_rows
+        .into_iter()
+        .map(|mut join_row| {
+            join_row.0.append(&mut to_join.0.clone());
+            join_row
+        })
+        .collect::<Vec<Row>>();
+    joined_rows.append(&mut join_rows);
+    joined_rows
 }

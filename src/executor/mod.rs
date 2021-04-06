@@ -24,7 +24,7 @@ pub use {
     filter::FilterError,
     join::JoinError,
     limit::LimitError,
-    recipe::RecipeError,
+    recipe::{Manual, RecipeError},
     select::SelectError,
     update::UpdateError,
     validate::{UniqueKey, ValidateError},

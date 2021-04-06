@@ -3,7 +3,7 @@ use {
         alter::{create_table, drop},
         fetch::{fetch, fetch_columns},
         filter::Filter,
-        select::select_with_labels,
+        select::select,
         update::Update,
         validate::{validate_unique, ColumnValidation},
     },
@@ -253,14 +253,4 @@ pub async fn execute<T: 'static + Debug, U: Store<T> + StoreMut<T> + AlterTable 
         }
         _ => Err((storage, ExecuteError::QueryNotSupported.into())),
     }
-}
-
-async fn select<T: 'static + Debug>(
-    storage: &dyn Store<T>,
-    query: &AstQuery,
-) -> Result<(Vec<String>, Vec<Row>)> {
-    let (labels, rows) = select_with_labels(storage, query, None, true).await?;
-    let rows = rows.try_collect::<Vec<_>>().await?;
-
-    Ok((labels, rows))
 }

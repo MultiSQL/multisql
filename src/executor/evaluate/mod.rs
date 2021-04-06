@@ -71,15 +71,15 @@ pub async fn evaluate<'a, T: 'static + Debug>(
             }
             .map(Evaluated::from)
         }
-        Expr::Subquery(query) => select(storage, &query, context.as_ref().map(Rc::clone))
-            .await?
-            .map_ok(|row| row.take_first_value().map(Evaluated::from))
-            .take(1)
-            .collect::<Vec<_>>()
-            .await
-            .into_iter()
-            .next()
-            .unwrap_or_else(|| Err(EvaluateError::NestedSelectRowNotFound.into()))?,
+        /*Expr::Subquery(query) => select(storage, &query, context.as_ref().map(Rc::clone))
+        .await?
+        .map_ok(|row| row.take_first_value().map(Evaluated::from))
+        .take(1)
+        .collect::<Vec<_>>()
+        .await
+        .into_iter()
+        .next()
+        .unwrap_or_else(|| Err(EvaluateError::NestedSelectRowNotFound.into()))?,*/
         Expr::BinaryOp { op, left, right } => {
             let l = eval(left).await?;
             let r = eval(right).await?;
