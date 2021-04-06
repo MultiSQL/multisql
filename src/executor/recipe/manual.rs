@@ -6,10 +6,10 @@ use {
         },
         Table,
     },
-    sqlparser::ast::{Expr, Ident, Query, SelectItem, TableWithJoins},
+    sqlparser::ast::{Expr, Ident, Query, SelectItem, SetExpr, TableWithJoins},
 };
 
-struct Manual {
+pub struct Manual {
     initial_table: Table,
     joins: Vec<(Table, (TableOperator, Recipe, Vec<Column>))>,
     selections: Vec<Selection>,
@@ -70,19 +70,19 @@ fn recipe(expression: Expr, &mut columns: Vec<Column>) -> Result<(Recipe, bool)>
     let recipe = match expression {
         Expr::Identifier(identifier) => Ok(column_recipe(vec![identifier], columns)),
         Expr::CompoundIdentifier(identifier) => Ok(column_recipe(identifier, columns)),
-        Expr::IsNull(expression) => Ok(of_parts(
+        Expr::IsNull(expression) => Ok(of_parts!(
             Recipe,
             Method,
             BooleanCheck,
             IsNull,
             recipe(expression, columns),
         )),
-        Expr::IsNotNull(expression) => Ok(of_parts(
+        Expr::IsNotNull(expression) => Ok(of_parts!(
             Recipe,
             Method,
             UnaryOperator,
             Not,
-            of_parts(
+            of_parts!(
                 Recipe,
                 Method,
                 BooleanCheck,

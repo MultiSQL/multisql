@@ -31,9 +31,10 @@ pub enum ValueError {
 
     #[error("unary plus operation for non numeric value")]
     UnaryPlusOnNonNumeric,
-
     #[error("unary minus operation for non numeric value")]
     UnaryMinusOnNonNumeric,
+    #[error("not operation for non boolean value")]
+    NotOnNonBoolean,
 
     #[error("unreachable failure on parsing number")]
     UnreachableNumberParsing,

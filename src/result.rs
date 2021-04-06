@@ -3,7 +3,8 @@ use {
         data::{LiteralError, RowError, TableError, ValueError},
         executor::{
             AggregateError, AlterError, BlendError, EvaluateError, ExecuteError, FetchError,
-            FilterError, JoinError, LimitError, SelectError, UpdateError, ValidateError,
+            FilterError, JoinError, LimitError, RecipeError, SelectError, UpdateError,
+            ValidateError,
         },
     },
     serde::Serialize,
@@ -55,6 +56,8 @@ pub enum Error {
     Value(#[from] ValueError),
     #[error(transparent)]
     Literal(#[from] LiteralError),
+    #[error(transparent)]
+    Recipe(#[from] RecipeError),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -66,23 +69,24 @@ impl PartialEq for Error {
 
         match (self, other) {
             #[cfg(feature = "alter-table")]
-            (AlterTable(e), AlterTable(e2)) => e == e2,
-            (Execute(e), Execute(e2)) => e == e2,
-            (Alter(e), Alter(e2)) => e == e2,
-            (Fetch(e), Fetch(e2)) => e == e2,
-            (Evaluate(e), Evaluate(e2)) => e == e2,
-            (Select(e), Select(e2)) => e == e2,
-            (Join(e), Join(e2)) => e == e2,
-            (Blend(e), Blend(e2)) => e == e2,
-            (Aggregate(e), Aggregate(e2)) => e == e2,
-            (Update(e), Update(e2)) => e == e2,
-            (Filter(e), Filter(e2)) => e == e2,
-            (Limit(e), Limit(e2)) => e == e2,
-            (Row(e), Row(e2)) => e == e2,
-            (Table(e), Table(e2)) => e == e2,
-            (Validate(e), Validate(e2)) => e == e2,
-            (Value(e), Value(e2)) => e == e2,
-            (Literal(e), Literal(e2)) => e == e2,
+            (AlterTable(l), AlterTable(r)) => l == r,
+            (Execute(l), Execute(r)) => l == r,
+            (Alter(l), Alter(r)) => l == r,
+            (Fetch(l), Fetch(r)) => l == r,
+            (Evaluate(l), Evaluate(r)) => l == r,
+            (Select(l), Select(r)) => l == r,
+            (Join(l), Join(r)) => l == r,
+            (Blend(l), Blend(r)) => l == r,
+            (Aggregate(l), Aggregate(r)) => l == r,
+            (Update(l), Update(r)) => l == r,
+            (Filter(l), Filter(r)) => l == r,
+            (Limit(l), Limit(r)) => l == r,
+            (Row(l), Row(r)) => l == r,
+            (Table(l), Table(r)) => l == r,
+            (Validate(l), Validate(r)) => l == r,
+            (Value(l), Value(r)) => l == r,
+            (Literal(l), Literal(r)) => l == r,
+            (Recipe(l), Recipe(r)) => l == r,
             _ => false,
         }
     }

@@ -1,27 +1,34 @@
 mod from;
+mod manual;
 mod method;
 mod resolve;
 
+pub use manual::Manual;
+
 use {
-    crate::{Row, Value},
-    method::{Aggregate, BinaryOperator, BooleanCheck, UnaryOperator},
+    crate::{Result, Row, Value},
+    method::{Aggregate, BinaryOperator, BooleanCheck, Function, UnaryOperator},
+    resolve::Resolve,
     serde::Serialize,
-    sqlparser::{DataType, Expr},
+    sqlparser::ast::{DataType, Expr},
     std::fmt::Debug,
     thiserror::Error,
 };
 
-enum Recipe {
+#[derive(Debug, Clone)]
+pub enum Recipe {
     Ingredient(Ingredient),
-    Method(Method),
+    Method(Box<Method>),
 }
 
-enum Ingredient {
+#[derive(Debug, Clone)]
+pub enum Ingredient {
     Value(Value),
     Column(usize),
 }
 
-enum Method {
+#[derive(Debug, Clone)]
+pub enum Method {
     Value(Value), // SIMPLIFICATION ONLY!
 
     BooleanCheck(BooleanCheck, Recipe),
@@ -35,7 +42,7 @@ enum Method {
 }
 
 #[derive(Error, Serialize, Debug, PartialEq)]
-enum RecipeError {
+pub enum RecipeError {
     #[error("recipe missing components")]
     MissingComponents,
 
@@ -44,20 +51,46 @@ enum RecipeError {
 
     #[error("{0} is unimplemented")]
     UnimplementedExpression(Expr),
+
+    #[error(
+        "number of function parameters not matching for function: {function:?}; expected: {expected:?}, found: {found:?}"
+    )]
+    WrongNumberOfArguments {
+        function: Function,
+        expected: usize,
+        found: usize,
+    },
+
+    #[error(
+        "data types for function: {function:?} wrong, expected: {expected:?}, found: {found:?}"
+    )]
+    FunctionRequiresDataType {
+        function: Function,
+        expected: Value,
+        found: Value,
+    },
+
+    #[error("function: {0:?} failed: {1}")]
+    FailedFunction(Function, String),
+
+    #[error("other failure occurred: {0}")]
+    Failed(String),
 }
 
-type RecipeKey = Option<Row>;
+type RecipeKey = &'static Option<Row>;
 type RecipeSolution = Option<Result<Value>>;
+type MethodRecipeSolution = Result<Value>;
 
 impl Recipe {
-    fn as_solution(self, row: RecipeKey) -> Option<Value> {
+    fn as_solution(&self) -> Option<Value> {
         if let Recipe::Ingredient(Ingredient::Value(value)) = self {
-            Some(value)
+            Some(value.clone())
         } else {
             None
         }
     }
     fn must_solve(self, row: RecipeKey) -> Result<Value> {
-        self.solve(row).or(Err(MissingComponents.into()))
+        self.solve(row)
+            .unwrap_or(Err(RecipeError::MissingComponents.into()))
     }
 }

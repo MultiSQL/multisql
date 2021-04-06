@@ -1,16 +1,24 @@
-use {crate::Value, std::cmp::min};
+use {
+    super::{MethodRecipeSolution, RecipeError},
+    crate::Value,
+    serde::Serialize,
+    std::cmp::min,
+};
 
-enum BooleanCheck {
-    IsNull(Recipe),
+#[derive(Debug, PartialEq, Serialize, Clone)]
+pub enum BooleanCheck {
+    IsNull,
 }
 
-enum UnaryOperator {
+#[derive(Debug, PartialEq, Serialize, Clone)]
+pub enum UnaryOperator {
     Plus,
     Minus,
     Not,
 }
 
-enum BinaryOperator {
+#[derive(Debug, PartialEq, Serialize, Clone)]
+pub enum BinaryOperator {
     Plus,
     Minus,
     Multiply,
@@ -29,7 +37,8 @@ enum BinaryOperator {
     StringConcat,
 }
 
-enum Function {
+#[derive(Debug, PartialEq, Serialize, Clone)]
+pub enum Function {
     Upper,
     Lower,
 
@@ -37,7 +46,8 @@ enum Function {
     Right,
 }
 
-enum Aggregate {
+#[derive(Debug, PartialEq, Serialize, Clone)]
+pub enum Aggregate {
     Min,
     Max,
     Sum,
@@ -45,15 +55,15 @@ enum Aggregate {
 }
 
 impl BooleanCheck {
-    fn solve(self, value: Value) -> RecipeSolution {
-        Value::Bool(match self {
+    pub fn solve(self, value: Value) -> MethodRecipeSolution {
+        Ok(Value::Bool(match self {
             BooleanCheck::IsNull => matches!(value, Value::Null),
-        })
+        }))
     }
 }
 
 impl UnaryOperator {
-    fn solve(self, value: Value) -> RecipeSolution {
+    pub fn solve(self, value: Value) -> MethodRecipeSolution {
         match self {
             UnaryOperator::Plus => value.unary_plus(),
             UnaryOperator::Minus => value.unary_minus(),
@@ -63,60 +73,80 @@ impl UnaryOperator {
 }
 
 impl BinaryOperator {
-    fn solve(self, left: Value, right: Value) -> RecipeSolution {
+    pub fn solve(self, left: Value, right: Value) -> MethodRecipeSolution {
         match self {
-            BinaryOperator::Plus => left.add(right),
+            BinaryOperator::Plus => left.add(&right),
             _ => unimplemented!(), // TODO
         }
     }
 }
 
 impl Function {
-    fn solve(self, arguments: Vec<Value>) -> RecipeSolution {
+    pub fn solve(self, arguments: Vec<Value>) -> MethodRecipeSolution {
         macro_rules! expect_arguments {
             ($arguments: expr, $expect: expr) => {
                 match $arguments.len() {
                     $expect => (),
                     found => {
-                        return Err(EvaluateError::NumberOfFunctionParamsNotMatching {
+                        return Err(RecipeError::WrongNumberOfArguments {
+                            // TODO: Move this to recipe creation
+                            function: self,
                             expected: $expect,
                             found,
                         }
-                        .into())
+                        .into());
                     }
                 }
             };
         }
-        match function {
+        match self {
             Function::Upper | Function::Lower => {
                 expect_arguments!(arguments, 1);
-                let argument = arguments[0];
-                Some(if let Value::Str(argument) = argument {
-                    Ok(match function {
+                let argument = arguments.get(0).unwrap();
+                if let Value::Str(argument) = argument {
+                    Ok(Value::Str(match self {
                         Function::Upper => argument.to_uppercase(),
                         Function::Lower => argument.to_lowercase(),
-                    })
+                        _ => unreachable!(),
+                    }))
                 } else {
-                    Err(EvaluateError::FunctionRequiresStringValue)
-                })
+                    Err(RecipeError::FunctionRequiresDataType {
+                        function: self,
+                        expected: Value::Str(String::new()),
+                        found: argument.clone(),
+                    }
+                    .into())
+                }
             }
             Function::Left | Function::Right => {
                 expect_arguments!(arguments, 2);
-                let (text, length) = (arguments[0], arguments[1]);
-                Some(if let Value::Str(text) = text {
+                let (text, length) = (arguments.get(0).unwrap(), arguments.get(1).unwrap());
+                if let Value::Str(text) = text {
                     if let Value::I64(length) = length {
-                        Ok(match function {
+                        let length = *length as usize;
+                        match self {
                             Function::Left => text.get(..length),
                             Function::Right => text.get(min(length, text.len())..),
-                        })
+                            _ => unreachable!(),
+                        }
+                        .ok_or(RecipeError::Failed(String::from("Issue with Left/Right")).into())
+                        .map(|value| Value::Str(value.into()))
                     } else {
-                        Err(EvaluateError::FunctionRequiresIntegerValue(
-                            function, length,
-                        ))
+                        Err(RecipeError::FunctionRequiresDataType {
+                            function: self,
+                            expected: Value::I64(0),
+                            found: length.clone(),
+                        }
+                        .into())
                     }
                 } else {
-                    Err(EvaluateError::FunctionRequiresStringValue(function, text))
-                })
+                    Err(RecipeError::FunctionRequiresDataType {
+                        function: self,
+                        expected: Value::Str(String::new()),
+                        found: text.clone(),
+                    }
+                    .into())
+                }
             }
         }
     }

@@ -242,6 +242,14 @@ impl Value {
             _ => Err(ValueError::UnaryMinusOnNonNumeric.into()),
         }
     }
+
+    pub fn not(&self) -> Result<Value> {
+        match self {
+            Value::Bool(value) => Ok(Value::Bool(!value)),
+            Value::Null => Ok(Value::Null),
+            _ => Err(ValueError::NotOnNonBoolean.into()),
+        }
+    }
 }
 
 #[cfg(test)]

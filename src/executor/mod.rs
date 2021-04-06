@@ -9,6 +9,7 @@ mod fetch;
 mod filter;
 mod join;
 mod limit;
+mod recipe;
 mod select;
 mod update;
 mod validate;
@@ -23,6 +24,7 @@ pub use {
     filter::FilterError,
     join::JoinError,
     limit::LimitError,
+    recipe::RecipeError,
     select::SelectError,
     update::UpdateError,
     validate::{UniqueKey, ValidateError},
