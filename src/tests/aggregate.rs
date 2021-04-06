@@ -39,6 +39,14 @@ test_case!(aggregate, async move {
             ),
         ),
         (
+            "SELECT SUM(quantity + 1) FROM Item",
+            select!(
+                "SUM(quantity)"
+                I64;
+                52
+            ),
+        ),
+        (
             "SELECT SUM(quantity) * 2 + MAX(quantity) - 3 / 1 FROM Item",
             select!("SUM(quantity) * 2 + MAX(quantity) - 3 / 1"; I64; 116),
         ),
