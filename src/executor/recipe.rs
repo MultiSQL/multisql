@@ -17,7 +17,7 @@ enum Ingredient {
 enum Method {
     Value(Value), // SIMPLIFICATION ONLY!
 
-    BooleanCheck(Recipe),
+    BooleanCheck(BooleanCheck, Recipe),
     UnaryOperation(UnaryOperator, Recipe),
     BinaryOperation(BinaryOperator, Recipe, Recipe),
     Function(Function, Vec<Recipe>),
@@ -71,17 +71,34 @@ enum Aggregate {
     Avg,
 }
 
-type RecipeSolution = Option<Result<Value>>;
-type RecipeKey = Option<Row>;
+use {serde::Serialize, std::fmt::Debug, thiserror::Error};
+#[derive(Error, Serialize, Debug, PartialEq)]
+enum RecipeError {
+    #[error("recipe missing components")]
+    MissingComponents,
 
-type RecipeSimplification = Result<Recipe>;
-type Solution = Option<Value>;
+    #[error("{0} is either invalid or unimplemented")]
+    UnimplementedFunction(String),
+}
+
+type RecipeKey = Option<Row>;
+type RecipeSolution = Option<Result<Value>>;
 
 trait Resolve {
     fn solve(self, row: RecipeKey) -> RecipeSolution;
     fn simplify(self, row: RecipeKey) -> Result<Self>;
-    fn as_solution(self, row: RecipeKey) -> Solution {
-        None
+}
+
+impl Recipe {
+    fn as_solution(self, row: RecipeKey) -> Option<Value> {
+        if let Recipe::Ingredient(Ingredient::Value(value)) = self {
+            Some(value)
+        } else {
+            None
+        }
+    }
+    fn must_solve(self, row: RecipeKey) -> Result<Value> {
+        self.solve(row).or(Err(MissingComponents.into()))
     }
 }
 
@@ -104,13 +121,6 @@ impl Resolve for Recipe {
             }),
         }
     }
-    fn as_solution(self, row: RecipeKey) -> Solution {
-        if let Recipe::Ingredient(Ingredient::Value(value)) = self {
-            Some(value)
-        } else {
-            None
-        }
-    }
 }
 
 impl Resolve for Ingredient {
@@ -130,9 +140,8 @@ impl Resolve for Ingredient {
 impl Resolve for Method {
     fn solve(self, row: RecipeKey) -> RecipeSolution {
         match self {
-            Method::UnaryOperation(operator, recipe) => {
-                unary_operation(operator, recipe.solve(row)??)
-            }
+            Method::BooleanCheck(check, recipe) => check.solve(recipe.solve(row)??),
+            Method::UnaryOperation(operator, recipe) => operator.solve(recipe.solve(row)??),
             Method::BinaryOperation(operator, left, right) => {
                 operator.solve(left.solve(row)??, right.solve(row)??)
             }
@@ -165,9 +174,17 @@ impl Resolve for Method {
     }
 }
 
+impl BooleanCheck {
+    fn solve(self, value: Value) -> RecipeSolution {
+        Value::Bool(match self {
+            BooleanCheck::IsNull => matches!(value, Value::Null),
+        })
+    }
+}
+
 impl UnaryOperator {
     fn solve(self, value: Value) -> RecipeSolution {
-        match operator {
+        match self {
             UnaryOperator::Plus => value.unary_plus(),
             UnaryOperator::Minus => value.unary_minus(),
             UnaryOperator::Not => value.not(),
@@ -177,7 +194,7 @@ impl UnaryOperator {
 
 impl BinaryOperator {
     fn solve(self, left: Value, right: Value) -> RecipeSolution {
-        match operator {
+        match self {
             BinaryOperator::Plus => left.add(right),
             _ => unimplemented!(), // TODO
         }
@@ -231,6 +248,34 @@ impl Function {
                     Err(EvaluateError::FunctionRequiresStringValue(function, text))
                 })
             }
+        }
+    }
+}
+
+trait FromString {
+    fn from_string(string: String) -> Option<Self>;
+}
+
+impl FromString for Function {
+    fn from_string(string: String) -> Option<Self> {
+        match string.as_uppercase() {
+            "UPPER" => Some(Function::Upper),
+            "LOWER" => Some(Function::Lower),
+            "LEFT" => Some(Function::Left),
+            "RIGHT" => Some(Function::Right),
+            _ => None,
+        }
+    }
+}
+
+impl FromString for Aggregate {
+    fn from_string(string: String) -> Option<Self> {
+        match string.as_uppercase() {
+            "MIN" => Some(Aggregate::Min),
+            "MAX" => Some(Aggregate::Max),
+            "SUM" => Some(Aggregate::Sum),
+            "AVG" => Some(Aggregate::Avg),
+            _ => None,
         }
     }
 }
