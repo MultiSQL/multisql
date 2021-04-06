@@ -67,10 +67,12 @@ impl TryFrom<AstBinaryOperator> for BinaryOperator {
 
             AstBinaryOperator::And => Ok(BinaryOperator::And),
             AstBinaryOperator::Or => Ok(BinaryOperator::Or),
+
             AstBinaryOperator::Eq => Ok(BinaryOperator::Eq),
+            AstBinaryOperator::NotEq => Ok(BinaryOperator::NotEq),
             AstBinaryOperator::Gt => Ok(BinaryOperator::Gt),
-            AstBinaryOperator::Lt => Ok(BinaryOperator::Lt),
             AstBinaryOperator::GtEq => Ok(BinaryOperator::GtEq),
+            AstBinaryOperator::Lt => Ok(BinaryOperator::Lt),
             AstBinaryOperator::LtEq => Ok(BinaryOperator::LtEq),
 
             AstBinaryOperator::StringConcat => Ok(BinaryOperator::StringConcat),

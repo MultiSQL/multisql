@@ -1,5 +1,5 @@
 mod from;
-mod manual;
+pub mod manual;
 mod method;
 mod resolve;
 
@@ -96,6 +96,9 @@ impl Recipe {
             .unwrap_or(Err(RecipeError::MissingComponents.into()))
     }
     pub fn confirm(self, row: &Row) -> Result<bool> {
-        Ok(self.must_solve(row)? == Value::Bool(true))
+        Ok(matches!(
+            self.must_solve(row)?,
+            Value::Null | Value::Bool(true)
+        ))
     }
 }

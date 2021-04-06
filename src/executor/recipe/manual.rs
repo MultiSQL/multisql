@@ -3,25 +3,46 @@ use {
         Aggregate, BinaryOperator, BooleanCheck, Function, Ingredient, Method, Recipe, RecipeError,
         Resolve, UnaryOperator,
     },
-    crate::{Result, Table, Value},
+    crate::{Literal, Result, Row, Table, Value},
     sqlparser::ast::{
         Expr, FunctionArg, Ident, Join as AstJoin, JoinConstraint, JoinOperator as JoinOperatorAst,
         Query, SelectItem, SetExpr,
     },
-    std::convert::TryInto,
+    std::convert::{TryFrom, TryInto},
 };
 
-pub type Join = (TableIdentity, (JoinOperator, Recipe, Vec<Column>));
-type TableIdentity = (String /*alias*/, String /*name*/);
+pub type ObjectName = Vec<Ident>;
+pub type Join = (TableIdentity, (JoinOperator, Recipe, Vec<ObjectName>));
+pub type TableIdentity = (String /*alias*/, String /*name*/);
+pub type ColumnsAndRows = (Vec<ObjectName>, Vec<Row>);
+pub type LabelsAndRows = (Vec<String>, Vec<Row>);
+pub type LabelledSelection = (Recipe, String);
 
 pub struct Manual {
     pub initial_table: TableIdentity,
     pub joins: Vec<Join>,
     pub selections: Vec<Selection>,
-    pub columns: Vec<Column>,
+    pub needed_columns: Vec<ObjectName>,
     pub groups: Vec<usize>,
     pub constraint: Recipe,
     pub contains_aggregate: bool,
+}
+
+pub enum Selection {
+    Recipe {
+        alias: Option<Ident>,
+        recipe: Recipe,
+    },
+    Wildcard {
+        qualifier: Option<ObjectName>,
+    },
+}
+
+pub enum JoinOperator {
+    Inner,
+    Left,
+    Right,
+    Full,
 }
 
 impl Manual {
@@ -34,12 +55,12 @@ impl Manual {
             let initial_table = table_identity(Table::new(&from.relation).unwrap()); // TODO: Handle!
             let joins = from.joins.clone().into_iter().map(map_join).collect();
 
-            let mut columns = vec![];
+            let mut needed_columns = vec![];
             let mut contains_aggregate = false;
             let constraint = statement
                 .selection
                 .map(|selection| {
-                    let (recipe, _) = recipe(selection, &mut columns).unwrap(); /* TODO: Handle! */
+                    let (recipe, _) = recipe(selection, &mut needed_columns).unwrap(); /* TODO: Handle! */
                     recipe
                 })
                 .unwrap_or(Recipe::Ingredient(Ingredient::Value(Value::Null)));
@@ -47,16 +68,27 @@ impl Manual {
                 .projection
                 .into_iter()
                 .map(|select_item| {
-                    let (expression, alias) = match select_item {
-                        SelectItem::UnnamedExpr(expression) => (expression, None),
-                        SelectItem::ExprWithAlias { expr, alias } => (expr, Some(alias)),
-                        _ => unimplemented!(),
-                    };
-                    let recipe =
-                        recipe_set_aggregate(expression, &mut columns, &mut contains_aggregate)
+                    match select_item {
+                        SelectItem::UnnamedExpr(_) | SelectItem::ExprWithAlias { .. } => {
+                            let (expression, alias) = match select_item {
+                                SelectItem::UnnamedExpr(expression) => (expression, None),
+                                SelectItem::ExprWithAlias { expr, alias } => (expr, Some(alias)),
+                                _ => unreachable!(),
+                            };
+                            let recipe = recipe_set_aggregate(
+                                expression,
+                                &mut needed_columns,
+                                &mut contains_aggregate,
+                            )
                             .unwrap(); // TODO: Handle!
-                    let recipe = recipe.simplify(None).unwrap(); // TODO: Handle!
-                    Selection { alias, recipe }
+                            let recipe = recipe.simplify(None).unwrap(); // TODO: Handle!
+                            Selection::Recipe { alias, recipe }
+                        }
+                        SelectItem::Wildcard => Selection::Wildcard { qualifier: None },
+                        SelectItem::QualifiedWildcard(qualifier) => Selection::Wildcard {
+                            qualifier: Some(qualifier.0),
+                        },
+                    }
                 })
                 .collect();
 
@@ -66,7 +98,7 @@ impl Manual {
                 initial_table,
                 joins,
                 selections,
-                columns,
+                needed_columns,
                 groups,
                 constraint,
                 contains_aggregate: false,
@@ -77,14 +109,7 @@ impl Manual {
     }
 }
 
-pub enum JoinOperator {
-    Inner,
-    Left,
-    Right,
-    Full,
-}
-
-fn convert_join(from: JoinOperatorAst) -> (JoinOperator, Recipe, Vec<Column>) {
+fn convert_join(from: JoinOperatorAst) -> (JoinOperator, Recipe, Vec<ObjectName>) {
     let mut columns = vec![];
     let values = match from {
         JoinOperatorAst::Inner(JoinConstraint::On(constraint)) => {
@@ -103,13 +128,16 @@ fn table_identity(table: Table) -> TableIdentity {
     (table.get_alias().clone(), table.get_name().clone())
 }
 
-fn recipe(expression: Expr, columns: &mut Vec<Column>) -> Result<(Recipe, bool)> {
+fn recipe(expression: Expr, columns: &mut Vec<ObjectName>) -> Result<(Recipe, bool)> {
     let mut is_aggregate = false;
     let is_aggregate_ref = &mut is_aggregate;
 
     let recipe = match expression {
         Expr::Identifier(identifier) => Ok(column_recipe(vec![identifier], columns)),
         Expr::CompoundIdentifier(identifier) => Ok(column_recipe(identifier, columns)),
+        Expr::Value(value) => Ok(Recipe::Ingredient(Ingredient::Value(Value::try_from(
+            Literal::try_from(&value)?,
+        )?))),
         Expr::IsNull(expression) => Ok(Recipe::Method(Box::new(Method::BooleanCheck(
             BooleanCheck::IsNull,
             recipe_set_aggregate(*expression, columns, is_aggregate_ref)?,
@@ -169,13 +197,13 @@ fn recipe(expression: Expr, columns: &mut Vec<Column>) -> Result<(Recipe, bool)>
     recipe.map(|recipe| (recipe, is_aggregate))
 }
 
-fn recipe_no_aggregate(expression: Expr, columns: &mut Vec<Column>) -> Result<Recipe> {
+fn recipe_no_aggregate(expression: Expr, columns: &mut Vec<ObjectName>) -> Result<Recipe> {
     recipe(expression, columns).map(|(recipe, _)| recipe)
 }
 
 fn recipe_set_aggregate(
     expression: Expr,
-    columns: &mut Vec<Column>,
+    columns: &mut Vec<ObjectName>,
     is_aggregate: &mut bool,
 ) -> Result<Recipe> {
     let (recipe, aggregate) = recipe(expression, columns)?;
@@ -187,7 +215,7 @@ fn recipe_set_aggregate(
 
 fn recipe_from_argument(
     argument: FunctionArg,
-    columns: &mut Vec<Column>,
+    columns: &mut Vec<ObjectName>,
 ) -> Result<(Recipe, bool)> {
     match argument {
         FunctionArg::Named { arg, .. } | FunctionArg::Unnamed(arg) => recipe(arg, columns),
@@ -201,8 +229,8 @@ fn map_join(join: AstJoin) -> Join {
     )
 }
 
-fn column_recipe(identifier: Vec<Ident>, columns: &mut Vec<Column>) -> Recipe {
-    let index = columns.iter().position(|column| column == &identifier);
+pub fn column_recipe(identifier: ObjectName, columns: &mut Vec<ObjectName>) -> Recipe {
+    let index = columns.into_iter().position(|column| column == &identifier);
     let index = if let Some(index) = index {
         index
     } else {
@@ -211,10 +239,3 @@ fn column_recipe(identifier: Vec<Ident>, columns: &mut Vec<Column>) -> Recipe {
     };
     Recipe::Ingredient(Ingredient::Column(index))
 }
-
-pub struct Selection {
-    pub alias: Option<Ident>,
-    pub recipe: Recipe,
-}
-
-type Column = Vec<Ident>;

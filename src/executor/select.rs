@@ -1,7 +1,12 @@
 use {
-    super::recipe::{Join, Manual, Recipe},
+    super::recipe::{
+        manual::{
+            column_recipe, ColumnsAndRows, LabelledSelection, LabelsAndRows, ObjectName, Selection,
+        },
+        Ingredient, Join, Manual, Recipe,
+    },
     crate::{executor::fetch::fetch_columns, store::Store, Result, Row, Value},
-    futures::stream::{self, StreamExt, TryStreamExt},
+    futures::stream::{self, TryStreamExt},
     serde::Serialize,
     sqlparser::ast::{Ident, Query},
     std::fmt::Debug,
@@ -20,20 +25,18 @@ pub enum SelectError {
     Unreachable,
 }
 
-type ColumnsAndRows = (Vec<Vec<Ident>>, Vec<Row>);
-
 pub async fn select<'a, T: 'static + Debug>(
     storage: &'a dyn Store<T>,
     query: &'a Query,
-) -> Result<(Vec<String> /* Labels */, Vec<Row>)> {
+) -> Result<LabelsAndRows> {
     let manual = Manual::write(query.clone())?;
     let Manual {
         initial_table,
         joins,
         selections,
-        columns: needed_columns,
+        needed_columns,
+        constraint,
         groups: _,
-        constraint: _,
         contains_aggregate: _,
     } = manual;
 
@@ -43,57 +46,120 @@ pub async fn select<'a, T: 'static + Debug>(
 
     let joins: Vec<Result<Join>> = joins.into_iter().map(Ok).collect();
 
-    let (columns, rows) = stream::iter(joins)
+    let (joined_columns, rows) = stream::iter(joins)
         .try_fold((columns, rows), |columns_and_rows, join| {
             join_table(storage, columns_and_rows, join)
         })
         .await?;
 
-    // TODO: Constraint
+    let (selections, needed_columns) =
+        expand_selections(joined_columns.clone(), selections, needed_columns);
 
-    let needed_column_indexes = needed_column_indexes(needed_columns, columns.clone());
+    let needed_column_indexes = needed_column_indexes(needed_columns.clone(), joined_columns);
     let rows = condensed_column_rows(needed_column_indexes, rows);
 
+    println!("{:?}", constraint);
     let cooked_rows = rows
         .into_iter()
-        .map(|row| {
-            row.0
-                .iter()
-                .enumerate()
-                .map(|(index, _column)| {
-                    selections
-                        .get(index)
-                        .unwrap() /* TODO: Handle */
-                        .recipe
-                        .clone()
-                        .must_solve(&row)
-                })
-                .collect::<Result<Vec<Value>>>()
-                .map(Row)
+        .filter_map(|row| {
+            if constraint.clone().confirm(&row).unwrap()
+            /* TODO: Handle */
+            {
+                Some(
+                    row.0
+                        .iter()
+                        .enumerate()
+                        .map(|(index, _column)| {
+                            selections
+                                .get(index)
+                                .unwrap() /* TODO: Handle */
+                                .0
+                                .clone()
+                                .must_solve(&row)
+                        })
+                        .collect::<Result<Vec<Value>>>()
+                        .map(Row),
+                )
+            } else {
+                None
+            }
         })
         .collect::<Result<Vec<Row>>>()?;
 
     let labels = selections
         .into_iter()
         .enumerate()
-        .map(|(index, selection)| {
-            selection
-                .alias
-                .unwrap_or(
-                    columns
-                        .get(index)
-                        .unwrap() /* TODO: Handle */
-                        .get(0)
-                        .unwrap() /* TODO: Handle */
-                        .clone(),
-                )
-                .value
-        })
+        .map(|(index, selection)| selection.1)
         .collect();
 
     // TODO: Group
 
     Ok((labels, cooked_rows))
+}
+
+fn expand_selections(
+    available_columns: Vec<ObjectName>,
+    selections: Vec<Selection>,
+    mut needed_columns: Vec<ObjectName>,
+) -> (Vec<LabelledSelection>, Vec<ObjectName>) {
+    let unfolded_labelled_selections = selections.into_iter().map(|selection| match selection {
+        Selection::Recipe { recipe, alias } => vec![(
+            recipe.clone(),
+            alias
+                .map(|alias| alias.value)
+                .unwrap_or(alias_from_recipe(recipe, &needed_columns)),
+        )],
+        Selection::Wildcard { qualifier } => available_columns
+            .iter()
+            .filter(|column| {
+                qualifier
+                    .clone()
+                    .map(|qualifier| {
+                        qualifier
+                            .iter()
+                            .enumerate()
+                            .any(|(index, qualifying_part)| {
+                                column
+                                    .get(index)
+                                    .map(|part| part != qualifying_part)
+                                    .unwrap_or(true)
+                            })
+                    })
+                    .unwrap_or(true)
+            })
+            .map(|column| {
+                (
+                    column_recipe(column.clone(), &mut needed_columns),
+                    alias_from_object_name(&column),
+                )
+            })
+            .collect(),
+    });
+    let labelled_selections =
+        unfolded_labelled_selections.fold(vec![], |mut chain, mut labelled_selections| {
+            chain.append(&mut labelled_selections);
+            chain
+        });
+    (labelled_selections, needed_columns)
+}
+fn alias_from_recipe(recipe: Recipe, columns: &Vec<ObjectName>) -> String {
+    match recipe {
+        Recipe::Ingredient(Ingredient::Column(index)) => columns
+            .get(index)
+            .map(|column| alias_from_object_name(column)),
+        _ => None, // TODO: More
+    }
+    .unwrap_or(String::new())
+}
+fn alias_from_object_name(name: &ObjectName) -> String {
+    let mut iter = name.into_iter();
+    let first_value = iter
+        .next()
+        .map(|part| part.value.clone())
+        .unwrap_or(String::new());
+    iter.fold(first_value, |alias, part| {
+        format!("{}.{}", alias, part.value.clone())
+    })
 }
 
 async fn join_table<'a, T: 'static + Debug>(

@@ -29,9 +29,10 @@ pub enum BinaryOperator {
     Or,
 
     Eq,
+    NotEq,
     Gt,
-    Lt,
     GtEq,
+    Lt,
     LtEq,
 
     StringConcat,
@@ -76,6 +77,38 @@ impl BinaryOperator {
     pub fn solve(self, left: Value, right: Value) -> MethodRecipeSolution {
         match self {
             BinaryOperator::Plus => left.add(&right),
+            BinaryOperator::Minus => left.subtract(&right),
+            BinaryOperator::Multiply => left.multiply(&right),
+            BinaryOperator::Divide => left.divide(&right),
+
+            BinaryOperator::And => {
+                if let (Value::Bool(left), Value::Bool(right)) = (left, right) {
+                    Ok(Value::Bool(left && right))
+                } else {
+                    Err(RecipeError::Failed(String::from(
+                        "Binary Boolean Operation on non boolean/s",
+                    ))
+                    .into())
+                }
+            }
+            BinaryOperator::Or => {
+                if let (Value::Bool(left), Value::Bool(right)) = (left, right) {
+                    Ok(Value::Bool(left || right))
+                } else {
+                    Err(RecipeError::Failed(
+                        String::from("Binary Boolean Operation on non boolean/s").into(),
+                    )
+                    .into())
+                }
+            }
+
+            BinaryOperator::Eq => Ok(Value::Bool(left == right)),
+            BinaryOperator::NotEq => Ok(Value::Bool(left != right)),
+            BinaryOperator::Gt => Ok(Value::Bool(left > right)),
+            BinaryOperator::GtEq => Ok(Value::Bool(left >= right)),
+            BinaryOperator::Lt => Ok(Value::Bool(left < right)),
+            BinaryOperator::LtEq => Ok(Value::Bool(left <= right)),
+
             _ => unimplemented!(), // TODO
         }
     }
