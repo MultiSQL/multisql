@@ -6,7 +6,7 @@ use {
     crate::{Row, Value},
     method::{Aggregate, BinaryOperator, BooleanCheck, UnaryOperator},
     serde::Serialize,
-    sqlparser::DataType,
+    sqlparser::{DataType, Expr},
     std::fmt::Debug,
     thiserror::Error,
 };
@@ -40,7 +40,10 @@ enum RecipeError {
     MissingComponents,
 
     #[error("{0} is either invalid or unimplemented")]
-    UnimplementedFunction(String),
+    UnimplementedMethod(String),
+
+    #[error("{0} is unimplemented")]
+    UnimplementedExpression(Expr),
 }
 
 type RecipeKey = Option<Row>;

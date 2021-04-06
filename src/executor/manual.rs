@@ -58,57 +58,57 @@ impl Manual {
         }
     }
 }
+macro_rules! of_parts {
+    ($first_part: ident, $($part: ident),+ $final_part: ident, $value: expr) => {
+        $first_part$(::$part($part)+::$final_part($expr)$())+
+    };
+}
 
-fn recipe(expression: Expr, &mut columns: Vec<Column>) -> (bool, Recipe) {
+fn recipe(expression: Expr, &mut columns: Vec<Column>) -> Result<(Recipe, bool)> {
     let mut is_aggregate = false;
-    macro_rules! aggregate {
-        ($aggregate: expr) => {
-            is_aggregate = true;
-            $aggregate
-        };
-    }
-    match constraint {
-        Expr::Identifier(identifier) => {
-            let identifier = vec![identifier];
-            let index = columns.iter().position(|column| column == identifier);
-            Recipe::Ingredient(Ingredient::Column(if let Some(index) = index {
-                index
-            } else {
-                columns.push(identifier);
-                columns.len() - 1
-            }))
-        }
-        Expr::CompoundIdentifier(identifier) => {
-            let index = columns.iter().position(|column| column == identifier);
-            Recipe::Ingredient(Ingredient::Column(if let Some(index) = index {
-                index
-            } else {
-                columns.push(identifier);
-                columns.len() - 1
-            }))
-        } // TODO: Remove duplicate
-        Expr::IsNull(expression) => Recipe::Method(Method::BooleanCheck(BooleanCheck::IsNull(
+
+    let recipe = match expression {
+        Expr::Identifier(identifier) => Ok(column_recipe(vec![identifier], columns)),
+        Expr::CompoundIdentifier(identifier) => Ok(column_recipe(identifier, columns)),
+        Expr::IsNull(expression) => Ok(of_parts(
+            Recipe,
+            Method,
+            BooleanCheck,
+            IsNull,
             recipe(expression, columns),
-        ))),
-        Expr::IsNotNull(expression) => {
-            Recipe::Method(Method::UnaryOperator(UnaryOperator::Not(Recipe::Method(
-                Method::BooleanCheck(BooleanCheck::IsNull(recipe(expression, columns))),
-            ))))
-        }
+        )),
+        Expr::IsNotNull(expression) => Ok(of_parts(
+            Recipe,
+            Method,
+            UnaryOperator,
+            Not,
+            of_parts(
+                Recipe,
+                Method,
+                BooleanCheck,
+                IsNull,
+                recipe(expression, columns),
+            ),
+        )),
+        Expr::UnaryOp { op, expr } => Method::UnaryOperation(op.try_into()?, expr),
+        Expr::BinaryOp { op, left, right } => Method::BinaryOperation(op.try_into()?, left, right),
         Expr::Function(function) => {
-            let name = function.name;
-            let function = Function::from_string(name);
-            let function = if function.is_none() {
-                let aggregate = Aggregate::from_string(name);
-                is_aggregate = aggregate.is_some();
-                aggregate
-            } else {
+            let function = Function::from_string(function.name);
+            if function.is_ok() {
                 function
-            };
-            function.map(Ok).unwrap_or(Err(UnimplementedFunction(name)))
+            } else {
+                let aggregate = Aggregate::from_string(name);
+                is_aggregate = aggregate.is_ok();
+                aggregate
+            }
         }
-        _ => unimplemented!("TODO"),
-    }
+        Expr::Nested(expression) => recipe(expression, columns).map(|(recipe, aggregate)| {
+            is_aggregate = aggregate;
+            recipe
+        }),
+        unimplemented => Err(UnimplementedExpression(unimplemented).into()),
+    };
+    recipe.map(|recipe| (recipe, is_aggregate))
 }
 
 fn map_join(join: TableWithJoins) {
@@ -125,6 +125,17 @@ fn map_join(join: TableWithJoins) {
         Table::from(join.relation),
         (join.join_operator, constraint, columns),
     ));
+}
+
+fn column_recipe(identifier: Vec<Ident>, &mut columns: Vec<Column>) -> Recipe {
+    let index = columns.iter().position(|column| column == identifier);
+    let index = if let Some(index) = index {
+        index
+    } else {
+        columns.push(identifier);
+        columns.len() - 1
+    };
+    Recipe::Ingredient(Ingredient::Column(index))
 }
 
 struct Selection {
