@@ -1,7 +1,7 @@
 use {
     super::{
         Aggregate, BinaryOperator, BooleanCheck, Function, Ingredient, Method, Recipe, RecipeError,
-        Resolve, UnaryOperator,
+        Resolve, UnaryOperator, RECIPE_NULL,
     },
     crate::{Literal, Result, Row, Table, Value},
     sqlparser::ast::{
@@ -26,6 +26,7 @@ pub struct Manual {
     pub groups: Vec<usize>,
     pub constraint: Recipe,
     pub contains_aggregate: bool,
+    pub limit: Recipe,
 }
 
 pub enum Selection {
@@ -101,6 +102,12 @@ impl Manual {
 
             let groups = vec![]; // TODO
 
+            let limit = query
+                .limit
+                .or(statement.top.map(|top| top.quantity).flatten())
+                .map(|expression| recipe(expression, &mut needed_columns).map(|(recipe, _)| recipe))
+                .unwrap_or(Ok(RECIPE_NULL))?;
+
             Ok(Manual {
                 initial_table,
                 joins,
@@ -109,6 +116,7 @@ impl Manual {
                 groups,
                 constraint,
                 contains_aggregate: false,
+                limit,
             })
         } else {
             Err(RecipeError::UnimplementedQuery(format!("{:?}", query)).into())

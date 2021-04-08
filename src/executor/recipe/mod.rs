@@ -1,6 +1,6 @@
 mod from;
 pub mod manual;
-mod method;
+pub mod method;
 mod resolve;
 
 pub use {
@@ -17,6 +17,8 @@ use {
     std::fmt::Debug,
     thiserror::Error,
 };
+
+const RECIPE_NULL: Recipe = Recipe::Ingredient(Ingredient::Value(Value::Null));
 
 #[derive(Debug, Clone)]
 pub enum Recipe {

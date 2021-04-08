@@ -3,7 +3,7 @@ use {
         manual::{
             column_recipe, ColumnsAndRows, LabelledSelection, LabelsAndRows, ObjectName, Selection,
         },
-        Ingredient, Join, Manual, Recipe,
+        Ingredient, Join, Manual, Recipe, Resolve,
     },
     crate::{executor::fetch::fetch_columns, store::Store, Result, Row, Value},
     futures::stream::{self, TryStreamExt},
@@ -42,6 +42,7 @@ pub async fn select<'a, T: 'static + Debug>(
         constraint,
         groups: _,
         contains_aggregate: _,
+        limit,
     } = manual;
     println!("{:?}", constraint); // TODO DEBUG
 
@@ -80,6 +81,12 @@ pub async fn select<'a, T: 'static + Debug>(
         .collect::<Result<Vec<Row>>>()?;
 
     let labels = selections.into_iter().map(|(_, label)| label).collect();
+
+    let mut cooked_rows = cooked_rows;
+    if let Some(Value::I64(limit)) = limit.simplify(None)?.as_solution() {
+        // TODO: Do this less grossly
+        cooked_rows.truncate(limit as usize);
+    }
 
     // TODO: Group
 

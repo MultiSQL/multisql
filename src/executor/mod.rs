@@ -9,7 +9,7 @@ mod fetch;
 mod filter;
 mod join;
 mod limit;
-mod recipe;
+pub mod recipe;
 mod select;
 mod update;
 mod validate;

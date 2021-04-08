@@ -2,7 +2,6 @@ use {
     super::{MethodRecipeSolution, RecipeError},
     crate::Value,
     serde::Serialize,
-    std::cmp::min,
     std::fmt::Debug,
     thiserror::Error,
 };
@@ -30,8 +29,19 @@ pub enum CalculationError {
         found: Value,
     },
 
+    #[error("attempted arithmetic on non numeric types")]
+    ArithmeticOnNonNumeric,
+    #[error("attempted functionality with incompatible data types")]
+    IncompatibleDataTypes,
+
+    #[error("this should be impossible, please report")]
+    Unreachable,
+
     #[error("function: {0:?} failed: {1}")]
     FailedFunction(Function, String),
+
+    #[error("function: {0:?} expects: {1}, got: {2:?}")]
+    BadInput(Function, String, Value),
 
     #[error("other failure occurred: {0}")]
     Failed(String),
@@ -106,11 +116,52 @@ impl UnaryOperator {
 
 impl BinaryOperator {
     pub fn solve(self, left: Value, right: Value) -> MethodRecipeSolution {
+        macro_rules! arithmetic_operation {
+            ($left: expr, $right: expr) => {
+                match self {
+                    BinaryOperator::Plus => $left + $right,
+                    BinaryOperator::Minus => $left - $right,
+                    BinaryOperator::Multiply => $left * $right,
+                    BinaryOperator::Divide => $left / $right,
+                    BinaryOperator::Modulus => $left % $right,
+                    _ => unreachable!(),
+                }
+            };
+        }
         match self {
-            BinaryOperator::Plus => left.add(&right),
-            BinaryOperator::Minus => left.subtract(&right),
-            BinaryOperator::Multiply => left.multiply(&right),
-            BinaryOperator::Divide => left.divide(&right),
+            BinaryOperator::Plus
+            | BinaryOperator::Minus
+            | BinaryOperator::Multiply
+            | BinaryOperator::Divide
+            | BinaryOperator::Modulus => Ok(match (left, right) {
+                (Value::I64(left), Value::I64(right)) => {
+                    Value::I64(arithmetic_operation!(left, right))
+                }
+                (Value::F64(left), Value::F64(right)) => {
+                    Value::F64(arithmetic_operation!(left, right))
+                }
+
+                #[cfg(feature = "implicit_numeric_conversion")]
+                (Value::I64(left), Value::F64(right)) => {
+                    Value::F64(arithmetic_operation!(left as f64, right))
+                }
+                #[cfg(feature = "implicit_numeric_conversion")]
+                (Value::F64(left), Value::I64(right)) => {
+                    Value::F64(arithmetic_operation!(left, right as f64))
+                }
+                #[cfg(not(feature = "implicit_numeric_conversion"))]
+                (Value::I64(_), Value::F64(_)) | (Value::F64(_), Value::I64(_)) => {
+                    return Err(CalculationError::IncompatibleDataTypes);
+                }
+
+                (Value::Null, Value::I64(_))
+                | (Value::Null, Value::F64(_))
+                | (Value::I64(_), Value::Null)
+                | (Value::F64(_), Value::Null)
+                | (Value::Null, Value::Null) => Value::Null,
+
+                _ => return Err(CalculationError::ArithmeticOnNonNumeric.into()),
+            }),
 
             BinaryOperator::And => {
                 if let (Value::Bool(left), Value::Bool(right)) = (left, right) {
@@ -140,7 +191,16 @@ impl BinaryOperator {
             BinaryOperator::Lt => Ok(Value::Bool(left < right)),
             BinaryOperator::LtEq => Ok(Value::Bool(left <= right)),
 
-            _ => unimplemented!(), // TODO
+            BinaryOperator::StringConcat => {
+                if let (Value::Str(left), Value::Str(right)) = (left, right) {
+                    Ok(Value::Str(format!("{}{}", left, right)))
+                } else {
+                    Err(CalculationError::WrongType(
+                        String::from("string concatenation on non string/s").into(),
+                    )
+                    .into())
+                }
+            }
         }
     }
 }
@@ -166,13 +226,15 @@ impl Function {
         match self {
             Function::Upper | Function::Lower => {
                 expect_arguments!(arguments, 1);
-                let argument = arguments.get(0).unwrap();
+                let argument = arguments.get(0).ok_or(CalculationError::Unreachable)?;
                 if let Value::Str(argument) = argument {
                     Ok(Value::Str(match self {
                         Function::Upper => argument.to_uppercase(),
                         Function::Lower => argument.to_lowercase(),
                         _ => unreachable!(),
                     }))
+                } else if matches!(argument, Value::Null) {
+                    Ok(Value::Null)
                 } else {
                     Err(CalculationError::FunctionRequiresDataType {
                         function: self,
@@ -184,19 +246,36 @@ impl Function {
             }
             Function::Left | Function::Right => {
                 expect_arguments!(arguments, 2);
-                let (text, length) = (arguments.get(0).unwrap(), arguments.get(1).unwrap());
-                if let Value::Str(text) = text {
+                let (text, length) = (
+                    arguments.get(0).ok_or(CalculationError::Unreachable)?,
+                    arguments.get(1).ok_or(CalculationError::Unreachable)?,
+                );
+                if let Value::Str(string) = text {
                     if let Value::I64(length) = length {
-                        let length = *length as usize;
-                        match self {
-                            Function::Left => text.get(..length),
-                            Function::Right => text.get(min(length, text.len())..),
-                            _ => unreachable!(),
+                        if length < &0 {
+                            return Err(CalculationError::BadInput(
+                                self,
+                                String::from("positive integer only"),
+                                Value::I64(*length),
+                            )
+                            .into());
                         }
-                        .ok_or(
-                            CalculationError::Failed(String::from("Issue with Left/Right")).into(),
-                        )
+                        let length = *length as usize;
+                        Ok(match self {
+                            Function::Left => string.get(..length),
+                            Function::Right => string.get(
+                                (if length > string.len() {
+                                    0
+                                } else {
+                                    string.len() - length
+                                })..,
+                            ),
+                            _ => return Err(CalculationError::Unreachable.into()),
+                        }
                         .map(|value| Value::Str(value.into()))
+                        .unwrap_or(text.clone()))
+                    } else if matches!(length, Value::Null) {
+                        Ok(Value::Null)
                     } else {
                         Err(CalculationError::FunctionRequiresDataType {
                             function: self,
@@ -205,6 +284,8 @@ impl Function {
                         }
                         .into())
                     }
+                } else if matches!(text, Value::Null) {
+                    Ok(Value::Null)
                 } else {
                     Err(CalculationError::FunctionRequiresDataType {
                         function: self,

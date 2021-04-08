@@ -93,6 +93,7 @@ impl PartialEq for Error {
             (Value(l), Value(r)) => l == r,
             (Literal(l), Literal(r)) => l == r,
             (Recipe(l), Recipe(r)) => l == r,
+            (Calculation(l), Calculation(r)) => l == r,
             _ => false,
         }
     }

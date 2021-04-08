@@ -1,6 +1,7 @@
 use crate::*;
 
 test_case!(left_right, async move {
+    use executor::recipe::method::Function::{Left, Right};
     use Value::{Null, Str};
 
     let test_cases = vec![
@@ -126,16 +127,18 @@ test_case!(left_right, async move {
             )),
         ),*/
         (
-            r#"SELECT RIGHT(name, 10, 10) AS test FROM SingleItem"#,
-            Err(EvaluateError::NumberOfFunctionParamsNotMatching {
+            r#"SELECT RIGHT('', 10, 10) AS test FROM SingleItem"#,
+            Err(CalculationError::WrongNumberOfArguments {
+                function: Right,
                 expected: 2,
                 found: 3,
             }
             .into()),
         ),
         (
-            r#"SELECT RIGHT(name) AS test FROM SingleItem"#,
-            Err(EvaluateError::NumberOfFunctionParamsNotMatching {
+            r#"SELECT RIGHT('') AS test FROM SingleItem"#,
+            Err(CalculationError::WrongNumberOfArguments {
+                function: Right,
                 expected: 2,
                 found: 1,
             }
@@ -143,7 +146,8 @@ test_case!(left_right, async move {
         ),
         (
             r#"SELECT RIGHT() AS test FROM SingleItem"#,
-            Err(EvaluateError::NumberOfFunctionParamsNotMatching {
+            Err(CalculationError::WrongNumberOfArguments {
+                function: Right,
                 expected: 2,
                 found: 0,
             }
@@ -151,15 +155,30 @@ test_case!(left_right, async move {
         ),
         (
             r#"SELECT RIGHT(1, 1) AS test FROM SingleItem"#,
-            Err(EvaluateError::FunctionRequiresStringValue("RIGHT".to_string()).into()),
+            Err(CalculationError::FunctionRequiresDataType {
+                function: Right,
+                expected: Value::Str(String::from("")),
+                found: Value::I64(1),
+            }
+            .into()),
         ),
         (
             r#"SELECT RIGHT('Words', 1.1) AS test FROM SingleItem"#,
-            Err(EvaluateError::FunctionRequiresIntegerValue("RIGHT".to_string()).into()),
+            Err(CalculationError::FunctionRequiresDataType {
+                function: Right,
+                expected: Value::I64(0),
+                found: Value::F64(1.1),
+            }
+            .into()),
         ),
         (
             r#"SELECT RIGHT('Words', -4) AS test FROM SingleItem"#,
-            Err(EvaluateError::FunctionRequiresUSizeValue("RIGHT".to_string()).into()),
+            Err(CalculationError::BadInput(
+                Right,
+                String::from("positive integer only"),
+                Value::I64(-4),
+            )
+            .into()),
         ),
     ];
     for (sql, expected) in test_cases.into_iter() {
