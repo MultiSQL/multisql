@@ -5,6 +5,7 @@ mod resolve;
 
 pub use {
     manual::{Join, Manual},
+    method::CalculationError,
     resolve::Resolve,
 };
 
@@ -49,31 +50,16 @@ pub enum RecipeError {
     MissingComponents,
 
     #[error("{0} is either invalid or unimplemented")]
-    UnimplementedMethod(String),
+    InvalidQuery(String),
+    #[error("a function is either invalid or unimplemented")]
+    InvalidFunction,
 
+    #[error("{0} is either invalid or unimplemented")]
+    UnimplementedQuery(String),
+    #[error("{0} is either invalid or unimplemented")]
+    UnimplementedMethod(String),
     #[error("{0} is unimplemented")]
     UnimplementedExpression(Expr),
-
-    #[error(
-        "number of function parameters not matching for function: {function:?}; expected: {expected:?}, found: {found:?}"
-    )]
-    WrongNumberOfArguments {
-        function: Function,
-        expected: usize,
-        found: usize,
-    },
-
-    #[error(
-        "data types for function: {function:?} wrong, expected: {expected:?}, found: {found:?}"
-    )]
-    FunctionRequiresDataType {
-        function: Function,
-        expected: Value,
-        found: Value,
-    },
-
-    #[error("function: {0:?} failed: {1}")]
-    FailedFunction(Function, String),
 
     #[error("other failure occurred: {0}")]
     Failed(String),

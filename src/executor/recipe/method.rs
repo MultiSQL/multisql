@@ -3,8 +3,39 @@ use {
     crate::Value,
     serde::Serialize,
     std::cmp::min,
+    std::fmt::Debug,
+    thiserror::Error,
 };
 
+#[derive(Error, Serialize, Debug, PartialEq)]
+pub enum CalculationError {
+    #[error("wrong type/s used: {0}")]
+    WrongType(String),
+
+    #[error(
+        "number of function parameters not matching for function: {function:?}; expected: {expected:?}, found: {found:?}"
+    )]
+    WrongNumberOfArguments {
+        function: Function,
+        expected: usize,
+        found: usize,
+    },
+
+    #[error(
+        "data types for function: {function:?} wrong, expected: {expected:?}, found: {found:?}"
+    )]
+    FunctionRequiresDataType {
+        function: Function,
+        expected: Value,
+        found: Value,
+    },
+
+    #[error("function: {0:?} failed: {1}")]
+    FailedFunction(Function, String),
+
+    #[error("other failure occurred: {0}")]
+    Failed(String),
+}
 #[derive(Debug, PartialEq, Serialize, Clone)]
 pub enum BooleanCheck {
     IsNull,
@@ -85,7 +116,7 @@ impl BinaryOperator {
                 if let (Value::Bool(left), Value::Bool(right)) = (left, right) {
                     Ok(Value::Bool(left && right))
                 } else {
-                    Err(RecipeError::Failed(String::from(
+                    Err(CalculationError::WrongType(String::from(
                         "Binary Boolean Operation on non boolean/s",
                     ))
                     .into())
@@ -95,7 +126,7 @@ impl BinaryOperator {
                 if let (Value::Bool(left), Value::Bool(right)) = (left, right) {
                     Ok(Value::Bool(left || right))
                 } else {
-                    Err(RecipeError::Failed(
+                    Err(CalculationError::WrongType(
                         String::from("Binary Boolean Operation on non boolean/s").into(),
                     )
                     .into())
@@ -121,7 +152,7 @@ impl Function {
                 match $arguments.len() {
                     $expect => (),
                     found => {
-                        return Err(RecipeError::WrongNumberOfArguments {
+                        return Err(CalculationError::WrongNumberOfArguments {
                             // TODO: Move this to recipe creation
                             function: self,
                             expected: $expect,
@@ -143,7 +174,7 @@ impl Function {
                         _ => unreachable!(),
                     }))
                 } else {
-                    Err(RecipeError::FunctionRequiresDataType {
+                    Err(CalculationError::FunctionRequiresDataType {
                         function: self,
                         expected: Value::Str(String::new()),
                         found: argument.clone(),
@@ -162,10 +193,12 @@ impl Function {
                             Function::Right => text.get(min(length, text.len())..),
                             _ => unreachable!(),
                         }
-                        .ok_or(RecipeError::Failed(String::from("Issue with Left/Right")).into())
+                        .ok_or(
+                            CalculationError::Failed(String::from("Issue with Left/Right")).into(),
+                        )
                         .map(|value| Value::Str(value.into()))
                     } else {
-                        Err(RecipeError::FunctionRequiresDataType {
+                        Err(CalculationError::FunctionRequiresDataType {
                             function: self,
                             expected: Value::I64(0),
                             found: length.clone(),
@@ -173,7 +206,7 @@ impl Function {
                         .into())
                     }
                 } else {
-                    Err(RecipeError::FunctionRequiresDataType {
+                    Err(CalculationError::FunctionRequiresDataType {
                         function: self,
                         expected: Value::Str(String::new()),
                         found: text.clone(),

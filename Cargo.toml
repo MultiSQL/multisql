@@ -1,7 +1,7 @@
 [package]
 name = "gluesql"
 version = "0.5.0"
-authors = ["Taehoon Moon <taehoon.moon@outlook.com>"]
+authors = ["Taehoon Moon <taehoon.moon@outlook.com>", "Kyran Gostelow <kyran@gostelow.me>"]
 edition = "2018"
 description = "GlueSQL - Open source SQL database engine fully written in Rust with pure functional execution layer, easily swappable storage and web assembly support!"
 license = "Apache-2.0"
@@ -14,12 +14,13 @@ keywords = ["sql-database", "sql", "functional", "no-mut-in-the-middle", "webass
 all-features = true
 
 [features]
-default = ["sled-storage", "alter-table", "expanded-api", "auto-increment"]
+default = ["sled-storage", "alter-table", "expanded-api", "auto-increment", "double_quote_strings"]
 
 # ALTER TABLE is optional.
 # You can include whether ALTER TABLE support or not for your custom database implementation.
 alter-table = []
 auto-increment = []
+double_quote_strings = []
 
 expanded-api = ["serde_json"]
 
@@ -42,6 +43,7 @@ sqlparser = { version = "0.8.0", features = ["serde"] }
 thiserror = "1.0.21"
 fstrings = "0.2.3"
 regex = "1"
+rayon = "1.5.0"
 
 # OPTIONAL DEPENDENCIES
 # dependencies for sled-storage

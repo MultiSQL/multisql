@@ -49,26 +49,34 @@ impl Manual {
     pub fn write(query: Query) -> Result<Self> {
         if let SetExpr::Select(statement) = query.body {
             if statement.from.len() > 1 {
-                panic!("What is this query???");
+                return Err(RecipeError::UnimplementedQuery(format!("{:?}", statement)).into());
             }
-            let from = statement.from.get(0).unwrap(); // TODO: Handle!
-            let initial_table = table_identity(Table::new(&from.relation).unwrap()); // TODO: Handle!
-            let joins = from.joins.clone().into_iter().map(map_join).collect();
+            let from = statement
+                .from
+                .get(0)
+                .ok_or(RecipeError::InvalidQuery(format!("{:?}", statement)))?;
+            let initial_table = table_identity(Table::new(&from.relation)?);
+            let joins = from
+                .joins
+                .clone()
+                .into_iter()
+                .map(map_join)
+                .collect::<Result<Vec<Join>>>()?;
 
             let mut needed_columns = vec![];
             let mut contains_aggregate = false;
             let constraint = statement
                 .selection
-                .map(|selection| {
-                    let (recipe, _) = recipe(selection, &mut needed_columns).unwrap(); /* TODO: Handle! */
-                    recipe
+                .map::<Result<Recipe>, _>(|selection| {
+                    let (recipe, _) = recipe(selection, &mut needed_columns)?;
+                    Ok(recipe)
                 })
-                .unwrap_or(Recipe::Ingredient(Ingredient::Value(Value::Null)));
+                .unwrap_or(Ok(Recipe::Ingredient(Ingredient::Value(Value::Null))))?;
             let selections = statement
                 .projection
                 .into_iter()
                 .map(|select_item| {
-                    match select_item {
+                    Ok(match select_item {
                         SelectItem::UnnamedExpr(_) | SelectItem::ExprWithAlias { .. } => {
                             let (expression, alias) = match select_item {
                                 SelectItem::UnnamedExpr(expression) => (expression, None),
@@ -79,18 +87,17 @@ impl Manual {
                                 expression,
                                 &mut needed_columns,
                                 &mut contains_aggregate,
-                            )
-                            .unwrap(); // TODO: Handle!
-                            let recipe = recipe.simplify(None).unwrap(); // TODO: Handle!
+                            )?;
+                            let recipe = recipe.simplify(None)?; // TODO: Handle!
                             Selection::Recipe { alias, recipe }
                         }
                         SelectItem::Wildcard => Selection::Wildcard { qualifier: None },
                         SelectItem::QualifiedWildcard(qualifier) => Selection::Wildcard {
                             qualifier: Some(qualifier.0),
                         },
-                    }
+                    })
                 })
-                .collect();
+                .collect::<Result<Vec<Selection>>>()?;
 
             let groups = vec![]; // TODO
 
@@ -104,24 +111,22 @@ impl Manual {
                 contains_aggregate: false,
             })
         } else {
-            unimplemented!()
+            Err(RecipeError::UnimplementedQuery(format!("{:?}", query)).into())
         }
     }
 }
 
-fn convert_join(from: JoinOperatorAst) -> (JoinOperator, Recipe, Vec<ObjectName>) {
+fn convert_join(from: JoinOperatorAst) -> Result<(JoinOperator, Recipe, Vec<ObjectName>)> {
     let mut columns = vec![];
     let values = match from {
-        JoinOperatorAst::Inner(JoinConstraint::On(constraint)) => {
-            (JoinOperator::Inner, Some(constraint))
-        }
+        JoinOperatorAst::Inner(JoinConstraint::On(constraint)) => (JoinOperator::Inner, constraint),
         _ => unreachable!(),
     };
-    (
+    Ok((
         values.0,
-        recipe_no_aggregate(values.1.unwrap(), &mut columns).unwrap(), /*TODO: Handle*/
+        recipe_no_aggregate(values.1, &mut columns)?,
         columns,
-    )
+    ))
 }
 
 fn table_identity(table: Table) -> TableIdentity {
@@ -133,7 +138,18 @@ fn recipe(expression: Expr, columns: &mut Vec<ObjectName>) -> Result<(Recipe, bo
     let is_aggregate_ref = &mut is_aggregate;
 
     let recipe = match expression {
-        Expr::Identifier(identifier) => Ok(column_recipe(vec![identifier], columns)),
+        Expr::Identifier(identifier) => {
+            #[cfg(feature = "double_quote_strings")]
+            if identifier.quote_style == Some('"') {
+                Ok(Recipe::Ingredient(Ingredient::Value(Value::Str(
+                    identifier.value,
+                ))))
+            } else {
+                Ok(column_recipe(vec![identifier], columns))
+            }
+            #[cfg(not(feature = "double_quote_strings"))]
+            Ok(column_recipe(vec![identifier], columns))
+        }
         Expr::CompoundIdentifier(identifier) => Ok(column_recipe(identifier, columns)),
         Expr::Value(value) => Ok(Recipe::Ingredient(Ingredient::Value(Value::try_from(
             Literal::try_from(&value)?,
@@ -184,7 +200,10 @@ fn recipe(expression: Expr, columns: &mut Vec<ObjectName>) -> Result<(Recipe, bo
                 is_aggregate = aggregate.is_ok();
                 Ok(Recipe::Method(Box::new(Method::Aggregate(
                     aggregate?,
-                    arguments.get(0).unwrap().clone(), /* TODO: Handle! */
+                    arguments
+                        .get(0)
+                        .ok_or(RecipeError::InvalidFunction)?
+                        .clone(),
                 ))))
             }
         }
@@ -222,11 +241,11 @@ fn recipe_from_argument(
     }
 }
 
-fn map_join(join: AstJoin) -> Join {
-    (
-        table_identity(Table::new(&join.relation).unwrap()), // TODO: Handle
-        convert_join(join.join_operator),
-    )
+fn map_join(join: AstJoin) -> Result<Join> {
+    Ok((
+        table_identity(Table::new(&join.relation)?),
+        convert_join(join.join_operator)?,
+    ))
 }
 
 pub fn column_recipe(identifier: ObjectName, columns: &mut Vec<ObjectName>) -> Recipe {

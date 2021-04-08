@@ -2,12 +2,13 @@ use {
     crate::{
         data::{LiteralError, RowError, TableError, ValueError},
         executor::{
-            AggregateError, AlterError, BlendError, EvaluateError, ExecuteError, FetchError,
-            FilterError, JoinError, LimitError, RecipeError, SelectError, UpdateError,
+            AggregateError, AlterError, BlendError, CalculationError, EvaluateError, ExecuteError,
+            FetchError, FilterError, JoinError, LimitError, RecipeError, SelectError, UpdateError,
             ValidateError,
         },
     },
     serde::Serialize,
+    std::marker::{Send, Sync},
     thiserror::Error as ThisError,
 };
 
@@ -58,7 +59,12 @@ pub enum Error {
     Literal(#[from] LiteralError),
     #[error(transparent)]
     Recipe(#[from] RecipeError),
+    #[error(transparent)]
+    Calculation(#[from] CalculationError),
 }
+
+unsafe impl Send for Error {} // !!!! UNSAFE CODE WHICH I DON'T UNDERSTAND FULLY
+unsafe impl Sync for Error {} // !!!! UNSAFE CODE WHICH I DON'T UNDERSTAND FULLY
 
 pub type Result<T> = std::result::Result<T, Error>;
 pub type MutResult<T, U> = std::result::Result<(T, U), (T, Error)>;

@@ -81,11 +81,7 @@ test_case!(arithmetic, async move {
             "UPDATE Arith SET aaa = 1",
         ),
         (
-            LiteralError::UnsupportedBinaryArithmetic(
-                format!("{:?}", data::Literal::Boolean(true)),
-                format!("{:?}", data::Literal::Number(Cow::Owned("1".to_owned()))),
-            )
-            .into(),
+            ValueError::AddOnNonNumeric.into(),
             "SELECT * FROM Arith WHERE TRUE + 1 = 1",
         ),
     ];

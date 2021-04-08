@@ -7,6 +7,7 @@ use {
     },
     crate::{executor::fetch::fetch_columns, store::Store, Result, Row, Value},
     futures::stream::{self, TryStreamExt},
+    rayon::prelude::*,
     serde::Serialize,
     sqlparser::ast::{Ident, Query},
     std::fmt::Debug,
@@ -21,7 +22,10 @@ pub enum SelectError {
     #[error("table alias not found: {0}")]
     TableAliasNotFound(String),
 
-    #[error("unreachable!")]
+    #[error("column could not be found for some reason")]
+    ReportableLostColumn,
+
+    #[error("this should be impossible, please report")]
     Unreachable,
 }
 
@@ -39,6 +43,7 @@ pub async fn select<'a, T: 'static + Debug>(
         groups: _,
         contains_aggregate: _,
     } = manual;
+    println!("{:?}", constraint); // TODO DEBUG
 
     let table_name = initial_table.1.as_str();
     let columns = get_columns(storage, table_name).await?;
@@ -55,42 +60,26 @@ pub async fn select<'a, T: 'static + Debug>(
     let (selections, needed_columns) =
         expand_selections(joined_columns.clone(), selections, needed_columns);
 
-    let needed_column_indexes = needed_column_indexes(needed_columns.clone(), joined_columns);
-    let rows = condensed_column_rows(needed_column_indexes, rows);
+    let needed_column_indexes = needed_column_indexes(needed_columns.clone(), joined_columns)?;
+    let rows = condensed_column_rows(needed_column_indexes, rows)?;
 
-    println!("{:?}", constraint);
     let cooked_rows = rows
         .into_iter()
-        .filter_map(|row| {
-            if constraint.clone().confirm(&row).unwrap()
-            /* TODO: Handle */
-            {
-                Some(
-                    row.0
-                        .iter()
-                        .enumerate()
-                        .map(|(index, _column)| {
-                            selections
-                                .get(index)
-                                .unwrap() /* TODO: Handle */
-                                .0
-                                .clone()
-                                .must_solve(&row)
-                        })
-                        .collect::<Result<Vec<Value>>>()
-                        .map(Row),
-                )
-            } else {
-                None
-            }
+        .filter_map(|row| match constraint.clone().confirm(&row) {
+            Ok(true) => Some(
+                selections
+                    .clone()
+                    .into_iter()
+                    .map(|(recipe, _)| recipe.must_solve(&row))
+                    .collect::<Result<Vec<Value>>>()
+                    .map(Row),
+            ),
+            Ok(false) => None,
+            Err(error) => Some(Err(error)),
         })
         .collect::<Result<Vec<Row>>>()?;
 
-    let labels = selections
-        .into_iter()
-        .enumerate()
-        .map(|(index, selection)| selection.1)
-        .collect();
+    let labels = selections.into_iter().map(|(_, label)| label).collect();
 
     // TODO: Group
 
@@ -181,10 +170,10 @@ async fn join_table<'a, T: 'static + Debug>(
         join_fold(join_rows.clone(), joined_rows, to_join)
     });
 
-    let needed_column_indexes: Vec<usize> = needed_column_indexes(needed_columns, columns.clone());
+    let needed_column_indexes = needed_column_indexes(needed_columns, columns.clone())?;
 
     // Only inner for now
-    let confirmed_joined_rows = confirm_rows(joined_rows, needed_column_indexes, recipe);
+    let confirmed_joined_rows = confirm_rows(joined_rows, needed_column_indexes, recipe)?;
 
     Ok((columns, confirmed_joined_rows))
 }
@@ -193,16 +182,20 @@ fn confirm_rows(
     joined_rows: Vec<Row>,
     needed_column_indexes: Vec<usize>,
     recipe: Recipe,
-) -> Vec<Row> {
-    let check_rows = condensed_column_rows(needed_column_indexes, joined_rows.clone());
+) -> Result<Vec<Row>> {
+    let check_rows = condensed_column_rows(needed_column_indexes, joined_rows.clone())?;
+
     joined_rows
-        .into_iter()
-        .enumerate()
-        .filter(
-            |(index, _row)| recipe.clone().confirm(&check_rows[*index]).unwrap(), /* TODO: Handle */
+        .into_iter() // Want to parallelise but cannot due to error not having send. TODO.
+        .zip(check_rows)
+        .filter_map(
+            |(join_row, check_row)| match recipe.clone().confirm(&check_row) {
+                Ok(true) => Some(Ok(join_row)),
+                Ok(false) => None,
+                Err(error) => Some(Err(error)),
+            },
         )
-        .map(|(_, row)| row)
-        .collect()
+        .collect::<Result<Vec<Row>>>()
 }
 
 async fn get_columns<'a, T: 'static + Debug>(
@@ -230,9 +223,9 @@ async fn get_rows<'a, T: 'static + Debug>(
 fn needed_column_indexes(
     needed_columns: Vec<Vec<Ident>>,
     all_columns: Vec<Vec<Ident>>,
-) -> Vec<usize> {
+) -> Result<Vec<usize>> {
     needed_columns
-        .into_iter()
+        .into_par_iter()
         .map(|needed_column| {
             all_columns
                 .clone()
@@ -240,28 +233,31 @@ fn needed_column_indexes(
                 .enumerate()
                 .find(|(_index, column)| needed_column == *column)
                 .map(|(index, _)| index)
-                .unwrap() /* TODO: Handle */
+                .ok_or(SelectError::ReportableLostColumn.into())
         })
         .collect()
 }
 
-fn condensed_column_rows(needed_column_indexes: Vec<usize>, rows: Vec<Row>) -> Vec<Row> {
-    rows.into_iter()
+fn condensed_column_rows(needed_column_indexes: Vec<usize>, rows: Vec<Row>) -> Result<Vec<Row>> {
+    rows.into_par_iter()
         .map(|row| {
-            Row(needed_column_indexes
+            needed_column_indexes
                 .clone()
                 .into_iter()
-                .map(
-                    |index| row.get_value(index).unwrap().clone(), /* TODO: Handle */
-                )
-                .collect())
+                .map(|index| {
+                    row.get_value(index)
+                        .map(|row| row.clone()) // This is a very heavy use function and so this is very expensive. TODO: Improve.
+                        .ok_or(SelectError::ReportableLostColumn.into())
+                })
+                .collect::<Result<Vec<Value>>>()
+                .map(Row)
         })
         .collect()
 }
 
 fn join_fold(join_rows: Vec<Row>, mut joined_rows: Vec<Row>, to_join: Row) -> Vec<Row> {
     let mut join_rows = join_rows
-        .into_iter()
+        .into_par_iter()
         .map(|mut join_row| {
             join_row.0.append(&mut to_join.0.clone());
             join_row
