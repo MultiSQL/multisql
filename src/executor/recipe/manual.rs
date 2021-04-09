@@ -1,7 +1,7 @@
 use {
     super::{
-        Aggregate, BinaryOperator, BooleanCheck, Function, Ingredient, Method, Recipe, RecipeError,
-        Resolve, UnaryOperator, RECIPE_NULL,
+        Aggregate, BinaryOperator, BooleanCheck, Function, Ingredient, MacroComponents, Method,
+        Recipe, RecipeError, Resolve, Subquery, UnaryOperator, RECIPE_NULL,
     },
     crate::{Literal, Result, Row, Table, Value},
     sqlparser::ast::{
@@ -23,9 +23,9 @@ pub struct Manual {
     pub joins: Vec<Join>,
     pub selections: Vec<Selection>,
     pub needed_columns: Vec<ObjectName>,
-    pub groups: Vec<usize>,
+    pub groups: Vec<Recipe>,
     pub constraint: Recipe,
-    pub contains_aggregate: bool,
+    pub aggregate_selection_indexes: Vec<usize>,
     pub limit: Recipe,
 }
 
@@ -52,27 +52,24 @@ impl Manual {
             if statement.from.len() > 1 {
                 return Err(RecipeError::UnimplementedQuery(format!("{:?}", statement)).into());
             }
+
             let from = statement
                 .from
                 .get(0)
                 .ok_or(RecipeError::InvalidQuery(format!("{:?}", statement)))?;
             let initial_table = table_identity(Table::new(&from.relation)?);
-            let joins = from
-                .joins
-                .clone()
-                .into_iter()
-                .map(map_join)
-                .collect::<Result<Vec<Join>>>()?;
 
             let mut needed_columns = vec![];
-            let mut contains_aggregate = false;
             let constraint = statement
                 .selection
-                .map::<Result<Recipe>, _>(|selection| {
-                    let (recipe, _) = recipe(selection, &mut needed_columns)?;
-                    Ok(recipe)
-                })
+                .map(|selection| recipe(selection, &mut needed_columns))
                 .unwrap_or(Ok(Recipe::Ingredient(Ingredient::Value(Value::Null))))?;
+            let limit = query
+                .limit
+                .or(statement.top.map(|top| top.quantity).flatten())
+                .map(|expression| recipe(expression, &mut needed_columns))
+                .unwrap_or(Ok(RECIPE_NULL))?;
+
             let selections = statement
                 .projection
                 .into_iter()
@@ -84,12 +81,7 @@ impl Manual {
                                 SelectItem::ExprWithAlias { expr, alias } => (expr, Some(alias)),
                                 _ => unreachable!(),
                             };
-                            let recipe = recipe_set_aggregate(
-                                expression,
-                                &mut needed_columns,
-                                &mut contains_aggregate,
-                            )?;
-                            let recipe = recipe.simplify(None)?; // TODO: Handle!
+                            let recipe = recipe(expression, &mut needed_columns)?;
                             Selection::Recipe { alias, recipe }
                         }
                         SelectItem::Wildcard => Selection::Wildcard { qualifier: None },
@@ -100,13 +92,32 @@ impl Manual {
                 })
                 .collect::<Result<Vec<Selection>>>()?;
 
-            let groups = vec![]; // TODO
+            let joins = from
+                .joins
+                .clone()
+                .into_iter()
+                .map(map_join)
+                .collect::<Result<Vec<Join>>>()?;
 
-            let limit = query
-                .limit
-                .or(statement.top.map(|top| top.quantity).flatten())
-                .map(|expression| recipe(expression, &mut needed_columns).map(|(recipe, _)| recipe))
-                .unwrap_or(Ok(RECIPE_NULL))?;
+            let groups = statement
+                .group_by
+                .into_iter()
+                .map(|expression| recipe(expression, &mut needed_columns))
+                .collect::<Result<Vec<Recipe>>>()?;
+
+            let MacroComponents {
+                aggregate_selection_indexes,
+                subqueries,
+            } = MacroComponents::new(&selections)?;
+
+            let mut joins = joins;
+            joins.extend(
+                subqueries
+                    .into_iter()
+                    .map(map_subquery_to_join)
+                    .collect::<Vec<Join>>(),
+            );
+            let joins = joins;
 
             Ok(Manual {
                 initial_table,
@@ -115,7 +126,7 @@ impl Manual {
                 needed_columns,
                 groups,
                 constraint,
-                contains_aggregate: false,
+                aggregate_selection_indexes,
                 limit,
             })
         } else {
@@ -124,28 +135,32 @@ impl Manual {
     }
 }
 
+fn map_subquery_to_join(subquery: Subquery) -> Join {
+    (
+        (String::new() /* Alias */, subquery.table),
+        (
+            JoinOperator::Inner, /* TODO: Think about join type*/
+            subquery.constraint,
+            vec![],
+        ),
+    )
+}
+
 fn convert_join(from: JoinOperatorAst) -> Result<(JoinOperator, Recipe, Vec<ObjectName>)> {
     let mut columns = vec![];
     let values = match from {
         JoinOperatorAst::Inner(JoinConstraint::On(constraint)) => (JoinOperator::Inner, constraint),
         _ => unreachable!(),
     };
-    Ok((
-        values.0,
-        recipe_no_aggregate(values.1, &mut columns)?,
-        columns,
-    ))
+    Ok((values.0, recipe(values.1, &mut columns)?, columns))
 }
 
 fn table_identity(table: Table) -> TableIdentity {
     (table.get_alias().clone(), table.get_name().clone())
 }
 
-fn recipe(expression: Expr, columns: &mut Vec<ObjectName>) -> Result<(Recipe, bool)> {
-    let mut is_aggregate = false;
-    let is_aggregate_ref = &mut is_aggregate;
-
-    let recipe = match expression {
+fn recipe(expression: Expr, columns: &mut Vec<ObjectName>) -> Result<Recipe> {
+    match expression {
         Expr::Identifier(identifier) => {
             #[cfg(feature = "double_quote_strings")]
             if identifier.quote_style == Some('"') {
@@ -164,50 +179,41 @@ fn recipe(expression: Expr, columns: &mut Vec<ObjectName>) -> Result<(Recipe, bo
         )?))),
         Expr::IsNull(expression) => Ok(Recipe::Method(Box::new(Method::BooleanCheck(
             BooleanCheck::IsNull,
-            recipe_set_aggregate(*expression, columns, is_aggregate_ref)?,
+            recipe(*expression, columns)?,
         )))),
         Expr::IsNotNull(expression) => Ok(Recipe::Method(Box::new(Method::UnaryOperation(
             UnaryOperator::Not,
             Recipe::Method(Box::new(Method::BooleanCheck(
                 BooleanCheck::IsNull,
-                recipe_set_aggregate(*expression, columns, is_aggregate_ref)?,
+                recipe(*expression, columns)?,
             ))),
         )))),
         Expr::UnaryOp { op, expr } => Ok(Recipe::Method(Box::new(Method::UnaryOperation(
             op.try_into()?,
-            recipe_set_aggregate(*expr, columns, is_aggregate_ref)?,
+            recipe(*expr, columns)?,
         )))),
         Expr::BinaryOp { op, left, right } => {
             Ok(Recipe::Method(Box::new(Method::BinaryOperation(
                 op.try_into()?,
-                recipe_set_aggregate(*left, columns, is_aggregate_ref)?,
-                recipe_set_aggregate(*right, columns, is_aggregate_ref)?,
+                recipe(*left, columns)?,
+                recipe(*right, columns)?,
             ))))
         }
         Expr::Function(function) => {
             let name = function.name.0[0].value.clone();
-            let mut arguments = vec![];
-            for result in function
+            let arguments = function
                 .args
                 .into_iter()
                 .map(|argument| recipe_from_argument(argument, columns))
-            {
-                let (recipe, aggregate) = result?;
-                if !is_aggregate && aggregate {
-                    is_aggregate = true;
-                }
-                arguments.push(recipe);
-            } // TODO: Improve
+                .collect::<Result<Vec<Recipe>>>()?;
             let function: Result<Function> = name.clone().try_into();
             if function.is_ok() {
                 Ok(Recipe::Method(Box::new(Method::Function(
                     function?, arguments,
                 ))))
             } else {
-                let aggregate: Result<Aggregate> = name.try_into();
-                is_aggregate = aggregate.is_ok();
                 Ok(Recipe::Method(Box::new(Method::Aggregate(
-                    aggregate?,
+                    name.try_into()?,
                     arguments
                         .get(0)
                         .ok_or(RecipeError::InvalidFunction)?
@@ -215,35 +221,47 @@ fn recipe(expression: Expr, columns: &mut Vec<ObjectName>) -> Result<(Recipe, bo
                 ))))
             }
         }
-        Expr::Nested(expression) => recipe(*expression, columns).map(|(recipe, aggregate)| {
-            is_aggregate = aggregate;
-            recipe
-        }),
+        Expr::Subquery(query) => {
+            if let SetExpr::Select(statement) = query.body {
+                let table = statement
+                    .from
+                    .get(0)
+                    .ok_or(RecipeError::InvalidQuery(format!("{:?}", statement)))?
+                    .relation
+                    .clone();
+                let table = table_identity(Table::new(&table)?).1;
+
+                let column = statement
+                    .projection
+                    .get(0)
+                    .map(|item| {
+                        if let SelectItem::UnnamedExpr(expression) = item {
+                            Some(recipe(expression.clone(), columns))
+                        } else {
+                            None
+                        }
+                    })
+                    .flatten()
+                    .ok_or(RecipeError::InvalidQuery(format!("{:?}", statement)))??;
+
+                Ok(Recipe::Method(Box::new(Method::Subquery(Subquery {
+                    table,
+                    column,
+                    constraint: statement
+                        .selection
+                        .map::<Result<Recipe>, _>(|selection| recipe(selection, columns))
+                        .unwrap_or(Ok(Recipe::Ingredient(Ingredient::Value(Value::Null))))?,
+                }))))
+            } else {
+                Err(RecipeError::UnimplementedQuery(format!("{:?}", query)).into())
+            }
+        }
+        Expr::Nested(expression) => recipe(*expression, columns),
         unimplemented => Err(RecipeError::UnimplementedExpression(unimplemented).into()),
-    };
-    recipe.map(|recipe| (recipe, is_aggregate))
-}
-
-fn recipe_no_aggregate(expression: Expr, columns: &mut Vec<ObjectName>) -> Result<Recipe> {
-    recipe(expression, columns).map(|(recipe, _)| recipe)
-}
-
-fn recipe_set_aggregate(
-    expression: Expr,
-    columns: &mut Vec<ObjectName>,
-    is_aggregate: &mut bool,
-) -> Result<Recipe> {
-    let (recipe, aggregate) = recipe(expression, columns)?;
-    if !*is_aggregate && aggregate {
-        *is_aggregate = true; // TODO: !!!!: I suspect this will not work
     }
-    Ok(recipe)
 }
 
-fn recipe_from_argument(
-    argument: FunctionArg,
-    columns: &mut Vec<ObjectName>,
-) -> Result<(Recipe, bool)> {
+fn recipe_from_argument(argument: FunctionArg, columns: &mut Vec<ObjectName>) -> Result<Recipe> {
     match argument {
         FunctionArg::Named { arg, .. } | FunctionArg::Unnamed(arg) => recipe(arg, columns),
     }

@@ -3,7 +3,7 @@ use {
         manual::{
             column_recipe, ColumnsAndRows, LabelledSelection, LabelsAndRows, ObjectName, Selection,
         },
-        Ingredient, Join, Manual, Recipe, Resolve,
+        Ingredient, Join, Keys, Manual, Recipe, Resolve,
     },
     crate::{executor::fetch::fetch_columns, store::Store, Result, Row, Value},
     futures::stream::{self, TryStreamExt},
@@ -40,11 +40,25 @@ pub async fn select<'a, T: 'static + Debug>(
         selections,
         needed_columns,
         constraint,
-        groups: _,
-        contains_aggregate: _,
+        groups,
         limit,
+        aggregate_selection_indexes,
     } = manual;
-    println!("{:?}", constraint); // TODO DEBUG
+
+    // Subqueries are gross atm. TODO: Make subqueries nicer.
+    let selections = selections
+        .into_iter()
+        .map(|selection| {
+            if let Selection::Recipe { recipe, alias } = selection {
+                let recipe = recipe.simplify(Some(&Keys { row: None }))?;
+                Ok(Selection::Recipe { recipe, alias })
+            } else {
+                Ok(selection)
+            }
+        })
+        .collect::<Result<Vec<Selection>>>()?;
+    let constraint = constraint.simplify(Some(&Keys { row: None }))?;
+    // UNHANDLED: Unhandled error case: cross plane expressions
 
     let table_name = initial_table.1.as_str();
     let columns = get_columns(storage, table_name).await?;

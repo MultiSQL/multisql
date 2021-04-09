@@ -1,16 +1,20 @@
+mod find;
 mod from;
+mod macro_components;
 pub mod manual;
 pub mod method;
 mod resolve;
 
 pub use {
+    find::Find,
+    macro_components::{MacroComponents, Subquery},
     manual::{Join, Manual},
     method::CalculationError,
-    resolve::Resolve,
+    resolve::{Keys, Resolve, ResolveKeys},
 };
 
 use {
-    crate::{Result, Row, Value},
+    crate::{Result, Row, Store, Value},
     method::{Aggregate, BinaryOperator, BooleanCheck, Function, UnaryOperator},
     serde::Serialize,
     sqlparser::ast::{DataType, Expr},
@@ -44,6 +48,7 @@ pub enum Method {
     Cast(DataType, Recipe),
 
     Aggregate(Aggregate, Recipe),
+    Subquery(Subquery),
 }
 
 #[derive(Error, Serialize, Debug, PartialEq)]
@@ -65,9 +70,11 @@ pub enum RecipeError {
 
     #[error("other failure occurred: {0}")]
     Failed(String),
+
+    #[error("this should be impossible, please report")]
+    Unreachable,
 }
 
-type RecipeKey<'a> = Option<&'a Row>;
 type RecipeSolution = Option<Result<Value>>;
 type MethodRecipeSolution = Result<Value>;
 
@@ -79,11 +86,12 @@ impl Recipe {
             None
         }
     }
-    pub fn must_solve(self, row: &Row) -> Result<Value> {
-        self.solve(Some(row))
+    pub fn must_solve<'a>(self, row: &'a Row) -> Result<Value> {
+        println!("{:?}", self.clone());
+        self.solve(Some(&Keys { row: Some(row) }))
             .unwrap_or(Err(RecipeError::MissingComponents.into()))
     }
-    pub fn confirm(self, row: &Row) -> Result<bool> {
+    pub fn confirm<'a>(self, row: &'a Row) -> Result<bool> {
         Ok(matches!(
             self.must_solve(row)?,
             Value::Null | Value::Bool(true)

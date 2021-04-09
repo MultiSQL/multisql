@@ -25,6 +25,7 @@ pub enum Value {
     I64(i64),
     F64(f64),
     Str(String),
+    //Array(Box<Vec<Value>>),
     Null,
 }
 
