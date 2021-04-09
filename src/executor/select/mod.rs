@@ -1,15 +1,19 @@
+mod columns;
+mod join;
+mod rows;
+
 use {
     super::recipe::{
-        manual::{
-            column_recipe, ColumnsAndRows, LabelledSelection, LabelsAndRows, ObjectName, Selection,
-        },
+        manual::{column_recipe, LabelledSelection, LabelsAndRows, ObjectName, Selection},
         Ingredient, Join, Keys, Manual, Recipe, Resolve,
     },
-    crate::{executor::fetch::fetch_columns, store::Store, Result, Row, Value},
+    crate::{store::Store, Result, Row, Value},
+    columns::{get_columns, needed_column_indexes},
     futures::stream::{self, TryStreamExt},
-    rayon::prelude::*,
+    join::join_table,
+    rows::{condensed_column_rows, confirm_rows, get_rows},
     serde::Serialize,
-    sqlparser::ast::{Ident, Query},
+    sqlparser::ast::Query,
     std::fmt::Debug,
     thiserror::Error as ThisError,
 };
@@ -21,6 +25,9 @@ pub enum SelectError {
 
     #[error("table alias not found: {0}")]
     TableAliasNotFound(String),
+
+    #[error("column not found: {0:?}")]
+    ColumnNotFound(Vec<String>),
 
     #[error("column could not be found for some reason")]
     ReportableLostColumn,
@@ -58,7 +65,6 @@ pub async fn select<'a, T: 'static + Debug>(
         })
         .collect::<Result<Vec<Selection>>>()?;
     let constraint = constraint.simplify(Some(&Keys { row: None }))?;
-    // UNHANDLED: Unhandled error case: cross plane expressions
 
     let table_name = initial_table.1.as_str();
     let columns = get_columns(storage, table_name).await?;
@@ -152,6 +158,7 @@ fn expand_selections(
         });
     (labelled_selections, needed_columns)
 }
+
 fn alias_from_recipe(recipe: Recipe, columns: &Vec<ObjectName>) -> String {
     match recipe {
         Recipe::Ingredient(Ingredient::Column(index)) => columns
@@ -162,128 +169,8 @@ fn alias_from_recipe(recipe: Recipe, columns: &Vec<ObjectName>) -> String {
     .unwrap_or(String::new())
 }
 fn alias_from_object_name(name: &ObjectName) -> String {
-    let mut iter = name.into_iter();
-    let first_value = iter
-        .next()
-        .map(|part| part.value.clone())
-        .unwrap_or(String::new());
-    iter.fold(first_value, |alias, part| {
-        format!("{}.{}", alias, part.value.clone())
-    })
-}
-
-async fn join_table<'a, T: 'static + Debug>(
-    storage: &'a dyn Store<T>,
-    columns_and_rows: ColumnsAndRows,
-    join: Join,
-) -> Result<ColumnsAndRows> {
-    let (columns, rows) = columns_and_rows;
-    let mut columns = columns;
-    let (table, (_join_operation, recipe, needed_columns)) = join;
-    let table_name = table.1.as_str();
-
-    let mut join_columns = get_columns(storage, table_name).await?;
-    columns.append(&mut join_columns);
-
-    let join_rows = get_rows(storage, table_name).await?;
-
-    let joined_rows = rows.into_iter().fold(vec![], |joined_rows, to_join| {
-        join_fold(join_rows.clone(), joined_rows, to_join)
-    });
-
-    let needed_column_indexes = needed_column_indexes(needed_columns, columns.clone())?;
-
-    // Only inner for now
-    let confirmed_joined_rows = confirm_rows(joined_rows, needed_column_indexes, recipe)?;
-
-    Ok((columns, confirmed_joined_rows))
-}
-
-fn confirm_rows(
-    joined_rows: Vec<Row>,
-    needed_column_indexes: Vec<usize>,
-    recipe: Recipe,
-) -> Result<Vec<Row>> {
-    let check_rows = condensed_column_rows(needed_column_indexes, joined_rows.clone())?;
-
-    joined_rows
-        .into_iter() // Want to parallelise but cannot due to error not having send. TODO.
-        .zip(check_rows)
-        .filter_map(
-            |(join_row, check_row)| match recipe.clone().confirm(&check_row) {
-                Ok(true) => Some(Ok(join_row)),
-                Ok(false) => None,
-                Err(error) => Some(Err(error)),
-            },
-        )
-        .collect::<Result<Vec<Row>>>()
-}
-
-async fn get_columns<'a, T: 'static + Debug>(
-    storage: &'a dyn Store<T>,
-    table_name: &str,
-) -> Result<Vec<Vec<Ident>>> {
-    Ok(fetch_columns(storage, table_name)
-        .await?
-        .into_iter()
-        .map(|column| vec![column])
-        .collect())
-}
-
-async fn get_rows<'a, T: 'static + Debug>(
-    storage: &'a dyn Store<T>,
-    table_name: &str,
-) -> Result<Vec<Row>> {
-    storage
-        .scan_data(table_name)
-        .await?
-        .map(|result| result.map(|(_, row)| row))
-        .collect::<Result<Vec<Row>>>()
-}
-
-fn needed_column_indexes(
-    needed_columns: Vec<Vec<Ident>>,
-    all_columns: Vec<Vec<Ident>>,
-) -> Result<Vec<usize>> {
-    needed_columns
-        .into_par_iter()
-        .map(|needed_column| {
-            all_columns
-                .clone()
-                .into_iter()
-                .enumerate()
-                .find(|(_index, column)| needed_column == *column)
-                .map(|(index, _)| index)
-                .ok_or(SelectError::ReportableLostColumn.into())
-        })
-        .collect()
-}
-
-fn condensed_column_rows(needed_column_indexes: Vec<usize>, rows: Vec<Row>) -> Result<Vec<Row>> {
-    rows.into_par_iter()
-        .map(|row| {
-            needed_column_indexes
-                .clone()
-                .into_iter()
-                .map(|index| {
-                    row.get_value(index)
-                        .map(|row| row.clone()) // This is a very heavy use function and so this is very expensive. TODO: Improve.
-                        .ok_or(SelectError::ReportableLostColumn.into())
-                })
-                .collect::<Result<Vec<Value>>>()
-                .map(Row)
-        })
-        .collect()
-}
-
-fn join_fold(join_rows: Vec<Row>, mut joined_rows: Vec<Row>, to_join: Row) -> Vec<Row> {
-    let mut join_rows = join_rows
-        .into_par_iter()
-        .map(|mut join_row| {
-            join_row.0.append(&mut to_join.0.clone());
-            join_row
-        })
-        .collect::<Vec<Row>>();
-    joined_rows.append(&mut join_rows);
-    joined_rows
+    name.into_iter()
+        .last()
+        .map(|string| string.clone())
+        .unwrap_or(String::new())
 }

@@ -1,9 +1,14 @@
+mod join;
+
+pub use join::{Join, JoinOperator};
+
 use {
     super::{
         Aggregate, BinaryOperator, BooleanCheck, Function, Ingredient, MacroComponents, Method,
         Recipe, RecipeError, Resolve, Subquery, UnaryOperator, RECIPE_NULL,
     },
     crate::{Literal, Result, Row, Table, Value},
+    join::{convert_join, map_join, map_subquery_to_join},
     sqlparser::ast::{
         Expr, FunctionArg, Ident, Join as AstJoin, JoinConstraint, JoinOperator as JoinOperatorAst,
         Query, SelectItem, SetExpr,
@@ -11,8 +16,7 @@ use {
     std::convert::{TryFrom, TryInto},
 };
 
-pub type ObjectName = Vec<Ident>;
-pub type Join = (TableIdentity, (JoinOperator, Recipe, Vec<ObjectName>));
+pub type ObjectName = Vec<String>;
 pub type TableIdentity = (String /*alias*/, String /*name*/);
 pub type ColumnsAndRows = (Vec<ObjectName>, Vec<Row>);
 pub type LabelsAndRows = (Vec<String>, Vec<Row>);
@@ -37,13 +41,6 @@ pub enum Selection {
     Wildcard {
         qualifier: Option<ObjectName>,
     },
-}
-
-pub enum JoinOperator {
-    Inner,
-    Left,
-    Right,
-    Full,
 }
 
 impl Manual {
@@ -86,7 +83,7 @@ impl Manual {
                         }
                         SelectItem::Wildcard => Selection::Wildcard { qualifier: None },
                         SelectItem::QualifiedWildcard(qualifier) => Selection::Wildcard {
-                            qualifier: Some(qualifier.0),
+                            qualifier: Some(identifier_into_object_name(qualifier.0)),
                         },
                     })
                 })
@@ -135,28 +132,15 @@ impl Manual {
     }
 }
 
-fn map_subquery_to_join(subquery: Subquery) -> Join {
-    (
-        (String::new() /* Alias */, subquery.table),
-        (
-            JoinOperator::Inner, /* TODO: Think about join type*/
-            subquery.constraint,
-            vec![],
-        ),
-    )
-}
-
-fn convert_join(from: JoinOperatorAst) -> Result<(JoinOperator, Recipe, Vec<ObjectName>)> {
-    let mut columns = vec![];
-    let values = match from {
-        JoinOperatorAst::Inner(JoinConstraint::On(constraint)) => (JoinOperator::Inner, constraint),
-        _ => unreachable!(),
-    };
-    Ok((values.0, recipe(values.1, &mut columns)?, columns))
-}
-
 fn table_identity(table: Table) -> TableIdentity {
     (table.get_alias().clone(), table.get_name().clone())
+}
+
+fn identifier_into_object_name(identifier: Vec<Ident>) -> ObjectName {
+    identifier
+        .into_iter()
+        .map(|identifier| identifier.value)
+        .collect()
 }
 
 fn recipe(expression: Expr, columns: &mut Vec<ObjectName>) -> Result<Recipe> {
@@ -168,12 +152,18 @@ fn recipe(expression: Expr, columns: &mut Vec<ObjectName>) -> Result<Recipe> {
                     identifier.value,
                 ))))
             } else {
-                Ok(column_recipe(vec![identifier], columns))
+                Ok(column_recipe(
+                    identifier_into_object_name(vec![identifier]),
+                    columns,
+                ))
             }
             #[cfg(not(feature = "double_quote_strings"))]
-            Ok(column_recipe(vec![identifier], columns))
+            Ok(column_recipe(vec![identifier.value], columns))
         }
-        Expr::CompoundIdentifier(identifier) => Ok(column_recipe(identifier, columns)),
+        Expr::CompoundIdentifier(identifier) => Ok(column_recipe(
+            identifier_into_object_name(identifier),
+            columns,
+        )),
         Expr::Value(value) => Ok(Recipe::Ingredient(Ingredient::Value(Value::try_from(
             Literal::try_from(&value)?,
         )?))),
@@ -265,13 +255,6 @@ fn recipe_from_argument(argument: FunctionArg, columns: &mut Vec<ObjectName>) ->
     match argument {
         FunctionArg::Named { arg, .. } | FunctionArg::Unnamed(arg) => recipe(arg, columns),
     }
-}
-
-fn map_join(join: AstJoin) -> Result<Join> {
-    Ok((
-        table_identity(Table::new(&join.relation)?),
-        convert_join(join.join_operator)?,
-    ))
 }
 
 pub fn column_recipe(identifier: ObjectName, columns: &mut Vec<ObjectName>) -> Recipe {

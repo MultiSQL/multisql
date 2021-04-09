@@ -87,7 +87,6 @@ impl Recipe {
         }
     }
     pub fn must_solve<'a>(self, row: &'a Row) -> Result<Value> {
-        println!("{:?}", self.clone());
         self.solve(Some(&Keys { row: Some(row) }))
             .unwrap_or(Err(RecipeError::MissingComponents.into()))
     }

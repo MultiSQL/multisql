@@ -74,7 +74,7 @@ test_case!(upper_lower, async move {
         ),
         (
             "SELECT WHATEVER(1) FROM Item",
-            Err(EvaluateError::FunctionNotSupported("WHATEVER".to_owned()).into()),
+            Err(RecipeError::UnimplementedMethod("WHATEVER".to_owned()).into()),
         ),
     ];
 
