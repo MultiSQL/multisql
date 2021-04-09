@@ -15,24 +15,12 @@ test_case!(cast_literal, async move {
             Ok(select!(cast Bool; true)),
         ),
         (
-            r#"SELECT CAST("asdf" AS BOOLEAN) AS cast FROM Item"#,
-            Err(ValueError::LiteralCastToBooleanFailed("asdf".to_owned()).into()),
-        ),
-        (
-            r#"SELECT CAST(3 AS BOOLEAN) AS cast FROM Item"#,
-            Err(ValueError::LiteralCastToBooleanFailed("3".to_owned()).into()),
-        ),
-        (
             r#"SELECT CAST(NULL AS BOOLEAN) AS cast FROM Item"#,
             Ok(select_with_null!(cast; Null)),
         ),
         (
             r#"SELECT CAST("1" AS INTEGER) AS cast FROM Item"#,
             Ok(select!(cast I64; 1)),
-        ),
-        (
-            r#"SELECT CAST("foo" AS INTEGER) AS cast FROM Item"#,
-            Err(ValueError::LiteralCastFromTextToIntegerFailed("foo".to_owned()).into()),
         ),
         (
             r#"SELECT CAST(1.1 AS INTEGER) AS cast FROM Item"#,
@@ -53,10 +41,6 @@ test_case!(cast_literal, async move {
         (
             r#"SELECT CAST(1 AS FLOAT) AS cast FROM Item"#,
             Ok(select!(cast F64; 1.0)),
-        ),
-        (
-            r#"SELECT CAST("foo" AS FLOAT) AS cast FROM Item"#,
-            Err(ValueError::LiteralCastToFloatFailed("foo".to_owned()).into()),
         ),
         (
             r#"SELECT CAST(TRUE AS FLOAT) AS cast FROM Item"#,
@@ -81,14 +65,6 @@ test_case!(cast_literal, async move {
         (
             r#"SELECT CAST(NULL AS TEXT) AS cast FROM Item"#,
             Ok(select_with_null!(cast; Null)),
-        ),
-        (
-            r#"SELECT CAST(NULL AS NULL) FROM Item"#,
-            Err(ValueError::UnimplementedLiteralCast {
-                data_type: "NULL".to_owned(),
-                literal: format!("{:?}", data::Literal::Null),
-            }
-            .into()),
         ),
     ];
 

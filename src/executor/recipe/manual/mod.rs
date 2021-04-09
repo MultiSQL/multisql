@@ -4,8 +4,8 @@ pub use join::{Join, JoinOperator};
 
 use {
     super::{
-        Aggregate, BinaryOperator, BooleanCheck, Function, Ingredient, MacroComponents, Method,
-        Recipe, RecipeError, Resolve, Subquery, UnaryOperator, RECIPE_NULL,
+        BinaryOperator, BooleanCheck, Function, Ingredient, MacroComponents, Method, Recipe,
+        RecipeError, Subquery, UnaryOperator, RECIPE_NULL,
     },
     crate::{Literal, Result, Row, Table, Value},
     join::{convert_join, map_join, map_subquery_to_join},
@@ -210,6 +210,36 @@ fn recipe(expression: Expr, columns: &mut Vec<ObjectName>) -> Result<Recipe> {
                         .clone(),
                 ))))
             }
+        }
+        Expr::Cast { data_type, expr } => Ok(Recipe::Method(Box::new(Method::Cast(
+            data_type,
+            recipe(*expr, columns)?,
+        )))),
+        Expr::Between {
+            negated,
+            expr,
+            low,
+            high,
+        } => {
+            let body = Method::BinaryOperation(
+                BinaryOperator::And,
+                Recipe::Method(Box::new(Method::BinaryOperation(
+                    BinaryOperator::GtEq,
+                    recipe(*expr.clone(), columns)?,
+                    recipe(*low, columns)?,
+                ))),
+                Recipe::Method(Box::new(Method::BinaryOperation(
+                    BinaryOperator::LtEq,
+                    recipe(*expr, columns)?,
+                    recipe(*high, columns)?,
+                ))),
+            );
+            let body = if negated {
+                Method::UnaryOperation(UnaryOperator::Not, Recipe::Method(Box::new(body)))
+            } else {
+                body
+            };
+            Ok(Recipe::Method(Box::new(body)))
         }
         Expr::Subquery(query) => {
             if let SetExpr::Select(statement) = query.body {

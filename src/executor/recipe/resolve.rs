@@ -93,7 +93,7 @@ impl Resolve for Method {
                     .collect::<Option<Result<Vec<Value>>>>());
                 function.solve(arguments)
             }
-            Method::Cast(data_type, recipe) => unimplemented!(),
+            Method::Cast(data_type, recipe) => handle!(recipe.solve(keys)).cast(&data_type),
 
             Method::Aggregate(aggregate, recipe) => unimplemented!(),
             Method::Subquery(query) => {
