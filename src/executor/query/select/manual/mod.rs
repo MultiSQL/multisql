@@ -8,7 +8,7 @@ use {
         Result,
     },
     serde::Serialize,
-    sqlparser::ast::{Ident, Select, SelectItem as SelectItemAst},
+    sqlparser::ast::{Expr, Ident, Select, SelectItem as SelectItemAst},
     std::fmt::Debug,
     thiserror::Error as ThisError,
 };
@@ -20,21 +20,13 @@ pub enum ManualError {
 }
 
 pub struct Manual {
-    pub input: ManualInput,
-    pub output: ManualOutput,
-}
-pub struct ManualInput {
     pub joins: Vec<JoinManual>,
     pub select_items: Vec<SelectItem>,
     pub constraint: MetaRecipe,
     pub groups: Vec<MetaRecipe>,
 }
-pub struct ManualOutput {
-    pub select_item_aliases: Vec<Alias>,
-}
-
 pub enum SelectItem {
-    Recipe(MetaRecipe),
+    Recipe(MetaRecipe, Alias),
     Wildcard(Option<ObjectName>),
 }
 
@@ -59,14 +51,13 @@ impl Manual {
             .map(|selection| MetaRecipe::new(selection))
             .unwrap_or(Ok(MetaRecipe::TRUE))?;
 
-        let (select_items, subqueries): (Vec<(SelectItem, Alias)>, Vec<Vec<JoinManual>>) =
-            projection
-                .into_iter()
-                .map(convert_select_item)
-                .collect::<Result<Vec<((SelectItem, Alias), Vec<JoinManual>)>>>()?
-                .into_iter()
-                .unzip();
-        let (select_items, select_item_aliases) = select_items.into_iter().unzip();
+        let (select_items, subqueries): (Vec<SelectItem>, Vec<Vec<JoinManual>>) = projection
+            .into_iter()
+            .map(convert_select_item)
+            .collect::<Result<Vec<(SelectItem, Vec<JoinManual>)>>>()?
+            .into_iter()
+            .unzip();
+
         let subqueries = subqueries
             .into_iter()
             .reduce(|mut all_subqueries, subqueries| {
@@ -103,15 +94,10 @@ impl Manual {
             .collect::<Result<Vec<MetaRecipe>>>()?;
 
         Ok(Manual {
-            input: ManualInput {
-                joins,
-                select_items,
-                constraint,
-                groups,
-            },
-            output: ManualOutput {
-                select_item_aliases,
-            },
+            joins,
+            select_items,
+            constraint,
+            groups,
         })
     }
 }
@@ -123,26 +109,28 @@ fn identifier_into_object_name(identifier: Vec<Ident>) -> ObjectName {
         .collect()
 }
 
-fn convert_select_item(
-    select_item: SelectItemAst,
-) -> Result<((SelectItem, Alias), Vec<JoinManual>)> {
+fn convert_select_item(select_item: SelectItemAst) -> Result<(SelectItem, Vec<JoinManual>)> {
     Ok(match select_item {
         SelectItemAst::UnnamedExpr(_) | SelectItemAst::ExprWithAlias { .. } => {
             let (expression, alias) = match select_item {
-                SelectItemAst::UnnamedExpr(expression) => (expression, None),
+                SelectItemAst::UnnamedExpr(expression) => {
+                    let alias = if let Expr::Identifier(identifier) = expression.clone() {
+                        Some(identifier.value)
+                    } else {
+                        None
+                    };
+                    (expression, alias)
+                }
                 SelectItemAst::ExprWithAlias { expr, alias } => (expr, Some(alias.value)),
                 _ => unreachable!(),
             };
             let recipe = MetaRecipe::new(expression)?;
             let subqueries = recipe.meta.subqueries.clone();
-            ((SelectItem::Recipe(recipe), alias), subqueries)
+            (SelectItem::Recipe(recipe, alias), subqueries)
         }
-        SelectItemAst::Wildcard => ((SelectItem::Wildcard(None), None), vec![]),
+        SelectItemAst::Wildcard => (SelectItem::Wildcard(None), vec![]),
         SelectItemAst::QualifiedWildcard(qualifier) => (
-            (
-                SelectItem::Wildcard(Some(identifier_into_object_name(qualifier.0))),
-                None,
-            ),
+            SelectItem::Wildcard(Some(identifier_into_object_name(qualifier.0))),
             vec![],
         ),
     })

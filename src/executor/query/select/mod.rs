@@ -3,8 +3,8 @@ mod manual;
 mod plan;
 
 pub use {
-    manual::{Manual, ManualError, ManualInput, ManualOutput, SelectItem},
-    plan::{Plan, PlanError, PlanInput},
+    manual::{Manual, ManualError, SelectItem},
+    plan::{Plan, PlanError},
 };
 
 use {
@@ -42,16 +42,11 @@ pub async fn select<'a, Key: 'static + Debug>(
     query: Select,
 ) -> Result<LabelsAndRows> {
     let Plan {
-        input:
-            PlanInput {
-                joins,
-                select_items,
-                constraint,
-                groups,
-            },
-        output: ManualOutput {
-            select_item_aliases,
-        },
+        joins,
+        select_items,
+        constraint,
+        groups,
+        labels,
     } = Plan::new(storage, query).await?;
 
     let rows = stream::iter(joins)
@@ -60,7 +55,6 @@ pub async fn select<'a, Key: 'static + Debug>(
             join.executor().execute(storage, rows).await
         })
         .await?;
-
     let selected_rows = rows
         .iter()
         .filter_map(|row| match constraint.confirm_constraint(row) {
@@ -113,7 +107,7 @@ pub async fn select<'a, Key: 'static + Debug>(
                     .clone();
                 let (partition, todo) = ungrouped_groupers
                     .into_iter()
-                    .partition(|(groupers, row)| groupers == &partitioner);
+                    .partition(|(groupers, _row)| groupers == &partitioner);
                 ungrouped_groupers = todo;
                 let partition = partition
                     .into_iter()
@@ -157,10 +151,5 @@ pub async fn select<'a, Key: 'static + Debug>(
             .collect::<Result<Vec<Row>>>()?
     };
 
-    let select_item_aliases = select_item_aliases
-        .into_iter()
-        .map(|alias| alias.unwrap_or(String::new()))
-        .collect();
-
-    Ok((select_item_aliases, final_rows))
+    Ok((labels, final_rows))
 }

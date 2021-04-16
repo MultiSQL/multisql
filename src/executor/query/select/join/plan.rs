@@ -72,6 +72,9 @@ impl JoinPlan {
             join_type: self.join_type,
         }
     }
+    pub fn set_first_table(&mut self) {
+        self.method = Some(JoinMethod::FirstTable);
+    }
     pub fn decide_method(&mut self, plane_columns: Vec<ComplexColumnName>) -> Result<()> {
         self.method = Some(match &self.unconverted_constraint.recipe {
             Recipe::Ingredient(Ingredient::Value(Value::Bool(true))) => JoinMethod::All,

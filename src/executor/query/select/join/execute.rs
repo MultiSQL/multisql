@@ -1,14 +1,9 @@
 use {
-    super::{JoinError, JoinMethod, JoinPlan, JoinType},
+    super::{JoinMethod, JoinType},
     crate::{
-        executor::{
-            fetch::fetch_columns,
-            recipe::{Resolve, SimplifyBy},
-            types::{Alias, ComplexColumnName, Row, Table, TableWithAlias},
-            MetaRecipe, Recipe,
-        },
+        executor::types::{Row, Table},
         store::Store,
-        Result, RowIter, Value,
+        Result,
     },
     std::fmt::Debug,
 };
@@ -30,9 +25,6 @@ impl JoinExecute {
             .map(|result| result.map(|(_, row)| row.0))
             .collect::<Result<Vec<Row>>>()
     }
-    /*pub fn join_rows(&self, mut plane_rows: Vec<Row>, mut self_rows: Vec<Row>) -> Result<Vec<Row>> {
-        self.method.run(self, plane_rows, self_rows)
-    }*/
     pub async fn execute<'a, Key: 'static + Debug>(
         self,
         storage: &'a dyn Store<Key>,

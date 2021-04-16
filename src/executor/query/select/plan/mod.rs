@@ -1,14 +1,8 @@
 use {
-    super::{
-        join::{JoinManual, JoinPlan},
-        Manual, ManualInput, ManualOutput, SelectItem,
-    },
+    super::{join::JoinPlan, Manual, SelectItem},
     crate::{
-        executor::{
-            types::{ComplexColumnName, Row},
-            MetaRecipe, PlannedRecipe, Recipe, SimplifyBy,
-        },
-        Result, Store, Value,
+        executor::{types::ComplexColumnName, PlannedRecipe},
+        Result, Store,
     },
     futures::future::join_all,
     serde::Serialize,
@@ -18,18 +12,11 @@ use {
 };
 
 pub struct Plan {
-    pub input: PlanInput,
-    pub output: ManualOutput,
-}
-pub struct PlanInput {
     pub joins: Vec<JoinPlan>,
     pub select_items: Vec<PlannedRecipe>,
     pub constraint: PlannedRecipe,
     pub groups: Vec<PlannedRecipe>,
-}
-pub struct RecipePlan {
-    recipe: Recipe,
-    column_indexes: Vec<usize>,
+    pub labels: Vec<String>,
 }
 
 #[derive(ThisError, Serialize, Debug, PartialEq)]
@@ -48,14 +35,10 @@ impl Plan {
         select: Select,
     ) -> Result<Plan> {
         let Manual {
-            input:
-                ManualInput {
-                    joins,
-                    select_items,
-                    constraint,
-                    groups,
-                },
-            output,
+            joins,
+            select_items,
+            constraint,
+            groups,
         } = Manual::new(select)?;
 
         let (joins, columns): (Vec<JoinPlan>, Vec<Vec<ComplexColumnName>>) = join_all(
@@ -116,14 +99,22 @@ impl Plan {
                 }
             });
         }
+        if let Some(first) = requested_joins.first_mut() {
+            first.set_first_table()
+        }
         let joins = requested_joins;
 
+        let include_table = joins.len() != 1;
         let select_items = select_items
             .into_iter()
-            .map(|select_item| {
+            .enumerate()
+            .map(|(index, select_item)| {
                 Ok(match select_item {
-                    SelectItem::Recipe(meta_recipe) => {
-                        vec![PlannedRecipe::new(meta_recipe, &columns)?]
+                    SelectItem::Recipe(meta_recipe, alias) => {
+                        let recipe = PlannedRecipe::new(meta_recipe, &columns)?;
+                        let label =
+                            alias.unwrap_or(recipe.get_label(index, include_table, &columns));
+                        vec![(recipe, label)]
                     }
                     SelectItem::Wildcard(specifier) => {
                         let specified_table = specifier
@@ -148,7 +139,14 @@ impl Plan {
                             .enumerate()
                             .filter_map(|(index, column)| {
                                 if matches_table(column) {
-                                    Some(PlannedRecipe::of_index(index))
+                                    Some((
+                                        PlannedRecipe::of_index(index),
+                                        if include_table {
+                                            format!("{}.{}", column.table.1, column.name)
+                                        } else {
+                                            column.name.clone()
+                                        },
+                                    ))
                                 } else {
                                     None
                                 }
@@ -157,26 +155,27 @@ impl Plan {
                     }
                 })
             })
-            .collect::<Result<Vec<Vec<PlannedRecipe>>>>()? // TODO: Don't do this
+            .collect::<Result<Vec<Vec<(PlannedRecipe, String)>>>>()? // TODO: Don't do this
             .into_iter()
             .reduce(|mut select_items, select_item_set| {
                 select_items.extend(select_item_set);
                 select_items
             })
             .ok_or(PlanError::UnreachableNoSelectItems)?;
+
+        let (select_items, labels) = select_items.into_iter().unzip();
+
         let groups = groups
             .into_iter()
             .map(|group| PlannedRecipe::new(group, &columns))
             .collect::<Result<Vec<PlannedRecipe>>>()?;
         let constraint = PlannedRecipe::new(constraint, &columns)?;
         Ok(Plan {
-            input: PlanInput {
-                joins,
-                select_items,
-                constraint,
-                groups,
-            },
-            output,
+            joins,
+            select_items,
+            constraint,
+            groups,
+            labels,
         })
     }
 }

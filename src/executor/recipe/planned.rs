@@ -1,5 +1,7 @@
 use {
-    super::{MetaRecipe, Method, Recipe, RecipeError, RecipeUtilities, Resolve, SimplifyBy},
+    super::{
+        Ingredient, MetaRecipe, Method, Recipe, RecipeError, RecipeUtilities, Resolve, SimplifyBy,
+    },
     crate::{
         executor::types::{ComplexColumnName, Row},
         Error, Result, Value,
@@ -99,11 +101,21 @@ impl PlannedRecipe {
         Ok(matches!(solution, Value::Bool(true)))
     }
     pub fn simplify_by_row(self, row: &Row) -> Result<Self> {
-        let recipe = self.recipe.simplify(SimplifyBy::Row(row))?;
+        let row = self
+            .needed_column_indexes
+            .clone()
+            .into_iter()
+            .map(|index| {
+                row.get(index)
+                    .ok_or(RecipeError::Unreachable.into())
+                    .map(|value| value.clone())
+            })
+            .collect::<Result<Vec<Value>>>()?;
+        let recipe = self.recipe.simplify(SimplifyBy::Row(&row))?;
         let aggregates = self
             .aggregates
             .into_iter()
-            .map(|aggregate| aggregate.simplify(SimplifyBy::Row(row)))
+            .map(|aggregate| aggregate.simplify(SimplifyBy::Row(&row)))
             .collect::<Result<Vec<Recipe>>>()?;
         let needed_column_indexes = self.needed_column_indexes;
         Ok(Self {
@@ -148,6 +160,29 @@ impl PlannedRecipe {
     }
     pub fn confirm_or_err(self, error: Error) -> Result<Value> {
         confirm_or_err(self.recipe, error)
+    }
+    pub fn get_label(
+        &self,
+        selection_index: usize,
+        include_table: bool,
+        columns: &Vec<ComplexColumnName>,
+    ) -> String {
+        if let Recipe::Ingredient(Ingredient::Column(_)) = self.recipe {
+            self.needed_column_indexes
+                .get(0)
+                .map(|index| columns.get(index.clone()))
+                .flatten()
+                .map(|column| {
+                    if include_table {
+                        format!("{}.{}", column.table.1, column.name)
+                    } else {
+                        column.name.clone()
+                    }
+                })
+        } else {
+            None
+        }
+        .unwrap_or(format!("unnamed_{}", selection_index))
     }
 }
 

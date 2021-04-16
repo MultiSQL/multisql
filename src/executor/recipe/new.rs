@@ -55,7 +55,9 @@ impl RecipeMeta {
         self.subqueries.push(subquery);
     }
     fn find_column(&self, column: &ObjectName) -> Option<usize> {
-        self.columns.iter().position(|column| column == column)
+        self.columns
+            .iter()
+            .position(|search_column| search_column == column)
     }
     pub fn find_or_append_column(&mut self, column: ObjectName) -> usize {
         self.find_column(&column).unwrap_or({
@@ -93,6 +95,9 @@ pub struct Subquery {
 }
 
 impl Recipe {
+    pub fn new_without_meta(expression: Expr) -> Result<Self> {
+        Self::new_with_meta(expression).map(|(new, _)| new)
+    }
     fn new_with_meta(expression: Expr) -> Result<(Self, RecipeMeta)> {
         let mut meta = RecipeMeta::NEW;
         Ok((Self::with_meta(expression, &mut meta)?, meta))

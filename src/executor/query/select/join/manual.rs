@@ -1,7 +1,7 @@
 use {
     super::{JoinError, JoinType},
     crate::{
-        executor::{types::TableWithAlias, MetaRecipe, Recipe},
+        executor::{types::TableWithAlias, MetaRecipe},
         Result,
     },
     sqlparser::ast::{Join as AstJoin, JoinConstraint, JoinOperator, TableFactor},

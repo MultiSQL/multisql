@@ -1,21 +1,21 @@
 use {
     super::{
         alter::{create_table, drop},
-        query::query,
+        insert::insert,
         //types::Row,
         /*update::Update,*/
+        query::query,
     },
     crate::{
-        data::{bulk_build_rows_row, get_name, Schema},
+        data::get_name,
         parse_sql::Query,
-        result::{MutResult, Result},
+        result::MutResult,
         store::{AlterTable, AutoIncrement, Store, StoreMut},
         Row,
     },
-    futures::stream::TryStreamExt,
     serde::Serialize,
-    sqlparser::ast::{Query as AstQuery, SetExpr, Statement, Values},
-    std::{fmt::Debug, rc::Rc},
+    sqlparser::ast::Statement,
+    std::fmt::Debug,
     thiserror::Error as ThisError,
 };
 
@@ -50,10 +50,13 @@ pub enum Payload {
     AlterTable,
 }
 
-pub async fn execute<T: 'static + Debug, U: Store<T> + StoreMut<T> + AlterTable + AutoIncrement>(
-    storage: U,
+pub async fn execute<
+    Key: 'static + Debug,
+    Storage: Store<Key> + StoreMut<Key> + AlterTable + AutoIncrement,
+>(
+    storage: Storage,
     statement: &Query,
-) -> MutResult<U, Payload> {
+) -> MutResult<Storage, Payload> {
     macro_rules! try_block {
         ($storage: expr, $block: block) => {{
             match (|| async { $block })().await {
@@ -80,7 +83,7 @@ pub async fn execute<T: 'static + Debug, U: Store<T> + StoreMut<T> + AlterTable 
     match statement {
         //- Modification
         //-- Tables
-        /*Statement::CreateTable {
+        Statement::CreateTable {
             name,
             columns,
             if_not_exists,
@@ -107,62 +110,8 @@ pub async fn execute<T: 'static + Debug, U: Store<T> + StoreMut<T> + AlterTable 
             columns,
             source,
             ..
-        } => {
-            #[allow(unused_variables)]
-            let (rows, column_defs, column_validation, table_name) = try_block!(storage, {
-                let table_name = get_name(table_name)?;
-                let Schema { column_defs, .. } = storage
-                    .fetch_schema(table_name)
-                    .await?
-                    .ok_or(ExecuteError::TableNotExists)?;
-                let column_defs = Rc::from(column_defs);
-                let column_validation = ColumnValidation::All(Rc::clone(&column_defs));
-
-                let rows = match &source.body {
-                    SetExpr::Values(Values(values_list)) => {
-                        bulk_build_rows_expr(
-                            &storage,
-                            &column_defs,
-                            columns,
-                            values_list.to_vec(),
-                            true,
-                            true,
-                        )
-                        .await?
-                    }
-                    SetExpr::Select(query) => {
-                        let rows = select(&storage, query).await?.1;
-                        bulk_build_rows_row(&storage, &column_defs, columns, rows, true, true)
-                            .await?
-                        // TODO: Improve efficiency, this should happen much earlier than this.
-                    }
-                    set_expr => {
-                        return Err(ExecuteError::UnreachableUnsupportedInsertValueType(
-                            set_expr.to_string(),
-                        )
-                        .into());
-                    }
-                };
-
-                Ok((rows, column_defs, column_validation, table_name))
-            });
-
-            #[cfg(feature = "auto-increment")]
-            let (storage, rows) =
-                auto_increment::run(storage, rows, &column_defs, table_name).await?;
-
-            try_into!(storage, {
-                validate_unique(&storage, &table_name, column_validation, rows.iter()).await
-            });
-
-            let num_rows = rows.len();
-
-            storage
-                .insert_data(table_name, rows)
-                .await
-                .map(|(storage, _)| (storage, Payload::Insert(num_rows)))
-        }
-        Statement::Update {
+        } => insert(storage, table_name, columns, source).await,
+        /*Statement::Update {
             table_name,
             selection,
             assignments,
@@ -235,7 +184,10 @@ pub async fn execute<T: 'static + Debug, U: Store<T> + StoreMut<T> + AlterTable 
         //- Selection
         Statement::Query(query_value) => {
             let result = try_into!(storage, query(&storage, *query_value.clone()).await);
-            Ok((storage, result))
+            let (labels, rows) = result;
+            let rows = rows.into_iter().map(Row).collect(); // I don't like this. TODO
+            let payload = Payload::Select { labels, rows };
+            Ok((storage, payload))
         }
         _ => Err((storage, ExecuteError::QueryNotSupported.into())),
     }

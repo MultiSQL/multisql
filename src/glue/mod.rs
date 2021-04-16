@@ -63,6 +63,7 @@ impl Glue {
     pub fn select_as_json(&mut self, query: &Query) -> Result<String> {
         // TODO: Make this more efficient and not affect database if not select by converting earlier
         if let Payload::Select { labels, rows } = self.execute(query)? {
+            println!("labels: {:?}, rows: {:?}", labels, rows);
             let array = serde_json::value::Value::Array(
                 rows.into_iter()
                     .map(|row| {
@@ -222,15 +223,15 @@ mod tests {
             ))
         );
 
-        use crate::Convert;
+        use crate::Cast;
 
-        let test_value: Result<String, _> = Value::Str(String::from("test")).convert();
+        let test_value: Result<String, _> = Value::Str(String::from("test")).cast();
         assert_eq!(test_value, Ok(String::from("test")));
-        let test_value: Result<String, _> = (Value::Str(String::from("test")).clone()).convert();
+        let test_value: Result<String, _> = (Value::Str(String::from("test")).clone()).cast();
         assert_eq!(test_value, Ok(String::from("test")));
-        let test_value: Result<String, _> = Value::I64(1).convert();
+        let test_value: Result<String, _> = Value::I64(1).cast();
         assert_eq!(test_value, Ok(String::from("1")));
-        let test_value: Result<String, _> = (Value::I64(1).clone()).convert();
+        let test_value: Result<String, _> = (Value::I64(1).clone()).cast();
         assert_eq!(test_value, Ok(String::from("1")));
 
         assert_eq!(

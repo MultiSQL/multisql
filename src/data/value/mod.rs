@@ -1,13 +1,8 @@
 use {
     crate::result::Result,
-    regex::Regex,
     serde::{Deserialize, Serialize},
-    sqlparser::ast::{DataType, Expr},
-    std::{
-        cmp::Ordering,
-        convert::{TryFrom, TryInto},
-        fmt::Debug,
-    },
+    sqlparser::ast::DataType,
+    std::{cmp::Ordering, fmt::Debug},
 };
 
 mod cast;
@@ -81,18 +76,21 @@ impl PartialOrd for Value {
 }
 
 impl Value {
-    pub fn validate_type(&self, data_type: &DataType) -> Result<()> {
-        let valid = matches!(
-            (data_type, self),
-            (DataType::Boolean, Value::Bool(_))
-                | (DataType::Int, Value::I64(_))
-                | (DataType::Float(_), Value::F64(_))
-                | (DataType::Text, Value::Str(_))
-                | (DataType::Boolean, Value::Null)
-                | (DataType::Int, Value::Null)
-                | (DataType::Float(_), Value::Null)
-                | (DataType::Text, Value::Null)
-        );
+    pub fn validate_type(mut self, data_type: &DataType) -> Result<Self> {
+        let mut valid = self.type_is_valid(data_type);
+
+        if !valid {
+            let converted = match data_type {
+                DataType::Float(_) => self.clone().convert().map(Value::F64).ok(),
+                _ => None,
+            };
+            if let Some(converted) = converted {
+                if converted.type_is_valid(data_type) {
+                    valid = true;
+                    self = converted;
+                }
+            }
+        }
 
         if !valid {
             return Err(ValueError::IncompatibleDataType {
@@ -102,7 +100,21 @@ impl Value {
             .into());
         }
 
-        Ok(())
+        Ok(self)
+    }
+
+    fn type_is_valid(&self, data_type: &DataType) -> bool {
+        matches!(
+            (data_type, self),
+            (DataType::Boolean, Value::Bool(_))
+                | (DataType::Int, Value::I64(_))
+                | (DataType::Float(_), Value::F64(_))
+                | (DataType::Text, Value::Str(_))
+                | (DataType::Boolean, Value::Null)
+                | (DataType::Int, Value::Null)
+                | (DataType::Float(_), Value::Null)
+                | (DataType::Text, Value::Null)
+        )
     }
 
     pub fn validate_null(&self, nullable: bool) -> Result<()> {
@@ -237,10 +249,11 @@ mod tests {
         cast!(Str("11".to_owned())  => Int, I64(11));
         cast!(Null                  => Int, Null);
 
-        // Time
+        /*// Time
         cast!(Str("11:00".to_owned())  => Time, I64(11*60*60));
         cast!(Str("1:00PM".to_owned())  => Time, I64((12+1)*60*60));
         cast!(Str("23:35".to_owned())  => Time, I64((23*60*60) + 35*60));
+        */
 
         // Float
         cast!(Bool(true)            => Float(None), F64(1.0));

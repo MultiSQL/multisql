@@ -5,8 +5,10 @@ use {
         Result,
     },
     std::cmp::Ordering,
+    std::fmt::Debug,
 };
 
+#[derive(Debug)]
 pub enum JoinMethod {
     General(PlannedRecipe),
     ColumnEqColumn {

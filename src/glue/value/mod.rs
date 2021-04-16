@@ -1,11 +1,5 @@
 #![cfg(feature = "expanded-api")]
-use {
-    crate::{
-        result::{Error, Result},
-        Value,
-    },
-    std::convert::TryInto,
-};
+use crate::Value;
 
 impl From<Value> for serde_json::value::Value {
     fn from(value: Value) -> serde_json::value::Value {
