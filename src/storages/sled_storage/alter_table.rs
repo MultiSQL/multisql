@@ -144,7 +144,10 @@ impl AlterTable for SledStorage {
         let nullable = column_def.is_nullable();
         let default = column_def.get_default();
         let value = match (default, nullable) {
-            (Some(expr), _) => try_self!(self, Value::from_expr(&data_type, nullable, expr)),
+            (Some(expr), _) => unimplemented!()/*try_self!(
+                self,
+                Value::from_expr(&data_type, nullable, expr)
+            )*/,
             (None, true) => Value::Null,
             (None, false) => {
                 return Err((

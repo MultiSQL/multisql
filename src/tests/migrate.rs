@@ -25,15 +25,15 @@ test_case!(migrate, async move {
             r#"INSERT INTO Test (id, num, name) VALUES (1.1, 1, "good");"#,
         ),
         (
-            EvaluateError::UnsupportedCompoundIdentifier("Here.User.id".to_owned()).into(),
+            WIPError::TODO.into(), //EvaluateError::UnsupportedCompoundIdentifier("Here.User.id".to_owned()).into(),
             "SELECT * FROM Test WHERE Here.User.id = 1",
         ),
         (
-            JoinError::NaturalOnJoinNotSupported.into(),
+            JoinError::UnimplementedJoinType.into(),
             "SELECT * FROM Test NATURAL JOIN Test",
         ),
         (
-            TableError::TableFactorNotSupported.into(),
+            WIPError::TODO.into(), //TableError::TableFactorNotSupported.into(),
             "SELECT * FROM (SELECT * FROM Test) as A;",
         ),
     ];

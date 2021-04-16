@@ -1,17 +1,16 @@
 use {
     super::{
         alter::{create_table, drop},
-        fetch::{fetch, fetch_columns},
-        filter::Filter,
-        select::select,
-        update::Update,
-        validate::{validate_unique, ColumnValidation},
+        query::query,
+        //types::Row,
+        /*update::Update,*/
     },
     crate::{
-        data::{bulk_build_rows_expr, bulk_build_rows_row, get_name, Row, Schema},
+        data::{bulk_build_rows_row, get_name, Schema},
         parse_sql::Query,
         result::{MutResult, Result},
         store::{AlterTable, AutoIncrement, Store, StoreMut},
+        Row,
     },
     futures::stream::TryStreamExt,
     serde::Serialize,
@@ -22,9 +21,6 @@ use {
 
 #[cfg(feature = "alter-table")]
 use super::alter::alter_table;
-
-#[cfg(feature = "auto-increment")]
-use super::column_options::auto_increment;
 
 #[derive(ThisError, Serialize, Debug, PartialEq)]
 pub enum ExecuteError {
@@ -56,7 +52,7 @@ pub enum Payload {
 
 pub async fn execute<T: 'static + Debug, U: Store<T> + StoreMut<T> + AlterTable + AutoIncrement>(
     storage: U,
-    query: &Query,
+    statement: &Query,
 ) -> MutResult<U, Payload> {
     macro_rules! try_block {
         ($storage: expr, $block: block) => {{
@@ -79,12 +75,12 @@ pub async fn execute<T: 'static + Debug, U: Store<T> + StoreMut<T> + AlterTable 
         };
     }
 
-    let Query(query) = query;
+    let Query(statement) = statement;
 
-    match query {
+    match statement {
         //- Modification
         //-- Tables
-        Statement::CreateTable {
+        /*Statement::CreateTable {
             name,
             columns,
             if_not_exists,
@@ -134,16 +130,8 @@ pub async fn execute<T: 'static + Debug, U: Store<T> + StoreMut<T> + AlterTable 
                         )
                         .await?
                     }
-                    SetExpr::Select(select_query) => {
-                        let query = Box::new(AstQuery {
-                            with: None,
-                            body: SetExpr::Select(select_query.clone()),
-                            order_by: vec![],
-                            limit: None,
-                            offset: None,
-                            fetch: None,
-                        });
-                        let rows = select(&storage, &query).await?.1;
+                    SetExpr::Select(query) => {
+                        let rows = select(&storage, query).await?.1;
                         bulk_build_rows_row(&storage, &column_defs, columns, rows, true, true)
                             .await?
                         // TODO: Improve efficiency, this should happen much earlier than this.
@@ -243,13 +231,11 @@ pub async fn execute<T: 'static + Debug, U: Store<T> + StoreMut<T> + AlterTable 
                 .delete_data(keys)
                 .await
                 .map(|(storage, _)| (storage, Payload::Delete(num_keys)))
-        }
-
+        }*/
         //- Selection
-        Statement::Query(query) => {
-            let (labels, rows) = try_into!(storage, { select(&storage, query).await });
-
-            Ok((storage, Payload::Select { labels, rows }))
+        Statement::Query(query_value) => {
+            let result = try_into!(storage, query(&storage, *query_value.clone()).await);
+            Ok((storage, result))
         }
         _ => Err((storage, ExecuteError::QueryNotSupported.into())),
     }

@@ -1,21 +1,24 @@
 use {
-    super::{
-        method::{BinaryOperator, UnaryOperator},
-        Aggregate, Function, RecipeError,
-    },
-    crate::{Error, Result},
+    super::{AggregateOperator, BinaryOperator, FunctionOperator, RecipeError, UnaryOperator},
+    crate::{Result, Value},
     sqlparser::ast::{BinaryOperator as AstBinaryOperator, UnaryOperator as AstUnaryOperator},
-    std::convert::TryFrom,
 };
 
-impl TryFrom<String> for Function {
-    type Error = Error;
-    fn try_from(try_from: String) -> Result<Self> {
-        match try_from.to_uppercase().as_str() {
-            "UPPER" => Ok(Function::Upper),
-            "LOWER" => Ok(Function::Lower),
-            "LEFT" => Ok(Function::Left),
-            "RIGHT" => Ok(Function::Right),
+pub trait TryIntoMethod<MethodType> {
+    fn into_method(self) -> Result<MethodType>;
+}
+
+impl TryIntoMethod<FunctionOperator> for String {
+    fn into_method(self) -> Result<FunctionOperator> {
+        match self.to_uppercase().as_str() {
+            "UPPER" => Ok(Value::function_to_uppercase),
+            "LOWER" => Ok(Value::function_to_lowercase),
+
+            "LEFT" => Ok(Value::function_left),
+            "RIGHT" => Ok(Value::function_right),
+
+            "IIF" => Ok(Value::function_iif),
+            "IFNULL" => Ok(Value::function_if_null),
 
             unimplemented => {
                 Err(RecipeError::UnimplementedMethod(String::from(unimplemented)).into())
@@ -24,14 +27,13 @@ impl TryFrom<String> for Function {
     }
 }
 
-impl TryFrom<String> for Aggregate {
-    type Error = Error;
-    fn try_from(try_from: String) -> Result<Self> {
-        match try_from.to_uppercase().as_str() {
-            "MIN" => Ok(Aggregate::Min),
-            "MAX" => Ok(Aggregate::Max),
-            "SUM" => Ok(Aggregate::Sum),
-            "AVG" => Ok(Aggregate::Avg),
+impl TryIntoMethod<AggregateOperator> for String {
+    fn into_method(self) -> Result<AggregateOperator> {
+        match self.to_uppercase().as_str() {
+            "COUNT" => Ok(Value::aggregate_count),
+            "MIN" => Ok(Value::aggregate_min),
+            "MAX" => Ok(Value::aggregate_max),
+            "SUM" => Ok(Value::aggregate_sum),
 
             unimplemented => {
                 Err(RecipeError::UnimplementedMethod(String::from(unimplemented)).into())
@@ -40,13 +42,12 @@ impl TryFrom<String> for Aggregate {
     }
 }
 
-impl TryFrom<AstUnaryOperator> for UnaryOperator {
-    type Error = Error;
-    fn try_from(try_from: AstUnaryOperator) -> Result<Self> {
-        match try_from {
-            AstUnaryOperator::Plus => Ok(UnaryOperator::Plus),
-            AstUnaryOperator::Minus => Ok(UnaryOperator::Minus),
-            AstUnaryOperator::Not => Ok(UnaryOperator::Not),
+impl TryIntoMethod<UnaryOperator> for AstUnaryOperator {
+    fn into_method(self) -> Result<UnaryOperator> {
+        match self {
+            AstUnaryOperator::Plus => Ok(Value::generic_unary_plus),
+            AstUnaryOperator::Minus => Ok(Value::generic_unary_minus),
+            AstUnaryOperator::Not => Ok(Value::not),
 
             unimplemented => {
                 Err(RecipeError::UnimplementedMethod(format!("{:?}", unimplemented)).into())
@@ -55,27 +56,26 @@ impl TryFrom<AstUnaryOperator> for UnaryOperator {
     }
 }
 
-impl TryFrom<AstBinaryOperator> for BinaryOperator {
-    type Error = Error;
-    fn try_from(try_from: AstBinaryOperator) -> Result<Self> {
-        match try_from {
-            AstBinaryOperator::Plus => Ok(BinaryOperator::Plus),
-            AstBinaryOperator::Minus => Ok(BinaryOperator::Minus),
-            AstBinaryOperator::Multiply => Ok(BinaryOperator::Multiply),
-            AstBinaryOperator::Divide => Ok(BinaryOperator::Divide),
-            AstBinaryOperator::Modulus => Ok(BinaryOperator::Modulus),
+impl TryIntoMethod<BinaryOperator> for AstBinaryOperator {
+    fn into_method(self) -> Result<BinaryOperator> {
+        match self {
+            AstBinaryOperator::Plus => Ok(Value::generic_add),
+            AstBinaryOperator::Minus => Ok(Value::generic_subtract),
+            AstBinaryOperator::Multiply => Ok(Value::generic_multiply),
+            AstBinaryOperator::Divide => Ok(Value::generic_divide),
+            AstBinaryOperator::Modulus => Ok(Value::generic_modulus),
 
-            AstBinaryOperator::And => Ok(BinaryOperator::And),
-            AstBinaryOperator::Or => Ok(BinaryOperator::Or),
+            AstBinaryOperator::And => Ok(Value::and),
+            AstBinaryOperator::Or => Ok(Value::or),
 
-            AstBinaryOperator::Eq => Ok(BinaryOperator::Eq),
-            AstBinaryOperator::NotEq => Ok(BinaryOperator::NotEq),
-            AstBinaryOperator::Gt => Ok(BinaryOperator::Gt),
-            AstBinaryOperator::GtEq => Ok(BinaryOperator::GtEq),
-            AstBinaryOperator::Lt => Ok(BinaryOperator::Lt),
-            AstBinaryOperator::LtEq => Ok(BinaryOperator::LtEq),
+            AstBinaryOperator::Eq => Ok(Value::eq),
+            AstBinaryOperator::NotEq => Ok(Value::not_eq),
+            AstBinaryOperator::Gt => Ok(Value::gt),
+            AstBinaryOperator::GtEq => Ok(Value::gt_eq),
+            AstBinaryOperator::Lt => Ok(Value::lt),
+            AstBinaryOperator::LtEq => Ok(Value::lt_eq),
 
-            AstBinaryOperator::StringConcat => Ok(BinaryOperator::StringConcat),
+            AstBinaryOperator::StringConcat => Ok(Value::string_concat),
 
             unimplemented => {
                 Err(RecipeError::UnimplementedMethod(format!("{:?}", unimplemented)).into())

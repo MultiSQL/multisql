@@ -1,7 +1,6 @@
 use {
     crate::{
-        data::{schema::ColumnDefExt, value::TryFromLiteral, Value},
-        evaluate,
+        data::{schema::ColumnDefExt, Value},
         result::Result,
         store::Store,
     },
@@ -40,37 +39,6 @@ impl Row {
             .next()
             .ok_or_else(|| RowError::ConflictOnEmptyRow.into())
     }
-
-    pub async fn new<T: 'static + Debug>(
-        storage: &dyn Store<T>,
-        column_defs: &[ColumnDef],
-        columns: &[Ident],
-        expressions: &[Expr],
-    ) -> Result<Self> {
-        Ok(bulk_build_rows_expr(
-            storage,
-            column_defs,
-            columns,
-            vec![expressions.to_vec()],
-            false,
-            false,
-        )
-        .await?
-        .into_iter()
-        .next()
-        .unwrap())
-    }
-}
-
-async fn evaluate_expression<T: 'static + Debug>(
-    storage: &dyn Store<T>,
-    expression: &Expr,
-    data_type: &DataType,
-) -> Result<Value> {
-    Value::try_from_evaluated(
-        data_type,
-        evaluate(storage, None, None, expression, false).await?,
-    )
 }
 
 // For macro TODO: find a better way
@@ -80,14 +48,6 @@ async fn process_value<T: 'static + Debug>(
     _b: &DataType,
 ) -> Result<Value> {
     Ok(value)
-}
-
-async fn process_expr<T: 'static + Debug>(
-    storage: &dyn Store<T>,
-    expression: Expr,
-    data_type: &DataType,
-) -> Result<Value> {
-    evaluate_expression(storage, &expression, data_type).await
 }
 
 macro_rules! bulk_build_rows {
@@ -165,7 +125,8 @@ macro_rules! bulk_build_rows {
                             }
                             FailureValue::Null => Value::Null,
                             FailureValue::Default(expression) => {
-                                evaluate_expression(storage, expression, data_type).await?
+                                //evaluate_expression(storage, expression, data_type).await?
+                                unimplemented!()
                             }
                         }
                     }
@@ -176,7 +137,6 @@ macro_rules! bulk_build_rows {
     };
 }
 
-bulk_build_rows!(Expr, bulk_build_rows_expr, process_expr);
 bulk_build_rows!(Value, bulk_build_rows_value, process_value);
 
 pub async fn bulk_build_rows_row<T: 'static + Debug>(

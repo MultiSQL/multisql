@@ -1,6 +1,6 @@
 #![cfg(feature = "sled-storage")]
 use {
-    crate::{execute, storages::SledStorage, ExecuteError, Payload, Query, Result, Value},
+    crate::{execute, storages::SledStorage, Convert, ExecuteError, Payload, Query, Result, Value},
     futures::executor::block_on,
     sqlparser::ast::{
         Expr, Ident, ObjectName, Query as AstQuery, SetExpr, Statement, Value as AstValue, Values,
@@ -37,7 +37,7 @@ impl Glue {
         }
     }
 
-    #[cfg(feature = "expanded-api")]
+    /*#[cfg(feature = "expanded-api")]
     pub fn select_as_string(&mut self, query: &Query) -> Result<Vec<Vec<String>>> {
         // TODO: Make this more efficient and not affect database if not select by converting earlier
         if let Ok(Payload::Select { labels, rows }) = self.execute(query) {
@@ -48,7 +48,7 @@ impl Glue {
                         .map(|row| {
                             row.0
                                 .into_iter()
-                                .map(|value| (&value).into())
+                                .map(|value| value.convert())
                                 .collect::<Vec<String>>()
                         })
                         .collect::<Vec<Vec<String>>>(),
@@ -57,7 +57,7 @@ impl Glue {
         } else {
             Err(ExecuteError::QueryNotSupported.into())
         }
-    }
+    }*/
 
     #[cfg(feature = "expanded-api")]
     pub fn select_as_json(&mut self, query: &Query) -> Result<String> {
@@ -189,7 +189,7 @@ mod tests {
                 ]
             })
         );
-        #[cfg(feature = "expanded-api")]
+        /*#[cfg(feature = "expanded-api")]
         assert_eq!(
             glue.select_as_string(&parse_single("SELECT * FROM api_test").unwrap()),
             Ok(vec![
@@ -212,7 +212,7 @@ mod tests {
                     String::from("FALSE")
                 ]
             ])
-        );
+        );*/
 
         #[cfg(feature = "expanded-api")]
         assert_eq!(
@@ -222,15 +222,15 @@ mod tests {
             ))
         );
 
-        use std::convert::TryInto;
+        use crate::Convert;
 
-        let test_value: String = Value::Str(String::from("test")).into();
-        assert_eq!(test_value, String::from("test"));
-        let test_value: String = (&Value::Str(String::from("test"))).into();
-        assert_eq!(test_value, String::from("test"));
-        let test_value: Result<String, _> = Value::I64(1).try_into();
+        let test_value: Result<String, _> = Value::Str(String::from("test")).convert();
+        assert_eq!(test_value, Ok(String::from("test")));
+        let test_value: Result<String, _> = (Value::Str(String::from("test")).clone()).convert();
+        assert_eq!(test_value, Ok(String::from("test")));
+        let test_value: Result<String, _> = Value::I64(1).convert();
         assert_eq!(test_value, Ok(String::from("1")));
-        let test_value: Result<String, _> = (&Value::I64(1)).try_into();
+        let test_value: Result<String, _> = (Value::I64(1).clone()).convert();
         assert_eq!(test_value, Ok(String::from("1")));
 
         assert_eq!(

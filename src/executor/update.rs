@@ -6,9 +6,6 @@ use thiserror::Error;
 
 use sqlparser::ast::{Assignment, ColumnDef, Ident};
 
-use super::context::FilterContext;
-use super::evaluate::{evaluate, Evaluated};
-use crate::data::value::TryFromLiteral;
 use crate::data::{schema::ColumnDefExt, Row, Value};
 use crate::result::Result;
 use crate::store::Store;
@@ -22,7 +19,7 @@ pub enum UpdateError {
     ConflictOnSchema,
 }
 
-pub struct Update<'a, T: 'static + Debug> {
+/*pub struct Update<'a, T: 'static + Debug> {
     storage: &'a dyn Store<T>,
     table_name: &'a str,
     fields: &'a [Assignment],
@@ -126,3 +123,4 @@ impl<'a, T: 'static + Debug> Update<'a, T> {
             .collect()
     }
 }
+*/

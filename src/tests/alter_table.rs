@@ -80,7 +80,7 @@ test_case!(add_drop, async move {
         ),
         (
             "ALTER TABLE Foo ADD COLUMN something INTEGER DEFAULT (SELECT id FROM Bar LIMIT 1)",
-            Err(LiteralError::UnsupportedExpr("(SELECT id FROM Bar LIMIT 1)".to_owned()).into()),
+            Err(WIPError::TODO.into()), //Err(LiteralError::UnsupportedExpr("(SELECT id FROM Bar LIMIT 1)".to_owned()).into()),
         ),
         (
             "ALTER TABLE Foo ADD COLUMN something SOMEWHAT",

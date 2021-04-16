@@ -14,14 +14,14 @@ keywords = ["sql-database", "sql", "functional", "no-mut-in-the-middle", "webass
 all-features = true
 
 [features]
-default = ["sled-storage", "alter-table", "expanded-api", "auto-increment", "double_quote_strings", "implicit_numeric_conversion"]
+default = ["sled-storage", "alter-table", "expanded-api", "auto-increment", "double_quote_strings", "implicit_float_conversion"]
 
 # ALTER TABLE is optional.
 # You can include whether ALTER TABLE support or not for your custom database implementation.
 alter-table = []
 auto-increment = []
 double_quote_strings = []
-implicit_numeric_conversion = []
+implicit_float_conversion = []
 
 expanded-api = ["serde_json"]
 

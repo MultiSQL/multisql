@@ -1,10 +1,9 @@
 use {
     crate::{
-        data::{LiteralError, RowError, TableError, ValueError},
+        data::{RowError, TableError, ValueError},
         executor::{
-            AggregateError, AlterError, BlendError, CalculationError, EvaluateError, ExecuteError,
-            FetchError, FilterError, JoinError, LimitError, RecipeError, SelectError, UpdateError,
-            ValidateError,
+            AlterError, ExecuteError, FetchError, JoinError, ManualError, PlanError, QueryError,
+            RecipeError, SelectError, UpdateError,
         },
     },
     serde::Serialize,
@@ -14,6 +13,12 @@ use {
 
 #[cfg(feature = "alter-table")]
 use crate::store::AlterTableError;
+
+#[derive(ThisError, Serialize, Debug, PartialEq)]
+pub enum WIPError {
+    #[error("TODO")]
+    TODO,
+}
 
 #[derive(ThisError, Serialize, Debug)]
 pub enum Error {
@@ -32,35 +37,27 @@ pub enum Error {
     #[error(transparent)]
     Fetch(#[from] FetchError),
     #[error(transparent)]
-    Evaluate(#[from] EvaluateError),
-    #[error(transparent)]
     Select(#[from] SelectError),
     #[error(transparent)]
-    Join(#[from] JoinError),
-    #[error(transparent)]
-    Blend(#[from] BlendError),
-    #[error(transparent)]
-    Aggregate(#[from] AggregateError),
-    #[error(transparent)]
     Update(#[from] UpdateError),
-    #[error(transparent)]
-    Filter(#[from] FilterError),
-    #[error(transparent)]
-    Limit(#[from] LimitError),
     #[error(transparent)]
     Row(#[from] RowError),
     #[error(transparent)]
     Table(#[from] TableError),
     #[error(transparent)]
-    Validate(#[from] ValidateError),
-    #[error(transparent)]
     Value(#[from] ValueError),
-    #[error(transparent)]
-    Literal(#[from] LiteralError),
     #[error(transparent)]
     Recipe(#[from] RecipeError),
     #[error(transparent)]
-    Calculation(#[from] CalculationError),
+    Join(#[from] JoinError),
+    #[error(transparent)]
+    Plan(#[from] PlanError),
+    #[error(transparent)]
+    Manual(#[from] ManualError),
+    #[error(transparent)]
+    Query(#[from] QueryError),
+    #[error(transparent)]
+    WIP(#[from] WIPError),
 }
 
 unsafe impl Send for Error {} // !!!! UNSAFE CODE WHICH I DON'T UNDERSTAND FULLY
@@ -79,21 +76,17 @@ impl PartialEq for Error {
             (Execute(l), Execute(r)) => l == r,
             (Alter(l), Alter(r)) => l == r,
             (Fetch(l), Fetch(r)) => l == r,
-            (Evaluate(l), Evaluate(r)) => l == r,
             (Select(l), Select(r)) => l == r,
-            (Join(l), Join(r)) => l == r,
-            (Blend(l), Blend(r)) => l == r,
-            (Aggregate(l), Aggregate(r)) => l == r,
             (Update(l), Update(r)) => l == r,
-            (Filter(l), Filter(r)) => l == r,
-            (Limit(l), Limit(r)) => l == r,
             (Row(l), Row(r)) => l == r,
             (Table(l), Table(r)) => l == r,
-            (Validate(l), Validate(r)) => l == r,
             (Value(l), Value(r)) => l == r,
-            (Literal(l), Literal(r)) => l == r,
             (Recipe(l), Recipe(r)) => l == r,
-            (Calculation(l), Calculation(r)) => l == r,
+            (Query(l), Query(r)) => l == r,
+            (Join(l), Join(r)) => l == r,
+            (Plan(l), Plan(r)) => l == r,
+            (Query(l), Query(r)) => l == r,
+            (WIP(l), WIP(r)) => l == r,
             _ => false,
         }
     }
