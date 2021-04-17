@@ -7,17 +7,8 @@ use {
 
 #[derive(Error, Serialize, Debug, PartialEq)]
 pub enum RowError {
-    #[error("lack of required column: {0}")]
-    LackOfRequiredColumn(String),
-
-    #[error("columns and values must match")]
-    WrongNumberOfValues,
-
     #[error("conflict! row cannot be empty")]
     ConflictOnEmptyRow,
-
-    #[error("unreachable")]
-    Unreachable,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

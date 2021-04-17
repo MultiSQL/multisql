@@ -64,13 +64,17 @@ macro_rules! comparative_binary_ops {
 macro_rules! generic {
     ($name: ident, $generic_name: ident) => {
         pub fn $generic_name(self, other: Self) -> Result<Self> {
-            if i64::can_be_from(&self) && i64::can_be_from(&other) {
+            if !i64::convert_from(self.clone()).is_err()
+                && !i64::convert_from(other.clone()).is_err()
+            {
                 self.$name::<i64>(other)
-            } else if f64::can_be_from(&self) && f64::can_be_from(&other) {
+            } else if !f64::convert_from(self.clone()).is_err()
+                && !f64::convert_from(other.clone()).is_err()
+            {
                 self.$name::<f64>(other)
             } else {
                 Err(ValueError::OnlySupportsNumeric(
-                    if !f64::can_be_from(&self) {
+                    if f64::convert_from(other.clone()).is_err() {
                         self
                     } else {
                         other
@@ -108,6 +112,11 @@ comparative_binary_ops!(
 
 impl Value {
     pub fn string_concat(self, other: Self) -> Result<Self> {
-        Ok(self)
+        Ok(format!(
+            "{}{}",
+            String::convert_from(self)?,
+            String::convert_from(other)?
+        )
+        .into())
     }
 }

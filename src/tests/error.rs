@@ -35,15 +35,15 @@ test_case!(error, async move {
             "SELECT * FROM TableA WHERE noname = 1;",
         ),
         (
-            RowError::LackOfRequiredColumn("id".to_owned()).into(),
+            InsertError::WrongNumberOfValues.into(),
             "INSERT INTO TableA (id2) VALUES (1);",
         ),
         (
-            RowError::WrongNumberOfValues.into(),
+            InsertError::WrongNumberOfValues.into(),
             "INSERT INTO TableA (id2, id) VALUES (100);",
         ),
         (
-            RowError::WrongNumberOfValues.into(),
+            InsertError::WrongNumberOfValues.into(),
             "INSERT INTO TableA VALUES (100), (100, 200);",
         ),
         (

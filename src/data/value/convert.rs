@@ -10,16 +10,12 @@ pub trait Convert<Core> {
 }
 
 pub trait ConvertFrom<Value>: Sized {
-    fn can_be_from(value: &Value) -> bool;
     fn convert_from(value: Value) -> Result<Self>;
 }
 impl<Core, Value> ConvertFrom<Value> for Core
 where
     Value: Convert<Core> + Clone,
 {
-    fn can_be_from(value: &Value) -> bool {
-        Self::convert_from(value.clone()).is_err()
-    }
     fn convert_from(value: Value) -> Result<Core> {
         value.convert()
     }

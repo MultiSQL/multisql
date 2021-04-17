@@ -29,7 +29,7 @@ test_case!(types, async move {
         ),
         (
             "INSERT INTO TableC SELECT null_val FROM TableC;",
-            Err(RowError::WrongNumberOfValues.into()),
+            Err(InsertError::WrongNumberOfValues.into()),
         ),
         (
             "UPDATE TableC SET uid = TRUE;",

@@ -1,15 +1,16 @@
 use {
     super::ValueCore,
     crate::{Convert, ConvertFrom, Result, Value, ValueError},
-    std::ops::{Neg, Not},
+    std::ops::Neg,
 };
 
 macro_rules! generic {
     ($name: ident, $generic_name: ident) => {
         pub fn $generic_name(self) -> Result<Self> {
-            if f64::can_be_from(&self) {
+            if !i64::convert_from(self.clone()).is_err() {
+                // TODO: Improve
                 self.$name::<i64>()
-            } else if f64::can_be_from(&self) {
+            } else if !f64::convert_from(self.clone()).is_err() {
                 self.$name::<f64>()
             } else {
                 Err(ValueError::OnlySupportsNumeric(self, stringify!($name)).into())

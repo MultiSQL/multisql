@@ -24,11 +24,11 @@ test_case!(aggregate, async move {
     use Value::*;
 
     let test_cases = vec![
-        ("SELECT COUNT(*) FROM Item", select!("COUNT(*)"; I64; 5)),
-        ("SELECT count(*) FROM Item", select!("count(*)"; I64; 5)),
+        ("SELECT COUNT(1) FROM Item", select!("COUNT(1)"; I64; 5)),
+        ("SELECT count(1) FROM Item", select!("count(1)"; I64; 5)),
         (
-            "SELECT COUNT(*), COUNT(*) FROM Item",
-            select!("COUNT(*)" | "COUNT(*)"; I64 | I64; 5 5),
+            "SELECT COUNT(1), COUNT(1) FROM Item",
+            select!("COUNT(1)" | "COUNT(1)"; I64 | I64; 5 5),
         ),
         (
             "SELECT SUM(quantity), MAX(quantity), MIN(quantity) FROM Item",
@@ -78,7 +78,7 @@ test_case!(aggregate, async move {
         ),
         (
             WIPError::TODO.into(), //AggregateError::UnsupportedAggregation("AVG".to_owned()).into(),
-            "SELECT AVG(*) FROM Item;",
+            "SELECT AVG(1) FROM Item;",
         ),
         (
             WIPError::TODO.into(), //AggregateError::OnlyIdentifierAllowed.into(),
@@ -122,17 +122,17 @@ test_case!(group_by, async move {
 
     let test_cases = vec![
         (
-            "SELECT id, COUNT(*) FROM Item GROUP BY id",
-            select!(id | "COUNT(*)"; I64 | I64; 1 1; 2 1; 3 2; 4 1; 5 1),
+            "SELECT id, COUNT(1) FROM Item GROUP BY id",
+            select!(id | "COUNT(1)"; I64 | I64; 1 1; 2 1; 3 2; 4 1; 5 1),
         ),
         (
             "SELECT id FROM Item GROUP BY id",
             select!(id; I64; 1; 2; 3; 4; 5),
         ),
         (
-            "SELECT SUM(quantity), COUNT(*), city FROM Item GROUP BY city",
+            "SELECT SUM(quantity), COUNT(1), city FROM Item GROUP BY city",
             select_with_null!(
-                "SUM(quantity)" | "COUNT(*)" | city;
+                "SUM(quantity)" | "COUNT(1)" | city;
                 I64(21)           I64(2)       Str("Seoul".to_owned());
                 I64(0)            I64(1)       Str("Dhaka".to_owned());
                 Null              I64(1)       Str("Beijing".to_owned());
@@ -161,9 +161,9 @@ test_case!(group_by, async move {
             select!(ratio; F64; 11.1),
         ),
         (
-            "SELECT SUM(quantity), COUNT(*), city FROM Item GROUP BY city HAVING COUNT(*) > 1",
+            "SELECT SUM(quantity), COUNT(1), city FROM Item GROUP BY city HAVING COUNT(1) > 1",
             select!(
-                "SUM(quantity)" | "COUNT(*)" | city
+                "SUM(quantity)" | "COUNT(1)" | city
                 I64          | I64        | Str;
                 21             2            "Seoul".to_owned()
             ),

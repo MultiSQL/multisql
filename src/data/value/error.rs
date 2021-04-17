@@ -31,6 +31,8 @@ pub enum ValueError {
     OnlySupportsNumeric(Value, &'static str),
     #[error("{1} only supports boolean values, found {0:?}")]
     OnlySupportsBoolean(Value, &'static str),
+    #[error("bad input: {0:?}")]
+    BadInput(Value),
 
     // Cast errors from value to value
     #[error("impossible cast")]
