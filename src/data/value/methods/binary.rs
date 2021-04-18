@@ -74,7 +74,7 @@ macro_rules! generic {
                 self.$name::<f64>(other)
             } else {
                 Err(ValueError::OnlySupportsNumeric(
-                    if f64::convert_from(other.clone()).is_err() {
+                    if f64::convert_from(self.clone()).is_err() {
                         self
                     } else {
                         other

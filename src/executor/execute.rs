@@ -2,19 +2,19 @@ use {
     super::{
         alter::{create_table, drop},
         insert::insert,
-        //types::Row,
         /*update::Update,*/
         query::query,
+        types::{ComplexColumnName, Row as VecRow},
     },
     crate::{
-        data::get_name,
+        data::{get_name, Schema},
         parse_sql::Query,
         result::MutResult,
         store::{AlterTable, AutoIncrement, Store, StoreMut},
-        Row,
+        MetaRecipe, PlannedRecipe, RecipeUtilities, Result, Row,
     },
     serde::Serialize,
-    sqlparser::ast::Statement,
+    sqlparser::ast::{Assignment, ColumnDef, Statement},
     std::fmt::Debug,
     thiserror::Error as ThisError,
 };
@@ -32,6 +32,9 @@ pub enum ExecuteError {
 
     #[error("table does not exist")]
     TableNotExists,
+
+    #[error("column could not be found")]
+    ColumnNotFound,
 }
 
 #[derive(Serialize, Debug, PartialEq)]
@@ -111,7 +114,7 @@ pub async fn execute<
             source,
             ..
         } => insert(storage, table_name, columns, source).await,
-        /*Statement::Update {
+        Statement::Update {
             table_name,
             selection,
             assignments,
@@ -122,35 +125,76 @@ pub async fn execute<
                     .fetch_schema(table_name)
                     .await?
                     .ok_or(ExecuteError::TableNotExists)?;
-                let update = Update::new(&storage, table_name, assignments, &column_defs)?;
-                let filter = Filter::new(&storage, selection.as_ref(), None, None);
 
-                let all_columns = Rc::from(update.all_columns());
-                let columns_to_update = update.columns_to_update();
-                let rows = fetch(&storage, table_name, Rc::clone(&all_columns), filter)
-                    .await?
-                    .and_then(|item| {
-                        let update = &update;
-                        let (_, key, row) = item;
-                        async move {
-                            let row = update.apply(row).await?;
-                            Ok((key, row))
+                let columns = column_defs
+                    .clone()
+                    .into_iter()
+                    .map(|column_def| {
+                        let ColumnDef { name, .. } = column_def;
+                        ComplexColumnName {
+                            name: name.value,
+                            table: (None, String::new()),
                         }
                     })
-                    .try_collect::<Vec<_>>()
-                    .await?;
+                    .collect();
 
-                let column_validation =
-                    ColumnValidation::SpecifiedColumns(Rc::from(column_defs), columns_to_update);
-                validate_unique(
-                    &storage,
-                    &table_name,
-                    column_validation,
-                    rows.iter().map(|r| &r.1),
-                )
-                .await?;
+                let filter = selection
+                    .clone()
+                    .map(|selection| PlannedRecipe::new(MetaRecipe::new(selection)?, &columns))
+                    .unwrap_or(Ok(PlannedRecipe::TRUE))?;
 
-                Ok(rows)
+                let assignments = assignments
+                    .into_iter()
+                    .map(|assignment| {
+                        let Assignment { id, value } = assignment;
+                        let column_compare = vec![id.value.clone()];
+                        let index = columns
+                            .iter()
+                            .position(|column| column == &column_compare)
+                            .ok_or(ExecuteError::ColumnNotFound)?;
+                        let recipe = PlannedRecipe::new(MetaRecipe::new(value.clone())?, &columns)?;
+                        Ok((index, recipe))
+                    })
+                    .collect::<Result<Vec<(usize, PlannedRecipe)>>>()?;
+
+                let keyed_rows = storage
+                    .scan_data(table_name)
+                    .await?
+                    .into_iter()
+                    .filter_map(|row_result| {
+                        let (key, row) = match row_result {
+                            Ok(keyed_row) => keyed_row,
+                            Err(error) => return Some(Err(error)),
+                        };
+
+                        let row = row.0;
+
+                        let confirm_constraint = filter.confirm_constraint(&row.clone());
+                        if let Ok(false) = confirm_constraint {
+                            return None;
+                        } else if let Err(error) = confirm_constraint {
+                            return Some(Err(error));
+                        }
+                        let row = row
+                            .iter()
+                            .enumerate()
+                            .map(|(index, old_value)| {
+                                assignments
+                                    .iter()
+                                    .find(|(assignment_index, _)| assignment_index == &index)
+                                    .map(|(_, assignment_recipe)| {
+                                        assignment_recipe.clone().simplify_by_row(&row)?.confirm()
+                                    })
+                                    .unwrap_or(Ok(old_value.clone()))
+                            })
+                            .collect::<Result<VecRow>>();
+                        Some(row.map(|row| (key, Row(row))))
+                    })
+                    .collect::<Result<Vec<(Key, Row)>>>()?;
+                Ok(keyed_rows)
+                /*let (keys, rows) = keyed_rows.into_iter().unzip(); // TODO: Improve
+                let rows = validate(rows)?;
+                Ok(keys.into_iter().zip(rows.into_iter().map(Row)).collect())*/
             });
             let num_rows = rows.len();
             storage
@@ -164,14 +208,46 @@ pub async fn execute<
         } => {
             let keys = try_block!(storage, {
                 let table_name = get_name(&table_name)?;
-                let columns = Rc::from(fetch_columns(&storage, table_name).await?);
-                let filter = Filter::new(&storage, selection.as_ref(), None, None);
-
-                fetch(&storage, table_name, columns, filter)
+                let Schema { column_defs, .. } = storage
+                    .fetch_schema(table_name)
                     .await?
-                    .map_ok(|(_, key, _)| key)
-                    .try_collect::<Vec<_>>()
-                    .await
+                    .ok_or(ExecuteError::TableNotExists)?;
+
+                let columns = column_defs
+                    .clone()
+                    .into_iter()
+                    .map(|column_def| {
+                        let ColumnDef { name, .. } = column_def;
+                        ComplexColumnName {
+                            name: name.value,
+                            table: (None, String::new()),
+                        }
+                    })
+                    .collect();
+                let filter = selection
+                    .clone()
+                    .map(|selection| PlannedRecipe::new(MetaRecipe::new(selection)?, &columns))
+                    .unwrap_or(Ok(PlannedRecipe::TRUE))?;
+
+                storage
+                    .scan_data(table_name)
+                    .await?
+                    .filter_map(|row_result| {
+                        let (key, row) = match row_result {
+                            Ok(keyed_row) => keyed_row,
+                            Err(error) => return Some(Err(error)),
+                        };
+
+                        let row = row.0;
+
+                        let confirm_constraint = filter.confirm_constraint(&row.clone());
+                        match confirm_constraint {
+                            Ok(true) => Some(Ok(key)),
+                            Ok(false) => None,
+                            Err(error) => Some(Err(error)),
+                        }
+                    })
+                    .collect::<Result<Vec<Key>>>()
             });
 
             let num_keys = keys.len();
@@ -180,7 +256,7 @@ pub async fn execute<
                 .delete_data(keys)
                 .await
                 .map(|(storage, _)| (storage, Payload::Delete(num_keys)))
-        }*/
+        }
         //- Selection
         Statement::Query(query_value) => {
             let result = try_into!(storage, query(&storage, *query_value.clone()).await);

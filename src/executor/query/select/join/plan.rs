@@ -4,21 +4,21 @@ use {
         executor::{
             fetch::fetch_columns,
             types::{ComplexColumnName, Table, TableWithAlias},
-            Ingredient, MetaRecipe, Method, PlannedRecipe, Recipe,
+            MetaRecipe,
         },
         store::Store,
-        Result, Value,
+        Result,
     },
     std::{cmp::Ordering, fmt::Debug},
 };
 
+#[derive(Debug)]
 pub struct JoinPlan {
     pub table: Table,
-    pub needed_tables: Vec<Table>,
-    join_type: JoinType,
-    columns: Vec<ComplexColumnName>,
-    method: Option<JoinMethod>,
-    unconverted_constraint: MetaRecipe,
+    pub columns: Vec<ComplexColumnName>,
+    pub join_type: JoinType,
+    pub constraint: MetaRecipe,
+    pub needed_tables: Vec<usize>,
 }
 impl PartialEq for JoinPlan {
     fn eq(&self, _other: &Self) -> bool {
@@ -48,114 +48,33 @@ impl JoinPlan {
             join_type,
         } = join_manual;
         let columns = get_columns(storage, table.clone()).await?;
+        let table = table.1;
         Ok(Self {
-            table: table.1,
+            table,
             join_type,
             columns,
-            method: None,
-            unconverted_constraint: constraint,
+            constraint,
             needed_tables: vec![],
         })
     }
-    pub async fn new_and_columns<'a, Key: 'static + Debug>(
-        join_manual: JoinManual,
-        storage: &'a dyn Store<Key>,
-    ) -> Result<(Self, Vec<ComplexColumnName>)> {
-        let new = Self::new(join_manual, storage).await?;
-        let columns = new.columns.clone();
-        Ok((new, columns))
-    }
-    pub fn executor(self) -> JoinExecute {
-        JoinExecute {
-            table: self.table,
-            method: self.method.unwrap(), // TODO: Handle. Not user based, API based. This should not be called until method is filled using decide_method.
-            join_type: self.join_type,
-        }
-    }
-    pub fn set_first_table(&mut self) {
-        self.method = Some(JoinMethod::FirstTable);
-    }
-    pub fn decide_method(&mut self, plane_columns: Vec<ComplexColumnName>) -> Result<()> {
-        self.method = Some(match &self.unconverted_constraint.recipe {
-            Recipe::Ingredient(Ingredient::Value(Value::Bool(true))) => JoinMethod::All,
-            Recipe::Method(method) => match **method {
-                Method::BinaryOperation(
-                    operator,
-                    Recipe::Ingredient(Ingredient::Column(index_l)),
-                    Recipe::Ingredient(Ingredient::Column(index_r)),
-                ) if operator == Value::eq => {
-                    // TODO: Be more strict, ensure that one column is from self, and another from another.
-                    let column_l = self
-                        .unconverted_constraint
+    pub fn calculate_needed_tables(&mut self, table_columns: &Vec<Vec<ComplexColumnName>>) {
+        self.needed_tables = table_columns
+            .iter()
+            .enumerate()
+            .filter_map(|(index, columns)| {
+                if columns.iter().any(|table_column| {
+                    self.constraint
                         .meta
                         .columns
-                        .get(index_l)
-                        .ok_or(JoinError::Unreachable)?;
-                    let column_r = self
-                        .unconverted_constraint
-                        .meta
-                        .columns
-                        .get(index_r)
-                        .ok_or(JoinError::Unreachable)?;
-                    let (self_index, plane_index) = if let Some(self_index) =
-                        self.columns.iter().position(|column| column == column_l)
-                    {
-                        let plane_index = plane_columns
-                            .iter()
-                            .position(|column| column == column_r)
-                            .ok_or(JoinError::Unreachable)?;
-                        (self_index, plane_index)
-                    } else {
-                        let self_index = self
-                            .columns
-                            .iter()
-                            .position(|column| column == column_r)
-                            .ok_or(JoinError::Unreachable)?;
-                        let plane_index = plane_columns
-                            .iter()
-                            .position(|column| column == column_l)
-                            .ok_or(JoinError::Unreachable)?;
-                        (self_index, plane_index)
-                    };
-
-                    let comparison_table = plane_columns
-                        .get(plane_index)
-                        .ok_or(JoinError::Unreachable)?
-                        .table
-                        .1
-                        .clone();
-                    self.needed_tables.push(comparison_table);
-
-                    JoinMethod::ColumnEqColumn {
-                        plane_trust_ordered: false,
-                        plane_index,
-                        self_trust_ordered: false,
-                        self_index,
-                    }
-                }
-                // TODO: Methods for:
-                // (self)Column = (other)Column AND (self)Column = (other or otherother)Column
-                // (self)Column = (other)Column OR (self)Column = (other or otherother)Column
-                _ => {
-                    let recipe =
-                        PlannedRecipe::new(self.unconverted_constraint.clone(), &plane_columns)?;
-                    let mut needed_tables = recipe.needed_column_indexes
                         .iter()
-                        .filter_map(|index| {
-                            plane_columns
-                            .get(*index)/* if this doesn't find something, something has gone terribly wrong */
-                            .map(|column| column.table.1.clone())
-                            .filter(|table| table != &self.table)
-                        }).collect::<Vec<String>>();
-                    needed_tables.sort_unstable();
-                    needed_tables.dedup();
-                    self.needed_tables = needed_tables;
-                    JoinMethod::General(recipe)
+                        .any(|constraint_column| table_column == constraint_column)
+                }) {
+                    Some(index)
+                } else {
+                    None
                 }
-            },
-            _ => JoinMethod::Ignore,
-        });
-        Ok(())
+            })
+            .collect()
     }
 }
 

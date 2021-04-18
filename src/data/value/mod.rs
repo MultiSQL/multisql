@@ -75,6 +75,21 @@ impl PartialOrd for Value {
     }
 }
 
+pub trait NullOrd {
+    fn null_cmp(&self, other: &Self) -> Option<Ordering>;
+}
+
+impl NullOrd for Value {
+    fn null_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.partial_cmp(other).or(match (self, other) {
+            (Value::Null, Value::Null) => None,
+            (Value::Null, _) => Some(Ordering::Less),
+            (_, Value::Null) => Some(Ordering::Greater),
+            _ => None,
+        })
+    }
+}
+
 impl Value {
     pub fn validate_type(mut self, data_type: &DataType) -> Result<Self> {
         let mut valid = self.type_is_valid(data_type);

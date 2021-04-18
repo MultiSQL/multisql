@@ -74,7 +74,13 @@ macro_rules! test_case {
             macro_rules! count {
                 ($count: expr, $sql: expr) => {
                     match tests::run(Rc::clone(&cell), $sql).await.unwrap() {
-                        Payload::Select { rows, .. } => assert_eq!($count, rows.len()),
+                        Payload::Select { rows, .. } => {
+                            println!("Count macro:");
+                            rows.iter()
+                                .enumerate()
+                                .for_each(|(index, row)| println!("{} - {:?}", index, row));
+                            assert_eq!($count, rows.len())
+                        }
                         Payload::Delete(num) => assert_eq!($count, num),
                         Payload::Update(num) => assert_eq!($count, num),
                         _ => panic!("compare is only for Select, Delete and Update"),

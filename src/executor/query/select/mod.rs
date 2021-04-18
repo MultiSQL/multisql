@@ -1,9 +1,11 @@
 pub mod join;
 mod manual;
+mod order;
 mod plan;
 
 pub use {
     manual::{Manual, ManualError, SelectItem},
+    order::Order,
     plan::{Plan, PlanError},
 };
 
@@ -14,12 +16,12 @@ use {
             PlannedRecipe,
         },
         store::Store,
-        Result, Value,
+        RecipeUtilities, Result, Value,
     },
     futures::stream::{self, StreamExt, TryStreamExt},
     serde::Serialize,
-    sqlparser::ast::Select,
-    std::fmt::Debug,
+    sqlparser::ast::{OrderByExpr, Select},
+    std::{cmp::Ordering, fmt::Debug},
     thiserror::Error as ThisError,
 };
 
@@ -40,21 +42,26 @@ pub enum SelectError {
 pub async fn select<'a, Key: 'static + Debug>(
     storage: &'a dyn Store<Key>,
     query: Select,
+    order_by: Vec<OrderByExpr>,
 ) -> Result<LabelsAndRows> {
     let Plan {
         joins,
         select_items,
         constraint,
         groups,
+        order_by,
         labels,
-    } = Plan::new(storage, query).await?;
+    } = Plan::new(storage, query, order_by).await?;
 
     let rows = stream::iter(joins)
         .map(Ok)
         .try_fold(vec![], |rows, join| async {
-            join.executor().execute(storage, rows).await
+            join.execute(storage, rows).await
         })
         .await?;
+
+    let rows = order_by.execute(rows)?; // TODO: This should be done after filtering
+
     let selected_rows = rows
         .iter()
         .filter_map(|row| match constraint.confirm_constraint(row) {
@@ -69,14 +76,15 @@ pub async fn select<'a, Key: 'static + Debug>(
         })
         .collect::<Result<Vec<Vec<PlannedRecipe>>>>()?;
 
-    let final_rows = if select_items
+    let contains_aggregates = select_items
         .iter()
-        .any(|select_item| !select_item.aggregates.is_empty())
-    {
-        if select_items
-            .iter()
-            .any(|select_item| select_item.aggregates.is_empty())
-        {
+        .any(|select_item| !select_item.aggregates.is_empty());
+    let contains_non_aggregates = select_items
+        .iter()
+        .any(|select_item| select_item.aggregates.is_empty());
+
+    let final_rows = if contains_aggregates {
+        if contains_non_aggregates {
             unimplemented!();
         } else {
             let mut ungrouped_groupers = selected_rows

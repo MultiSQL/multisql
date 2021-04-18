@@ -66,11 +66,15 @@ test_case!(join, async move {
             15,
             "SELECT * FROM Item LEFT JOIN Player ON Player.id = Item.player_id;",
         ),
+        (
+            16,
+            "SELECT * FROM Item RIGHT JOIN Player ON Player.id = Item.player_id;",
+        ),
         (5, "SELECT * FROM Item LEFT JOIN Player ON Player.id = Item.player_id WHERE quantity = 1;"),
         (7, "SELECT * FROM Item LEFT JOIN Player ON Player.id = Item.player_id WHERE Player.id = 1;"),
         (7, "SELECT * FROM Item INNER JOIN Player ON Player.id = Item.player_id WHERE Player.id = 1;"),
         (7, "SELECT * FROM Item
-            LEFT JOIN Player ON Player.id = Item.player_id
+            LEFT JOIN Player p0 ON p0.id = Item.player_id
             LEFT JOIN Player p1 ON p1.id = Item.player_id
             LEFT JOIN Player p2 ON p2.id = Item.player_id
             LEFT JOIN Player p3 ON p3.id = Item.player_id
@@ -80,9 +84,9 @@ test_case!(join, async move {
             LEFT JOIN Player p7 ON p7.id = Item.player_id
             LEFT JOIN Player p8 ON p8.id = Item.player_id
             LEFT JOIN Player p9 ON p9.id = Item.player_id
-            WHERE Player.id = 1;"),
+            WHERE p0.id = 1;"),
         (6, "SELECT * FROM Item
-            LEFT JOIN Player ON Player.id = Item.player_id
+            LEFT JOIN Player p0 ON p0.id = Item.player_id
             LEFT JOIN Player p1 ON p1.id = Item.player_id
             LEFT JOIN Player p2 ON p2.id = Item.player_id
             LEFT JOIN Player p3 ON p3.id = Item.player_id
@@ -92,7 +96,7 @@ test_case!(join, async move {
             LEFT JOIN Player p7 ON p7.id = Item.player_id
             LEFT JOIN Player p8 ON p8.id = Item.player_id
             INNER JOIN Player p9 ON p9.id = Item.player_id AND Item.id > 101
-            WHERE Player.id = 1;"),
+            WHERE p0.id = 1;"),
         (5, "SELECT * FROM Item LEFT JOIN Player ON Player.id = Item.player_id WHERE Item.quantity = 1;"),
         (5, "SELECT * FROM Item i LEFT JOIN Player p ON p.id = i.player_id WHERE i.quantity = 1;"),
         (15, "SELECT * FROM Item i LEFT JOIN Player p ON p.id = i.player_id AND p.id = 1;"),

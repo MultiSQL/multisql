@@ -1,14 +1,14 @@
 use {
-    super::{Ingredient, Method, Recipe, RecipeError, TryIntoMethod, UnaryOperator},
+    super::{Ingredient, Method, Recipe, RecipeError, TryIntoMethod},
     crate::{
         executor::{
             query::{JoinManual, JoinType},
             types::{ObjectName, TableWithAlias},
         },
-        Result, Table, Value,
+        Result, Value,
     },
     sqlparser::ast::{Expr, FunctionArg, Ident, SelectItem, SetExpr},
-    std::convert::{TryFrom, TryInto},
+    std::convert::TryFrom,
 };
 
 #[derive(Debug, Clone)]

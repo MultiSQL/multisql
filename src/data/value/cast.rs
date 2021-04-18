@@ -1,12 +1,14 @@
 use {
     super::{Convert, Value, ValueError},
     crate::result::Result,
+    std::convert::TryInto,
 };
 
 pub trait Cast<Output> {
     fn cast(self) -> Result<Output>;
 }
 
+// Cores
 impl Cast<bool> for Value {
     fn cast(self) -> Result<bool> {
         self.clone().convert().or(Ok(match self {
@@ -79,5 +81,14 @@ impl Cast<String> for Value {
             Value::F64(value) => value.to_string(),
             Value::Null => String::from("NULL"),
         }))
+    }
+}
+
+// Utilities
+impl Cast<usize> for Value {
+    fn cast(self) -> Result<usize> {
+        let int: i64 = self.cast()?;
+        int.try_into()
+            .map_err(|_| ValueError::ImpossibleCast.into())
     }
 }

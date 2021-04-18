@@ -16,6 +16,11 @@ pub struct PlannedRecipe {
 }
 
 impl PlannedRecipe {
+    pub const TRUE: Self = Self {
+        recipe: Recipe::TRUE,
+        needed_column_indexes: vec![],
+        aggregates: vec![],
+    };
     pub fn new(meta_recipe: MetaRecipe, columns: &Vec<ComplexColumnName>) -> Result<Self> {
         let MetaRecipe { recipe, meta } = meta_recipe;
         let aggregates = meta.aggregates;
@@ -41,6 +46,7 @@ impl PlannedRecipe {
                 }
             })
             .collect::<Result<Vec<usize>>>()?;
+
         Ok(Self {
             recipe,
             needed_column_indexes,
@@ -80,27 +86,17 @@ impl PlannedRecipe {
         // All of the above (obviously) applies to all functions used in this function.
         let mut plane_row = plane_row.clone();
         plane_row.extend(self_row.clone());
-        let confined_row = self
-            .needed_column_indexes
-            .iter()
-            .map(|index| {
-                plane_row
-                    .get(*index)
-                    .ok_or(RecipeError::Unreachable.into())
-                    .map(|value| value.clone())
-            })
-            .collect::<Result<Row>>()?;
 
-        self.confirm_constraint(&confined_row)
+        self.confirm_constraint(&plane_row)
     }
     pub fn confirm_constraint(&self, row: &Row) -> Result<bool> {
-        let simplification = self.recipe.clone().simplify(SimplifyBy::Row(row))?;
-        let solution = simplification
-            .as_solution()
-            .ok_or(RecipeError::MissingComponents)?;
+        let solution = self
+            .clone()
+            .simplify_by_row_simple(row)?
+            .confirm_or_err(RecipeError::MissingComponents.into())?;
         Ok(matches!(solution, Value::Bool(true)))
     }
-    pub fn simplify_by_row(self, row: &Row) -> Result<Self> {
+    fn simplify_by_row_simple(self, row: &Row) -> Result<Recipe> {
         let row = self
             .needed_column_indexes
             .clone()
@@ -111,7 +107,10 @@ impl PlannedRecipe {
                     .map(|value| value.clone())
             })
             .collect::<Result<Vec<Value>>>()?;
-        let recipe = self.recipe.simplify(SimplifyBy::Row(&row))?;
+        self.recipe.simplify(SimplifyBy::Row(&row))
+    }
+    pub fn simplify_by_row(self, row: &Row) -> Result<Self> {
+        let recipe = self.clone().simplify_by_row_simple(row)?;
         let aggregates = self
             .aggregates
             .into_iter()
@@ -149,17 +148,9 @@ impl PlannedRecipe {
             .collect::<Result<Vec<Value>>>()
     }
     pub fn solve_by_aggregate(self, accumulated: Vec<Value>) -> Result<Value> {
-        confirm_or_err(
-            self.recipe
-                .simplify(SimplifyBy::CompletedAggregate(accumulated))?,
-            RecipeError::MissingComponents.into(),
-        )
-    }
-    pub fn confirm(self) -> Result<Value> {
-        self.confirm_or_err(RecipeError::MissingComponents.into())
-    }
-    pub fn confirm_or_err(self, error: Error) -> Result<Value> {
-        confirm_or_err(self.recipe, error)
+        self.recipe
+            .simplify(SimplifyBy::CompletedAggregate(accumulated))?
+            .confirm_or_err(RecipeError::MissingComponents.into())
     }
     pub fn get_label(
         &self,
@@ -184,8 +175,4 @@ impl PlannedRecipe {
         }
         .unwrap_or(format!("unnamed_{}", selection_index))
     }
-}
-
-fn confirm_or_err(recipe: Recipe, error: Error) -> Result<Value> {
-    recipe.as_solution().ok_or(error)
 }

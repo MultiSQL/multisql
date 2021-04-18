@@ -11,17 +11,14 @@ pub use {
 };
 
 use {
-    crate::{
-        executor::types::{ComplexColumnName, ObjectName, Row},
-        Result, Value,
-    },
+    crate::{executor::types::ObjectName, Error, Result, Value},
     serde::Serialize,
     sqlparser::ast::{DataType, Expr},
     std::fmt::Debug,
-    thiserror::Error,
+    thiserror::Error as ThisError,
 };
 
-#[derive(Error, Serialize, Debug, PartialEq)]
+#[derive(ThisError, Serialize, Debug, PartialEq)]
 pub enum RecipeError {
     #[error("recipe missing components")]
     MissingComponents,
@@ -85,8 +82,21 @@ pub type BinaryOperator = fn(Value, Value) -> Result<Value>;
 pub type FunctionOperator = fn(Vec<Value>) -> Result<Value>;
 pub type AggregateOperator = fn(Value, Value) -> Result<Value>;
 
-pub trait RecipeUtilities {
+pub trait RecipeUtilities
+where
+    Self: Sized,
+{
     fn as_solution(&self) -> Option<Value>;
+
+    fn confirm_or_err(self, error: Error) -> Result<Value> {
+        self.as_solution().ok_or(error)
+    }
+
+    fn confirm(self) -> Result<Value> {
+        self.confirm_or_err(RecipeError::MissingComponents.into())
+    }
+
+    fn simplify_by_basic(self) -> Result<Self>;
 }
 impl RecipeUtilities for Recipe {
     fn as_solution(&self) -> Option<Value> {
@@ -96,15 +106,26 @@ impl RecipeUtilities for Recipe {
             None
         }
     }
+    fn simplify_by_basic(self) -> Result<Self> {
+        self.simplify(SimplifyBy::Basic)
+    }
 }
 impl RecipeUtilities for MetaRecipe {
     fn as_solution(&self) -> Option<Value> {
         self.recipe.as_solution()
     }
+    fn simplify_by_basic(mut self) -> Result<Self> {
+        self.recipe = self.recipe.simplify(SimplifyBy::Basic)?;
+        Ok(self)
+    }
 }
 impl RecipeUtilities for PlannedRecipe {
     fn as_solution(&self) -> Option<Value> {
         self.recipe.as_solution()
+    }
+    fn simplify_by_basic(mut self) -> Result<Self> {
+        self.recipe = self.recipe.simplify(SimplifyBy::Basic)?;
+        Ok(self)
     }
 }
 

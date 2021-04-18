@@ -18,6 +18,7 @@ impl JoinManual {
     pub fn new(join: AstJoin) -> Result<Self> {
         let table = Self::table_identity(join.relation)?;
         let (join_type, constraint) = Self::convert_join(join.join_operator)?;
+        // println!("(join/manual.rs) Constraint: {:?}", constraint);
         Ok(Self {
             table,
             join_type,
@@ -34,23 +35,31 @@ impl JoinManual {
         })
     }
     fn convert_join(from: JoinOperator) -> Result<(JoinType, MetaRecipe)> {
-        let values = match from {
-            JoinOperator::Inner(JoinConstraint::On(constraint)) => (JoinType::Inner, constraint),
-            JoinOperator::LeftOuter(JoinConstraint::On(constraint)) => (JoinType::Left, constraint),
-            JoinOperator::RightOuter(JoinConstraint::On(constraint)) => {
-                (JoinType::Right, constraint)
-            }
-            JoinOperator::FullOuter(JoinConstraint::On(constraint)) => (JoinType::Full, constraint),
-            JoinOperator::CrossJoin => return Ok((JoinType::CrossJoin, MetaRecipe::TRUE)),
+        let (join_type, constraint) = match from {
+            JoinOperator::Inner(constraint) => (JoinType::Inner, Some(constraint)),
+            JoinOperator::LeftOuter(constraint) => (JoinType::Left, Some(constraint)),
+            JoinOperator::RightOuter(constraint) => (JoinType::Right, Some(constraint)),
+            JoinOperator::FullOuter(constraint) => (JoinType::Full, Some(constraint)),
+            JoinOperator::CrossJoin => (JoinType::CrossJoin, None),
             _ => return Err(JoinError::UnimplementedJoinType.into()),
         };
-        Ok((values.0, MetaRecipe::new(values.1)?))
+        let constraint = match constraint {
+            Some(JoinConstraint::On(constraint)) => MetaRecipe::new(constraint)?,
+            Some(JoinConstraint::None) | None => MetaRecipe::TRUE,
+            _ => return Err(JoinError::UnimplementedJoinConstaint.into()),
+        };
+        Ok((join_type, constraint))
     }
     pub fn table_identity(table: TableFactor) -> Result<TableWithAlias> {
         match table {
             TableFactor::Table { name, alias, .. } => {
-                let name = name.0.get(0).ok_or(JoinError::Unreachable)?.value.clone(); // We only support single component table names for now
-                                                                                       // TODO
+                let name = name
+                    .0
+                    .get(0)
+                    .ok_or(JoinError::UnimplementedNumberOfComponents)?
+                    .value
+                    .clone(); // We only support single component table names for now
+                              // TODO
                 let alias = alias.map(|alias| alias.name.value);
 
                 Ok((alias, name))

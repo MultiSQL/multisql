@@ -10,10 +10,11 @@ pub enum SimplifyBy<'a> {
     CompletedAggregate(Vec<Value>),
 }
 
-pub trait Resolve {
-    fn simplify(self, component: SimplifyBy) -> Result<Self>
-    where
-        Self: Sized;
+pub trait Resolve
+where
+    Self: Sized,
+{
+    fn simplify(self, component: SimplifyBy) -> Result<Self>;
 }
 
 impl Resolve for Recipe {
