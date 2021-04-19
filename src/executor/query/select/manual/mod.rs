@@ -15,6 +15,9 @@ use {
 
 #[derive(ThisError, Serialize, Debug, PartialEq)]
 pub enum ManualError {
+    #[error("subqueries are not yet supported")]
+    UnimplementedSubquery,
+
     #[error("this should be impossible, please report")]
     Unreachable,
 }
@@ -23,6 +26,7 @@ pub struct Manual {
     pub joins: Vec<JoinManual>,
     pub select_items: Vec<SelectItem>,
     pub constraint: MetaRecipe,
+    pub group_constraint: MetaRecipe,
     pub groups: Vec<MetaRecipe>,
 }
 pub enum SelectItem {
@@ -37,6 +41,7 @@ impl Manual {
             from,
             selection,
             group_by,
+            having,
             // TODO (below)
             distinct: _,
             top: _,
@@ -44,19 +49,29 @@ impl Manual {
             cluster_by: _,
             distribute_by: _,
             sort_by: _,
-            having: _,
         } = select;
 
         let constraint = selection
             .map(|selection| MetaRecipe::new(selection))
             .unwrap_or(Ok(MetaRecipe::TRUE))?;
 
-        let (select_items, subqueries): (Vec<SelectItem>, Vec<Vec<JoinManual>>) = projection
+        let group_constraint = having
+            .map(|having| MetaRecipe::new(having))
+            .unwrap_or(Ok(MetaRecipe::TRUE))?;
+
+        let groups = group_by
+            .into_iter()
+            .map(|expression| MetaRecipe::new(expression))
+            .collect::<Result<Vec<MetaRecipe>>>()?;
+
+        let (select_items, mut subqueries): (Vec<SelectItem>, Vec<Vec<JoinManual>>) = projection
             .into_iter()
             .map(convert_select_item)
             .collect::<Result<Vec<(SelectItem, Vec<JoinManual>)>>>()?
             .into_iter()
             .unzip();
+
+        subqueries.push(constraint.meta.subqueries.clone());
 
         let subqueries = subqueries
             .into_iter()
@@ -65,8 +80,15 @@ impl Manual {
                 all_subqueries
             })
             .ok_or(ManualError::Unreachable)?;
+        // Subqueries TODO
+        // Issues:
+        // - Current method can expand plane on multiple match
+        // - No plane isolation (ambiguous columns because subquery columns and plane columns are treated the same)
+        if !subqueries.is_empty() {
+            return Err(ManualError::UnimplementedSubquery.into());
+        }
 
-        let mut joins = from
+        let /*mut*/ joins = from
             .into_iter()
             .map(|from| {
                 let main = JoinManual::new_implicit_join(from.relation)?;
@@ -85,18 +107,14 @@ impl Manual {
                 all_joins
             })
             .ok_or(ManualError::Unreachable)?;
-        joins.extend(subqueries);
-        let joins = joins;
-
-        let groups = group_by
-            .into_iter()
-            .map(|expression| MetaRecipe::new(expression))
-            .collect::<Result<Vec<MetaRecipe>>>()?;
+        //joins.extend(subqueries);
+        //let joins = joins;
 
         Ok(Manual {
             joins,
             select_items,
             constraint,
+            group_constraint,
             groups,
         })
     }

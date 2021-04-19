@@ -85,7 +85,7 @@ macro_rules! generate_tests {
         glue!(nullable, nullable::nullable);
         glue!(nullable_text, nullable::nullable_text);
 
-        //glue!(ordering, ordering::ordering);
+        glue!(ordering, ordering::ordering);
         glue!(sql_types, sql_types::sql_types);
         glue!(synthesize, synthesize::synthesize);
         glue!(validate_unique, validate::unique::unique);

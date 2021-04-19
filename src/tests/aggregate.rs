@@ -63,8 +63,13 @@ test_case!(aggregate, async move {
         ),
         (
             "SELECT COUNT(age), COUNT(quantity) FROM Item",
-            select!("COUNT(age)" | "COUNT(quantity)"; I64 | I64; 3 5),
+            select!("unnamed_0" | "unnamed_1"; I64 | I64; 3 5),
         ),
+        (
+            "SELECT AVG(quantity) FROM Item",
+            select!("unnamed_0"; I64; 9),
+        ),
+        ("SELECT SUM(1 + 2) FROM Item", select!("unnamed_0"; I64; 15)),
     ];
 
     for (sql, expected) in test_cases.into_iter() {
@@ -73,19 +78,16 @@ test_case!(aggregate, async move {
 
     let error_cases = vec![
         (
-            WIPError::TODO.into(), //AggregateError::UnsupportedCompoundIdentifier("id.name.ok".to_owned()).into(),
+            RecipeError::MissingColumn(vec![
+                String::from("id"),
+                String::from("name"),
+                String::from("ok"),
+            ])
+            .into(),
             "SELECT SUM(id.name.ok) FROM Item;",
         ),
         (
-            WIPError::TODO.into(), //AggregateError::UnsupportedAggregation("AVG".to_owned()).into(),
-            "SELECT AVG(1) FROM Item;",
-        ),
-        (
-            WIPError::TODO.into(), //AggregateError::OnlyIdentifierAllowed.into(),
-            "SELECT SUM(1 + 2) FROM Item;",
-        ),
-        (
-            WIPError::TODO.into(), //AggregateError::ValueNotFound("num".to_owned()).into(),
+            RecipeError::MissingColumn(vec![String::from("num")]).into(),
             "SELECT SUM(num) FROM Item;",
         ),
     ];
@@ -172,14 +174,5 @@ test_case!(group_by, async move {
 
     for (sql, expected) in test_cases.into_iter() {
         test!(Ok(expected), sql);
-    }
-
-    let error_cases = vec![(
-        WIPError::TODO.into(), //ValueError::FloatCannotBeGroupedBy.into(),
-        "SELECT * FROM Item GROUP BY ratio;",
-    )];
-
-    for (error, sql) in error_cases.into_iter() {
-        test!(Err(error), sql);
     }
 });

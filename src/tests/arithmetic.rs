@@ -112,12 +112,12 @@ test_case!(blend, async move {
 
     let sql = "SELECT 1 * 2 + 1 - 3 / 1 FROM Arith LIMIT 1;";
     let found = run!(sql);
-    let expected = select!(""; I64; 0);
+    let expected = select!("unnamed_0"; I64; 0);
     assert_eq!(expected, found);
 
     let found = run!("SELECT id, id + 1, id + num, 1 + 1 FROM Arith");
     let expected = select!(
-        "id"  | "" | "" | ""
+        "id"  | "unnamed_1" | "unnamed_2" | "unnamed_3"
         I64 | I64      | I64        | I64;
         1     2          7            2;
         2     3          10           2;
@@ -133,6 +133,6 @@ test_case!(blend, async move {
       JOIN Arith b ON a.id = b.id + 1
     ";
     let found = run!(sql);
-    let expected = select!(""; I64; 3; 5; 7; 9);
+    let expected = select!("unnamed_0"; I64; 3; 5; 7; 9);
     assert_eq!(expected, found);
 });

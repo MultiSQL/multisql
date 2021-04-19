@@ -56,21 +56,15 @@ test_case!(upper_lower, async move {
         ),
         (
             "SELECT LOWER() FROM Item",
-            Err(WIPError::TODO.into()), /*Err(CalculationError::WrongNumberOfArguments {
-                                            function: Lower,
-                                            expected: 1,
-                                            found: 0,
-                                        }
-                                        .into()),*/
+            Err(ValueError::NumberOfFunctionParamsNotMatching {
+                expected: 1,
+                found: 0,
+            }
+            .into()),
         ),
         (
             "SELECT LOWER(1) FROM Item",
-            Err(WIPError::TODO.into()), /*Err(CalculationError::FunctionRequiresDataType {
-                                            function: Lower,
-                                            expected: Value::Str(String::from("")),
-                                            found: Value::I64(1),
-                                        }
-                                        .into()),*/
+            Err(ValueError::CannotConvert(Value::I64(1), "TEXT").into()),
         ),
         (
             "SELECT WHATEVER(1) FROM Item",

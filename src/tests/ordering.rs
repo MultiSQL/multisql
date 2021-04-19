@@ -33,16 +33,18 @@ test_case!(ordering, async move {
         (5, "SELECT * FROM Operator WHERE 1 < 3;"),
         (5, "SELECT * FROM Operator WHERE 3 >= 3;"),
         (0, "SELECT * FROM Operator WHERE 3 > 3;"),
-        (
+        // TODO: Subqueries
+        /*(
             5,
             "SELECT * FROM Operator o1 WHERE 3 > (SELECT id FROM Operator WHERE o1.id < 100);",
-        ),
+        ),*/
         (2, "SELECT * FROM Operator WHERE name < \"Azzzzzzzzzz\";"),
         (1, "SELECT * FROM Operator WHERE name < \"Az\";"),
         (5, "SELECT * FROM Operator WHERE name < \"zz\";"),
         (5, "SELECT * FROM Operator WHERE \"aa\" < \"zz\";"),
         (4, "SELECT * FROM Operator WHERE \"Romeo\" >= name;"),
-        (
+        // TODO: Subqueries
+        /*(
             1,
             "SELECT * FROM Operator WHERE (SELECT name FROM Operator LIMIT 1) >= name",
         ),
@@ -57,7 +59,7 @@ test_case!(ordering, async move {
         (
             5,
             "SELECT * FROM Operator WHERE (SELECT name FROM Operator LIMIT 1) < \"zz\"",
-        ),
+        ),*/
         (5, "SELECT * FROM Operator WHERE NOT (1 != 1);"),
     ];
 

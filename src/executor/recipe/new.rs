@@ -86,6 +86,19 @@ impl RecipeMeta {
         self.append_subquery(subquery);
         Ok(result)
     }
+    pub fn aggregate_average(&mut self, argument: Recipe) -> Recipe {
+        Recipe::Method(Box::new(Method::BinaryOperation(
+            Value::generic_divide,
+            self.aggregate(Recipe::Method(Box::new(Method::Aggregate(
+                Value::aggregate_sum,
+                argument.clone(),
+            )))),
+            self.aggregate(Recipe::Method(Box::new(Method::Aggregate(
+                Value::aggregate_count,
+                argument,
+            )))),
+        )))
+    }
 }
 
 pub struct Subquery {
@@ -162,17 +175,7 @@ impl Recipe {
                         .clone();
                     let argument = Recipe::from_argument(argument, meta)?;
 
-                    Ok(Recipe::Method(Box::new(Method::BinaryOperation(
-                        Value::generic_divide,
-                        Recipe::Method(Box::new(Method::Aggregate(
-                            Value::aggregate_sum,
-                            argument.clone(),
-                        ))),
-                        Recipe::Method(Box::new(Method::Aggregate(
-                            Value::aggregate_count,
-                            argument,
-                        ))),
-                    ))))
+                    Ok(meta.aggregate_average(argument))
                 } else if let Ok(function_operator) = name.clone().into_method() {
                     let arguments = function
                         .args
@@ -191,10 +194,10 @@ impl Recipe {
                         .clone();
                     let argument = Recipe::from_argument(argument, meta)?;
 
-                    Ok(Recipe::Method(Box::new(Method::Aggregate(
+                    Ok(meta.aggregate(Recipe::Method(Box::new(Method::Aggregate(
                         name.into_method()?,
                         argument,
-                    ))))
+                    )))))
                 }
             }
             Expr::Cast { data_type, expr } => Ok(Recipe::Method(Box::new(Method::Cast(

@@ -5,7 +5,7 @@ pub use select::{join::*, ManualError, PlanError, SelectError};
 use {
     crate::{
         executor::types::LabelsAndRows, macros::warning, result::Result, store::Store, Cast,
-        Recipe, RecipeUtilities, Resolve, SimplifyBy, Value,
+        Recipe, RecipeUtilities, Value,
     },
     select::select,
     serde::Serialize,
@@ -36,14 +36,22 @@ pub async fn query<'a, Key: 'static + Debug>(
         body,
         order_by,
         limit,
+        offset,
         // TODO (below)
-        offset: _,
         fetch: _,
         with: _,
     } = query;
     let limit: Option<usize> = limit
         .map(|expression| {
             Recipe::new_without_meta(expression)?
+                .simplify_by_basic()?
+                .confirm_or_err(QueryError::MissingComponentsForLimit.into())?
+                .cast()
+        })
+        .transpose()?;
+    let offset: Option<usize> = offset
+        .map(|offset| {
+            Recipe::new_without_meta(offset.value)?
                 .simplify_by_basic()?
                 .confirm_or_err(QueryError::MissingComponentsForLimit.into())?
                 .cast()
@@ -86,6 +94,7 @@ pub async fn query<'a, Key: 'static + Debug>(
         _ => Err(QueryError::QueryNotSupported.into()), // TODO: Other queries
     }?;
 
+    offset.map(|offset| rows.drain(0..offset));
     limit.map(|limit| rows.truncate(limit));
     if ENSURE_SIZE {
         let row_width = rows

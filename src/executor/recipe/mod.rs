@@ -46,7 +46,13 @@ pub enum RecipeError {
     Failed(String),
 
     #[error("this should be impossible, please report")]
-    UnreachableNotAggregate,
+    UnreachableAggregatationFailed,
+    #[error("this should be impossible, please report")]
+    UnreachableAggregateFailed,
+    #[error("this should be impossible, please report, failure: {0}")]
+    UnreachableNotMethod(String),
+    #[error("this should be impossible, please report, failure: {0}")]
+    UnreachableNotAggregate(String),
     #[error("this should be impossible, please report")]
     Unreachable,
 }
@@ -103,6 +109,7 @@ impl RecipeUtilities for Recipe {
         if let Recipe::Ingredient(Ingredient::Value(value)) = self {
             Some(value.clone())
         } else {
+            println!("Remaining recipe: {:?}", self);
             None
         }
     }

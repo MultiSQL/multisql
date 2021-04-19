@@ -19,6 +19,7 @@ pub struct Plan {
     pub select_items: Vec<PlannedRecipe>,
     pub constraint: PlannedRecipe,
     pub groups: Vec<PlannedRecipe>,
+    pub group_constraint: PlannedRecipe,
     pub order_by: Order,
     pub labels: Vec<String>,
 }
@@ -43,6 +44,7 @@ impl Plan {
             joins,
             select_items,
             constraint,
+            group_constraint,
             groups,
         } = Manual::new(select)?;
 
@@ -180,6 +182,7 @@ impl Plan {
         let (select_items, labels) = select_items.into_iter().unzip();
 
         let constraint = PlannedRecipe::new(constraint, &columns)?;
+        let group_constraint = PlannedRecipe::new(group_constraint, &columns)?;
         let groups = groups
             .into_iter()
             .map(|group| PlannedRecipe::new(group, &columns))
@@ -190,6 +193,7 @@ impl Plan {
             joins,
             select_items,
             constraint,
+            group_constraint,
             groups,
             order_by,
             labels,

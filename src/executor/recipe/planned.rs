@@ -97,20 +97,22 @@ impl PlannedRecipe {
         Ok(matches!(solution, Value::Bool(true)))
     }
     fn simplify_by_row_simple(self, row: &Row) -> Result<Recipe> {
-        let row = self
-            .needed_column_indexes
-            .clone()
-            .into_iter()
+        let row = self.condense_row(row)?;
+        self.recipe.simplify(SimplifyBy::Row(&row))
+    }
+    fn condense_row(&self, row: &Row) -> Result<Row> {
+        self.needed_column_indexes
+            .iter()
             .map(|index| {
-                row.get(index)
+                row.get(*index)
                     .ok_or(RecipeError::Unreachable.into())
                     .map(|value| value.clone())
             })
-            .collect::<Result<Vec<Value>>>()?;
-        self.recipe.simplify(SimplifyBy::Row(&row))
+            .collect::<Result<Vec<Value>>>()
     }
     pub fn simplify_by_row(self, row: &Row) -> Result<Self> {
-        let recipe = self.clone().simplify_by_row_simple(row)?;
+        let row = self.condense_row(row)?;
+        let recipe = self.recipe.simplify(SimplifyBy::Row(&row))?;
         let aggregates = self
             .aggregates
             .into_iter()
@@ -136,13 +138,14 @@ impl PlannedRecipe {
             .map(|(aggregate, accumulated)| {
                 if let Recipe::Method(aggregate) = aggregate {
                     if let Method::Aggregate(operator, recipe) = *aggregate {
-                        let value = recipe.as_solution().ok_or(RecipeError::MissingComponents)?;
+                        let value = recipe
+                            .confirm_or_err(RecipeError::UnreachableAggregatationFailed.into())?;
                         operator(value, accumulated)
                     } else {
-                        Err(RecipeError::UnreachableNotAggregate.into())
+                        Err(RecipeError::UnreachableNotAggregate(format!("{:?}", aggregate)).into())
                     }
                 } else {
-                    Err(RecipeError::UnreachableNotAggregate.into())
+                    Err(RecipeError::UnreachableNotMethod(format!("{:?}", aggregate)).into())
                 }
             })
             .collect::<Result<Vec<Value>>>()
@@ -150,7 +153,7 @@ impl PlannedRecipe {
     pub fn solve_by_aggregate(self, accumulated: Vec<Value>) -> Result<Value> {
         self.recipe
             .simplify(SimplifyBy::CompletedAggregate(accumulated))?
-            .confirm_or_err(RecipeError::MissingComponents.into())
+            .confirm_or_err(RecipeError::UnreachableAggregateFailed.into())
     }
     pub fn get_label(
         &self,

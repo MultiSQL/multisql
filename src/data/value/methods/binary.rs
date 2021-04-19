@@ -64,7 +64,9 @@ macro_rules! comparative_binary_ops {
 macro_rules! generic {
     ($name: ident, $generic_name: ident) => {
         pub fn $generic_name(self, other: Self) -> Result<Self> {
-            if !i64::convert_from(self.clone()).is_err()
+            if matches!(self, Value::Null) || matches!(other, Value::Null) {
+                Ok(Value::Null)
+            } else if !i64::convert_from(self.clone()).is_err()
                 && !i64::convert_from(other.clone()).is_err()
             {
                 self.$name::<i64>(other)

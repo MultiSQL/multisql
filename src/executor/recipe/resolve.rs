@@ -103,6 +103,7 @@ impl Resolve for Method {
             }
 
             Method::Value(..) => return Err(RecipeError::Unreachable.into()),
+
             // This will only occur for a special aggregate simplify
             Method::Aggregate(operator, recipe) => {
                 Method::Aggregate(operator, recipe.simplify(component)?)
