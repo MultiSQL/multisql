@@ -38,12 +38,12 @@ pub enum ValueError {
     #[error("impossible cast")]
     ImpossibleCast,
 
+    #[error("unimplemented literal type")]
+    UnimplementedLiteralType,
     #[error("unimplemented cast")]
     UnimplementedCast,
-
     #[error("unreachable literal cast from number to integer: {0}")]
     UnreachableLiteralCastFromNumberToInteger(String),
-
     #[error("unimplemented literal cast: {literal} as {data_type}")]
     UnimplementedLiteralCast { data_type: String, literal: String },
 }

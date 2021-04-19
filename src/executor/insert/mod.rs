@@ -1,5 +1,6 @@
 mod validate;
 
+pub use validate::{columns_to_positions, validate};
 use {
     crate::{
         data::{get_name, Schema},
@@ -12,7 +13,6 @@ use {
     sqlparser::ast::{Ident, ObjectName, Query},
     std::fmt::Debug,
     thiserror::Error as ThisError,
-    validate::validate,
 };
 
 #[derive(ThisError, Serialize, Debug, PartialEq)]
@@ -23,6 +23,8 @@ pub enum InsertError {
     WrongNumberOfValues,
     #[error("default value failed to be calculated")]
     BadDefault,
+    #[error("column '{0}' not found")]
+    ColumnNotFound(String),
 }
 
 macro_rules! try_block {
@@ -54,7 +56,9 @@ pub async fn insert<
 
         let (_, rows) = query(&storage, *source.clone()).await?;
 
-        let rows = validate(&column_defs, columns, rows)?;
+        let column_positions = columns_to_positions(&column_defs, columns)?;
+
+        let rows = validate(&column_defs, &column_positions, rows)?;
 
         let rows = rows.into_iter().map(Row).collect(); // I don't like this.
 

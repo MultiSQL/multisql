@@ -20,7 +20,7 @@ impl<'a> TryFrom<&'a AstValue> for Value {
                 .map_err(|_| ValueError::FailedToParseNumber.into()),
             AstValue::SingleQuotedString(value) => Ok(Value::Str(value.clone())),
             AstValue::Null => Ok(Value::Null),
-            _ => unimplemented!(), //Err(ValueError::UnsupportedLiteralType(ast_value.to_string()).into()),
+            _ => Err(ValueError::UnimplementedLiteralType.into()),
         }
     }
 }

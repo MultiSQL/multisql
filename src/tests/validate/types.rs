@@ -39,6 +39,8 @@ test_case!(types, async move {
             }
             .into()),
         ),
+        // TODO: Subqueries
+        /*
         (
             "UPDATE TableC SET uid = (SELECT id FROM TableB LIMIT 1) WHERE uid = 1",
             Err(ValueError::IncompatibleDataType {
@@ -47,14 +49,15 @@ test_case!(types, async move {
             }
             .into()),
         ),
+        */
         (
             "UPDATE TableC SET uid = NULL;",
             Err(ValueError::NullValueOnNotNullField.into()),
         ),
-        (
+        /*(
             "UPDATE TableC SET uid = (SELECT null_val FROM TableC);",
             Err(ValueError::NullValueOnNotNullField.into()),
-        ),
+        ),*/
     ];
 
     for (sql, expected) in test_cases.into_iter() {

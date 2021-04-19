@@ -6,20 +6,28 @@ use {
     sqlparser::ast::{ColumnDef, DataType, Ident},
 };
 
+pub fn columns_to_positions(column_defs: &[ColumnDef], columns: &[Ident]) -> Result<Vec<usize>> {
+    if columns.is_empty() {
+        Ok((0..column_defs.len()).collect())
+    } else {
+        columns
+            .iter()
+            .map(|stated_column| {
+                column_defs
+                    .iter()
+                    .position(|column_def| stated_column.value == column_def.name.value)
+                    .ok_or(InsertError::ColumnNotFound(stated_column.value.clone()).into())
+            })
+            .collect::<Result<Vec<usize>>>()
+    }
+}
+
 pub fn validate(
     column_defs: &[ColumnDef],
-    stated_columns: &[Ident],
+    stated_columns: &[usize],
     rows: Vec<Row>,
 ) -> Result<Vec<Row>> {
-    // FAIL: No mut
-    let table_columns_count = column_defs.len();
-    let selection_columns_count = if stated_columns.is_empty() {
-        table_columns_count
-    } else {
-        stated_columns.len()
-    };
-
-    if rows.iter().any(|row| row.len() != selection_columns_count) {
+    if rows.iter().any(|row| row.len() != stated_columns.len()) {
         return Err(InsertError::WrongNumberOfValues.into());
     }
 
@@ -27,18 +35,10 @@ pub fn validate(
         .into_iter()
         .enumerate()
         .map(|(column_def_index, column_def)| {
-            let ColumnDef {
-                name, data_type, ..
-            } = column_def;
-
-            let column_name = name.to_string();
-            let index = if stated_columns.is_empty() {
-                Some(column_def_index)
-            } else {
-                stated_columns
-                    .iter()
-                    .position(|stated_column| stated_column.value == column_name)
-            };
+            let ColumnDef { data_type, .. } = column_def;
+            let index = stated_columns
+                .iter()
+                .position(|stated_column| stated_column == &column_def_index);
 
             let nullable = column_def.is_nullable();
             #[cfg(feature = "auto-increment")]

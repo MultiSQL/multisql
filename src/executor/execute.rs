@@ -1,7 +1,7 @@
 use {
     super::{
         alter::{create_table, drop},
-        insert::insert,
+        insert::{columns_to_positions, insert, validate},
         /*update::Update,*/
         query::query,
         types::{ComplexColumnName, Row as VecRow},
@@ -119,7 +119,7 @@ pub async fn execute<
             selection,
             assignments,
         } => {
-            let rows = try_block!(storage, {
+            let rows: Vec<(Key, Row)> = try_block!(storage, {
                 let table_name = get_name(table_name)?;
                 let Schema { column_defs, .. } = storage
                     .fetch_schema(table_name)
@@ -147,7 +147,8 @@ pub async fn execute<
                     .into_iter()
                     .map(|assignment| {
                         let Assignment { id, value } = assignment;
-                        let column_compare = vec![id.value.clone()];
+                        let column_name = id.value.clone();
+                        let column_compare = vec![column_name.clone()];
                         let index = columns
                             .iter()
                             .position(|column| column == &column_compare)
@@ -191,10 +192,12 @@ pub async fn execute<
                         Some(row.map(|row| (key, Row(row))))
                     })
                     .collect::<Result<Vec<(Key, Row)>>>()?;
+
+                let column_positions = columns_to_positions(&column_defs, &[])?;
+                let validate_rows = keyed_rows.iter().map(|(_, row)| row.0.clone()).collect();
+                validate(&column_defs, &column_positions, validate_rows)?;
+
                 Ok(keyed_rows)
-                /*let (keys, rows) = keyed_rows.into_iter().unzip(); // TODO: Improve
-                let rows = validate(rows)?;
-                Ok(keys.into_iter().zip(rows.into_iter().map(Row)).collect())*/
             });
             let num_rows = rows.len();
             storage

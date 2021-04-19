@@ -19,7 +19,7 @@ test_case!(error, async move {
             "SELECT * FROM Nothing;",
         ),
         (
-            TableError::TableFactorNotSupported.into(),
+            JoinError::UnimplementedTableType.into(),
             "SELECT * FROM TableA JOIN (SELECT * FROM TableB) as TableC ON 1 = 1",
         ),
         /*(
@@ -27,19 +27,19 @@ test_case!(error, async move {
             "SELECT * FROM TableA JOIN TableA USING (id);",
         ),*/
         (
-            WIPError::TODO.into(), //EvaluateError::NestedSelectRowNotFound.into(),
+            ManualError::UnimplementedSubquery.into(),
             "SELECT * FROM TableA WHERE id = (SELECT id FROM TableA WHERE id = 2);",
         ),
         (
-            WIPError::TODO.into(), //EvaluateError::ValueNotFound("noname".to_owned()).into(),
+            RecipeError::MissingColumn(vec![String::from("noname")]).into(),
             "SELECT * FROM TableA WHERE noname = 1;",
         ),
         (
-            InsertError::WrongNumberOfValues.into(),
+            InsertError::ColumnNotFound(String::from("id2")).into(),
             "INSERT INTO TableA (id2) VALUES (1);",
         ),
         (
-            InsertError::WrongNumberOfValues.into(),
+            InsertError::ColumnNotFound(String::from("id2")).into(),
             "INSERT INTO TableA (id2, id) VALUES (100);",
         ),
         (
@@ -47,7 +47,7 @@ test_case!(error, async move {
             "INSERT INTO TableA VALUES (100), (100, 200);",
         ),
         (
-            WIPError::TODO.into(), //LiteralError::UnsupportedLiteralType(r#"X'123'"#.to_owned()).into(),
+            ValueError::UnimplementedLiteralType.into(),
             "SELECT * FROM TableA Where id = X'123';",
         ),
         #[cfg(feature = "alter-table")]
