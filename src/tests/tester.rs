@@ -75,7 +75,6 @@ macro_rules! test_case {
                 ($count: expr, $sql: expr) => {
                     match tests::run(Rc::clone(&cell), $sql).await.unwrap() {
                         Payload::Select { rows, .. } => {
-                            println!("Count macro:");
                             rows.iter()
                                 .enumerate()
                                 .for_each(|(index, row)| println!("{} - {:?}", index, row));

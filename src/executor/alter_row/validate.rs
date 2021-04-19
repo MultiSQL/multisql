@@ -1,10 +1,30 @@
 use {
     crate::{
-        data::schema::ColumnDefExt, executor::types::Row, InsertError, Recipe, RecipeUtilities,
-        Resolve, Result, SimplifyBy,
+        data::schema::ColumnDefExt, executor::types::Row, Recipe, RecipeUtilities, Resolve, Result,
+        SimplifyBy, Value,
     },
+    serde::Serialize,
     sqlparser::ast::{ColumnDef, DataType, Ident},
+    thiserror::Error as ThisError,
 };
+
+#[derive(ThisError, Serialize, Debug, PartialEq)]
+pub enum ValidateError {
+    #[error("expected value for column which neither accepts NULL nor has a default")]
+    MissingValue,
+    #[error("wrong number of values in insert statement")]
+    WrongNumberOfValues,
+    #[error("default value failed to be calculated")]
+    BadDefault,
+    #[error("column '{0}' not found")]
+    ColumnNotFound(String),
+    #[error("found duplicate value on unique field")]
+    //#[error("column '{0}' is unique but '{1:?}' was attempted to be stored twice")]
+    DuplicateEntryOnUniqueField, /*(String, Value)*/
+
+    #[error("this should be impossible, please report")]
+    UnreachableUniqueValues,
+}
 
 pub fn columns_to_positions(column_defs: &[ColumnDef], columns: &[Ident]) -> Result<Vec<usize>> {
     if columns.is_empty() {
@@ -16,7 +36,7 @@ pub fn columns_to_positions(column_defs: &[ColumnDef], columns: &[Ident]) -> Res
                 column_defs
                     .iter()
                     .position(|column_def| stated_column.value == column_def.name.value)
-                    .ok_or(InsertError::ColumnNotFound(stated_column.value.clone()).into())
+                    .ok_or(ValidateError::ColumnNotFound(stated_column.value.clone()).into())
             })
             .collect::<Result<Vec<usize>>>()
     }
@@ -28,7 +48,7 @@ pub fn validate(
     rows: Vec<Row>,
 ) -> Result<Vec<Row>> {
     if rows.iter().any(|row| row.len() != stated_columns.len()) {
-        return Err(InsertError::WrongNumberOfValues.into());
+        return Err(ValidateError::WrongNumberOfValues.into());
     }
 
     let column_info = column_defs
@@ -74,9 +94,9 @@ pub fn validate(
                                 recipe
                                     .simplify(SimplifyBy::Basic)?
                                     .as_solution()
-                                    .ok_or(InsertError::BadDefault.into())
+                                    .ok_or(ValidateError::BadDefault.into())
                             } else {
-                                Err(InsertError::MissingValue.into())
+                                Err(ValidateError::MissingValue.into())
                             }
                         })
                 })

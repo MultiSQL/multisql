@@ -1,26 +1,25 @@
 use {
     super::{
-        alter::{create_table, drop},
-        insert::{columns_to_positions, insert, validate},
-        /*update::Update,*/
+        alter_row::{insert, update},
+        alter_table::{create_table, drop},
         query::query,
-        types::{ComplexColumnName, Row as VecRow},
+        types::ComplexColumnName,
     },
     crate::{
         data::{get_name, Schema},
         parse_sql::Query,
         result::MutResult,
         store::{AlterTable, AutoIncrement, Store, StoreMut},
-        MetaRecipe, PlannedRecipe, RecipeUtilities, Result, Row,
+        MetaRecipe, PlannedRecipe, Result, Row,
     },
     serde::Serialize,
-    sqlparser::ast::{Assignment, ColumnDef, Statement},
+    sqlparser::ast::{ColumnDef, Statement},
     std::fmt::Debug,
     thiserror::Error as ThisError,
 };
 
 #[cfg(feature = "alter-table")]
-use super::alter::alter_table;
+use super::alter_table::alter_table;
 
 #[derive(ThisError, Serialize, Debug, PartialEq)]
 pub enum ExecuteError {
@@ -118,93 +117,7 @@ pub async fn execute<
             table_name,
             selection,
             assignments,
-        } => {
-            let rows: Vec<(Key, Row)> = try_block!(storage, {
-                let table_name = get_name(table_name)?;
-                let Schema { column_defs, .. } = storage
-                    .fetch_schema(table_name)
-                    .await?
-                    .ok_or(ExecuteError::TableNotExists)?;
-
-                let columns = column_defs
-                    .clone()
-                    .into_iter()
-                    .map(|column_def| {
-                        let ColumnDef { name, .. } = column_def;
-                        ComplexColumnName {
-                            name: name.value,
-                            table: (None, String::new()),
-                        }
-                    })
-                    .collect();
-
-                let filter = selection
-                    .clone()
-                    .map(|selection| PlannedRecipe::new(MetaRecipe::new(selection)?, &columns))
-                    .unwrap_or(Ok(PlannedRecipe::TRUE))?;
-
-                let assignments = assignments
-                    .into_iter()
-                    .map(|assignment| {
-                        let Assignment { id, value } = assignment;
-                        let column_name = id.value.clone();
-                        let column_compare = vec![column_name.clone()];
-                        let index = columns
-                            .iter()
-                            .position(|column| column == &column_compare)
-                            .ok_or(ExecuteError::ColumnNotFound)?;
-                        let recipe = PlannedRecipe::new(MetaRecipe::new(value.clone())?, &columns)?;
-                        Ok((index, recipe))
-                    })
-                    .collect::<Result<Vec<(usize, PlannedRecipe)>>>()?;
-
-                let keyed_rows = storage
-                    .scan_data(table_name)
-                    .await?
-                    .into_iter()
-                    .filter_map(|row_result| {
-                        let (key, row) = match row_result {
-                            Ok(keyed_row) => keyed_row,
-                            Err(error) => return Some(Err(error)),
-                        };
-
-                        let row = row.0;
-
-                        let confirm_constraint = filter.confirm_constraint(&row.clone());
-                        if let Ok(false) = confirm_constraint {
-                            return None;
-                        } else if let Err(error) = confirm_constraint {
-                            return Some(Err(error));
-                        }
-                        let row = row
-                            .iter()
-                            .enumerate()
-                            .map(|(index, old_value)| {
-                                assignments
-                                    .iter()
-                                    .find(|(assignment_index, _)| assignment_index == &index)
-                                    .map(|(_, assignment_recipe)| {
-                                        assignment_recipe.clone().simplify_by_row(&row)?.confirm()
-                                    })
-                                    .unwrap_or(Ok(old_value.clone()))
-                            })
-                            .collect::<Result<VecRow>>();
-                        Some(row.map(|row| (key, Row(row))))
-                    })
-                    .collect::<Result<Vec<(Key, Row)>>>()?;
-
-                let column_positions = columns_to_positions(&column_defs, &[])?;
-                let validate_rows = keyed_rows.iter().map(|(_, row)| row.0.clone()).collect();
-                validate(&column_defs, &column_positions, validate_rows)?;
-
-                Ok(keyed_rows)
-            });
-            let num_rows = rows.len();
-            storage
-                .update_data(rows)
-                .await
-                .map(|(storage, _)| (storage, Payload::Update(num_rows)))
-        }
+        } => update(storage, table_name, selection, assignments).await,
         Statement::Delete {
             table_name,
             selection,

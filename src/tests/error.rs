@@ -35,15 +35,15 @@ test_case!(error, async move {
             "SELECT * FROM TableA WHERE noname = 1;",
         ),
         (
-            InsertError::ColumnNotFound(String::from("id2")).into(),
+            ValidateError::ColumnNotFound(String::from("id2")).into(),
             "INSERT INTO TableA (id2) VALUES (1);",
         ),
         (
-            InsertError::ColumnNotFound(String::from("id2")).into(),
+            ValidateError::ColumnNotFound(String::from("id2")).into(),
             "INSERT INTO TableA (id2, id) VALUES (100);",
         ),
         (
-            InsertError::WrongNumberOfValues.into(),
+            ValidateError::WrongNumberOfValues.into(),
             "INSERT INTO TableA VALUES (100), (100, 200);",
         ),
         (

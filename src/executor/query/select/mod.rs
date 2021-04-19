@@ -15,6 +15,7 @@ use {
             types::{LabelsAndRows, Row},
             PlannedRecipe,
         },
+        macros::try_option,
         store::Store,
         RecipeUtilities, Result, Value,
     },
@@ -24,15 +25,6 @@ use {
     std::fmt::Debug,
     thiserror::Error as ThisError,
 };
-
-macro_rules! try_option {
-    ($try: expr) => {
-        match $try {
-            Ok(success) => success,
-            Err(error) => return Some(Err(error)),
-        }
-    };
-}
 
 #[derive(ThisError, Serialize, Debug, PartialEq)]
 pub enum SelectError {

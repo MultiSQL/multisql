@@ -18,6 +18,8 @@ pub struct Schema {
 pub trait ColumnDefExt {
     fn is_nullable(&self) -> bool;
 
+    fn is_unique(&self) -> bool;
+
     #[cfg(feature = "auto-increment")]
     fn is_auto_incremented(&self) -> bool;
 
@@ -28,7 +30,13 @@ impl ColumnDefExt for ColumnDef {
     fn is_nullable(&self) -> bool {
         self.options
             .iter()
-            .any(|ColumnOptionDef { option, .. }| option == &ColumnOption::Null)
+            .any(|ColumnOptionDef { option, .. }| matches!(option, ColumnOption::Null))
+    }
+
+    fn is_unique(&self) -> bool {
+        self.options
+            .iter()
+            .any(|ColumnOptionDef { option, .. }| matches!(option, ColumnOption::Unique { .. }))
     }
 
     #[cfg(feature = "auto-increment")]

@@ -38,83 +38,43 @@ CREATE TABLE TestC (
 
     let error_cases = vec![
         (
-            WIPError::TODO.into(), /*ValidateError::DuplicateEntryOnUniqueField(
-                                       format!("{:?}", Value::I64(2)),
-                                       "id".to_owned(),
-                                   )
-                                   .into(),*/
+            ValidateError::DuplicateEntryOnUniqueField.into(),
             "INSERT INTO TestA VALUES (2, 2)",
         ),
         (
-            WIPError::TODO.into(), /*ValidateError::DuplicateEntryOnUniqueField(
-                                       format!("{:?}", Value::I64(4)),
-                                       "id".to_owned(),
-                                   )
-                                   .into(),*/
+            ValidateError::DuplicateEntryOnUniqueField.into(),
             "INSERT INTO TestA VALUES (4, 4), (4, 5)",
         ),
         (
-            WIPError::TODO.into(), /*ValidateError::DuplicateEntryOnUniqueField(
-                                       format!("{:?}", Value::I64(2)),
-                                       "id".to_owned(),
-                                   )
-                                   .into(),*/
+            ValidateError::DuplicateEntryOnUniqueField.into(),
             "UPDATE TestA SET id = 2 WHERE id = 1",
         ),
         (
-            WIPError::TODO.into(), /*ValidateError::DuplicateEntryOnUniqueField(
-                                       format!("{:?}", Value::I64(1)),
-                                       "id".to_owned(),
-                                   )
-                                   .into(),*/
+            ValidateError::DuplicateEntryOnUniqueField.into(),
             "INSERT INTO TestB VALUES (1, 3)",
         ),
         (
-            WIPError::TODO.into(), /*ValidateError::DuplicateEntryOnUniqueField(
-                                       format!("{:?}", Value::I64(2)),
-                                       "num".to_owned(),
-                                   )
-                                   .into(),*/
+            ValidateError::DuplicateEntryOnUniqueField.into(),
             "INSERT INTO TestB VALUES (4, 2)",
         ),
         (
-            WIPError::TODO.into(), /*ValidateError::DuplicateEntryOnUniqueField(
-                                       format!("{:?}", Value::I64(5)),
-                                       "num".to_owned(),
-                                   )
-                                   .into(),*/
+            ValidateError::DuplicateEntryOnUniqueField.into(),
             "INSERT INTO TestB VALUES (5, 5), (6, 5)",
         ),
         (
-            WIPError::TODO.into(), /*ValidateError::DuplicateEntryOnUniqueField(
-                                       format!("{:?}", Value::I64(2)),
-                                       "num".to_owned(),
-                                   )
-                                   .into(),*/
+            ValidateError::DuplicateEntryOnUniqueField.into(),
             "UPDATE TestB SET num = 2 WHERE id = 1",
         ),
         (
-            WIPError::TODO.into(), /*ValidateError::DuplicateEntryOnUniqueField(
-                                       format!("{:?}", Value::I64(2)),
-                                       "id".to_owned(),
-                                   )
-                                   .into(),*/
+            ValidateError::DuplicateEntryOnUniqueField.into(),
             "INSERT INTO TestC VALUES (2, 4)",
         ),
         (
-            WIPError::TODO.into(), /*ValidateError::DuplicateEntryOnUniqueField(
-                                       format!("{:?}", Value::I64(3)),
-                                       "id".to_owned(),
-                                   )
-                                   .into(),*/
+            ValidateError::DuplicateEntryOnUniqueField.into(),
             "INSERT INTO TestC VALUES (NULL, 5), (3, 5), (3, 6)",
         ),
         (
-            WIPError::TODO.into(), /*ValidateError::DuplicateEntryOnUniqueField(
-                                       format!("{:?}", Value::I64(1)),
-                                       "id".to_owned(),
-                                   )
-                                   .into(),*/
+            ValidateError::DuplicateEntryOnUniqueField.into(),
             "UPDATE TestC SET id = 1",
         ),
     ];

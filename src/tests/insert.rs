@@ -45,11 +45,11 @@ test_case!(insert, async move {
     let error_cases = vec![
         (
             "INSERT INTO test (a, b) VALUES (1, 'error', 'error')",
-            InsertError::WrongNumberOfValues,
+            ValidateError::WrongNumberOfValues,
         ),
         (
             "INSERT INTO test (a, b) VALUES (1, 'error'), (1, 'error', 'error')",
-            InsertError::WrongNumberOfValues,
+            ValidateError::WrongNumberOfValues,
         ),
     ];
     for (sql, expected) in error_cases.into_iter() {

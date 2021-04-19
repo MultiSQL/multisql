@@ -2,8 +2,8 @@ use {
     crate::{
         data::{RowError, TableError, ValueError},
         executor::{
-            AlterError, ExecuteError, FetchError, InsertError, JoinError, ManualError, PlanError,
-            QueryError, RecipeError, SelectError, UpdateError,
+            AlterError, ExecuteError, FetchError, JoinError, ManualError, PlanError, QueryError,
+            RecipeError, SelectError, UpdateError, ValidateError,
         },
     },
     serde::Serialize,
@@ -57,7 +57,7 @@ pub enum Error {
     #[error(transparent)]
     Query(#[from] QueryError),
     #[error(transparent)]
-    Insert(#[from] InsertError),
+    Validate(#[from] ValidateError),
     #[error(transparent)]
     WIP(#[from] WIPError),
 }
@@ -88,7 +88,7 @@ impl PartialEq for Error {
             (Plan(l), Plan(r)) => l == r,
             (Manual(l), Manual(r)) => l == r,
             (Query(l), Query(r)) => l == r,
-            (Insert(l), Insert(r)) => l == r,
+            (Validate(l), Validate(r)) => l == r,
             (WIP(l), WIP(r)) => l == r,
             _ => false,
         }
