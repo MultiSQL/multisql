@@ -11,11 +11,15 @@ pub trait TryIntoMethod<MethodType> {
 impl TryIntoMethod<FunctionOperator> for String {
     fn into_method(self) -> Result<FunctionOperator> {
         match self.to_uppercase().as_str() {
+            "CONVERT" => Ok(Value::function_convert),
+
             "UPPER" => Ok(Value::function_to_uppercase),
             "LOWER" => Ok(Value::function_to_lowercase),
 
             "LEFT" => Ok(Value::function_left),
             "RIGHT" => Ok(Value::function_right),
+
+            "ROUND" => Ok(Value::function_round),
 
             "IIF" => Ok(Value::function_iif),
             "IFNULL" => Ok(Value::function_if_null),

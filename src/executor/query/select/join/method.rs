@@ -1,9 +1,11 @@
 use {
-    super::{JoinError, JoinType},
+    super::JoinType,
     crate::{
         executor::{types::Row, PlannedRecipe},
-        NullOrd, Result, Value,
+        macros::try_option,
+        JoinError, NullOrd, Result, Value,
     },
+    rayon::prelude::*,
     std::{cmp::Ordering, fmt::Debug},
 };
 
@@ -56,45 +58,50 @@ impl JoinMethod {
             JoinMethod::General(recipe) => {
                 let left_width = plane_rows.get(0).map(|row| row.len()).unwrap_or(0);
                 let right_width = self_rows.get(0).map(|row| row.len()).unwrap_or(0);
-                let mut used_right_indexes: Vec<usize> = vec![];
-                let mut rows = plane_rows
-                    .into_iter()
+                let unfolded_rows: Vec<Result<(Vec<usize>, Vec<Row>)>> = plane_rows
+                    .into_par_iter()
                     .map(|left_row| {
-                        let mut inner_rows = self_rows
-                            .iter()
-                            .enumerate()
-                            .map(|(index, right_row)| {
-                                Ok(if recipe.confirm_join_constraint(&left_row, &right_row)? {
-                                    if !used_right_indexes.iter().any(|used| used == &index) {
-                                        used_right_indexes.push(index)
-                                    };
-                                    vec![join_parts(left_row.clone(), right_row.clone())]
-                                } else {
-                                    vec![]
+                        let inner_rows =
+                            self_rows
+                                .iter()
+                                .enumerate()
+                                .filter_map(|(index, right_row)| {
+                                    if try_option!(
+                                        recipe.confirm_join_constraint(&left_row, &right_row)
+                                    ) {
+                                        Some(Ok((
+                                            index,
+                                            join_parts(left_row.clone(), right_row.clone()),
+                                        )))
+                                    } else {
+                                        None
+                                    }
                                 })
-                            })
-                            .reduce(|all: Result<Vec<Row>>, set| {
-                                let (mut all, set) = (all?, set?);
-                                all.extend(set);
-                                Ok(all)
-                            }) // TODO: Improve
-                            .unwrap_or(Ok(vec![]))?;
-                        if inner_rows.is_empty() && join.includes_left() {
-                            inner_rows
-                                .push(join_parts(left_row.clone(), vec![Value::Null; right_width]))
-                        }
-                        Ok(inner_rows)
+                                .collect::<Result<Vec<(usize, Row)>>>()?;
+                        Ok(if inner_rows.is_empty() && join.includes_left() {
+                            (
+                                vec![],
+                                vec![join_parts(left_row.clone(), vec![Value::Null; right_width])],
+                            )
+                        } else {
+                            inner_rows.into_iter().unzip()
+                        })
                     })
-                    .try_fold(
-                        vec![],
-                        |mut result_rows: Vec<Row>, joined_rows_sets: Result<Vec<Row>>| {
-                            joined_rows_sets.map(|joined_rows_sets| {
-                                result_rows.extend(joined_rows_sets);
-                                result_rows
-                            })
+                    .collect::<Vec<Result<(Vec<usize>, Vec<Row>)>>>();
+                let (mut used_right_indexes, mut rows): (Vec<usize>, Vec<Row>) = unfolded_rows
+                    .into_iter()
+                    .collect::<Result<Vec<(Vec<usize>, Vec<Row>)>>>()?
+                    .into_iter()
+                    .reduce(
+                        |mut all: (Vec<usize>, Vec<Row>), set: (Vec<usize>, Vec<Row>)| {
+                            all.0.extend(set.0);
+                            all.1.extend(set.1);
+                            all
                         },
-                    )?; // TODO: Improve a lot!
+                    )
+                    .unwrap_or((vec![], vec![]));
                 used_right_indexes.sort_unstable();
+                used_right_indexes.dedup();
                 self_rows.iter().enumerate().for_each(|(index, row)| {
                     if !used_right_indexes.iter().any(|used| used == &index)
                         && join.includes_right()
@@ -114,7 +121,9 @@ impl JoinMethod {
                     plane_rows.sort_unstable_by(|row_l, row_r| {
                         row_l
                             .get(plane_index)
-                            .partial_cmp(&row_r.get(plane_index))
+                            .map(|row_l| row_r.get(plane_index).map(|row_r| row_l.null_cmp(&row_r)))
+                            .flatten()
+                            .flatten()
                             .unwrap_or(Ordering::Equal)
                     });
                 }
@@ -138,15 +147,16 @@ impl JoinMethod {
                             }
                         },
                     )
-                    .into_iter();
+                    .into_iter()
+                    .peekable();
 
-                // TODO: These should be in seperate threads
-                // TODO: !!! This is vulnerable to NULLs, it won't handle them properly
                 if !self_trust_ordered {
                     self_rows.sort_unstable_by(|row_l, row_r| {
                         row_l
-                            .get(plane_index)
-                            .partial_cmp(&row_r.get(plane_index))
+                            .get(self_index)
+                            .map(|row_l| row_r.get(self_index).map(|row_r| row_l.null_cmp(&row_r)))
+                            .flatten()
+                            .flatten()
                             .unwrap_or(Ordering::Equal)
                     });
                 }
@@ -170,40 +180,50 @@ impl JoinMethod {
                             }
                         },
                     )
-                    .into_iter();
-
-                // Starting values
-                let mut left_partition = left_partitions.next().unwrap(); // TODO: Handle
-                let mut right_partition = right_partitions.next().unwrap(); // TODO: Handle
+                    .into_iter()
+                    .peekable();
 
                 // For later
                 // Trust that rows have same len
-                let left_len = left_partition.1.get(0).map(|row| row.len()).unwrap_or(0);
-                let right_len = right_partition.1.get(0).map(|row| row.len()).unwrap_or(0);
+                let left_len = left_partitions
+                    .peek()
+                    .map(|left_partition| left_partition.1.get(0).map(|row| row.len()))
+                    .flatten()
+                    .unwrap_or(0);
+                let right_len = right_partitions
+                    .peek()
+                    .map(|right_partition| right_partition.1.get(0).map(|row| row.len()))
+                    .flatten()
+                    .unwrap_or(0);
 
                 let mut left_results = vec![];
                 let mut inner_results = vec![];
                 let mut right_results = vec![];
+
                 loop {
-                    match left_partition.0.null_cmp(&right_partition.0) {
+                    match unwrap_or_break!(left_partitions.peek())
+                        .0
+                        .null_cmp(&unwrap_or_break!(right_partitions.peek()).0)
+                    {
                         Some(Ordering::Less) => {
-                            left_results.push(left_partition);
-                            left_partition = unwrap_or_break!(left_partitions.next());
+                            left_results
+                                .push(left_partitions.next().ok_or(JoinError::Unreachable)?);
                         }
                         Some(Ordering::Equal) => {
-                            inner_results.push((left_partition, right_partition));
-                            left_partition = unwrap_or_break!(left_partitions.next());
-                            right_partition = unwrap_or_break!(right_partitions.next());
+                            inner_results.push((
+                                left_partitions.next().ok_or(JoinError::Unreachable)?,
+                                right_partitions.next().ok_or(JoinError::Unreachable)?,
+                            ));
                         }
                         None => {
-                            left_results.push(left_partition);
-                            left_partition = unwrap_or_break!(left_partitions.next());
-                            right_results.push(right_partition);
-                            right_partition = unwrap_or_break!(right_partitions.next());
+                            left_results
+                                .push(left_partitions.next().ok_or(JoinError::Unreachable)?);
+                            right_results
+                                .push(right_partitions.next().ok_or(JoinError::Unreachable)?);
                         }
                         Some(Ordering::Greater) => {
-                            right_results.push(right_partition);
-                            right_partition = unwrap_or_break!(right_partitions.next());
+                            right_results
+                                .push(right_partitions.next().ok_or(JoinError::Unreachable)?);
                         }
                     }
                 }
@@ -226,7 +246,7 @@ impl JoinMethod {
                     .unwrap_or(vec![]);
 
                 let mut inner_rows = inner_results
-                    .into_iter()
+                    .into_par_iter()
                     .map(|((_, left_rows), (_, right_rows))| {
                         left_rows
                             .into_iter()
@@ -243,11 +263,13 @@ impl JoinMethod {
                             })
                             .unwrap_or(vec![])
                     })
-                    .reduce(|mut all, set| {
-                        all.extend(set);
-                        all
-                    })
-                    .unwrap_or(vec![]);
+                    .reduce(
+                        || vec![],
+                        |mut all: Vec<Row>, set| {
+                            all.extend(set);
+                            all
+                        },
+                    );
 
                 let right_rows = right_results
                     .into_iter()
@@ -262,9 +284,6 @@ impl JoinMethod {
                         all
                     })
                     .unwrap_or(vec![]);
-
-                println!("Left Rows:\n{:?}", left_rows);
-                println!("Right Rows:\n{:?}", right_rows);
 
                 if join.includes_left() {
                     inner_rows.extend(left_rows)

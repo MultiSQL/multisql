@@ -1,16 +1,17 @@
 use {
     super::AlterError,
     crate::{
-        data::get_name,
+        data::{get_name, schema::ColumnDefExt},
+        macros::try_into,
         result::MutResult,
-        store::{AlterTable, Store, StoreMut},
+        store::{AlterTable, AutoIncrement, Store, StoreMut},
     },
     futures::stream::{self, TryStreamExt},
     sqlparser::ast::{ObjectName, ObjectType},
     std::fmt::Debug,
 };
 
-pub async fn drop<T: 'static + Debug, U: Store<T> + StoreMut<T> + AlterTable>(
+pub async fn drop<T: 'static + Debug, U: Store<T> + StoreMut<T> + AlterTable + AutoIncrement>(
     storage: U,
     object_type: &ObjectType,
     names: &[ObjectName],
@@ -25,26 +26,40 @@ pub async fn drop<T: 'static + Debug, U: Store<T> + StoreMut<T> + AlterTable>(
 
     stream::iter(names.iter().map(Ok))
         .try_fold((storage, ()), |(storage, _), table_name| async move {
-            let schema = (|| async {
-                let table_name = get_name(table_name)?;
-                let schema = storage.fetch_schema(table_name).await?;
+            let table_name = try_into!(storage, get_name(table_name));
+            let schema = try_into!(storage, storage.fetch_schema(table_name).await);
 
-                if !if_exists {
-                    schema.ok_or_else(|| AlterError::TableNotFound(table_name.to_owned()))?;
-                }
+            if !if_exists {
+                try_into!(
+                    storage,
+                    schema
+                        .clone()
+                        .ok_or_else(|| AlterError::TableNotFound(table_name.to_owned()).into())
+                );
+            }
 
-                Ok(table_name)
-            })()
-            .await;
-
-            let schema = match schema {
-                Ok(s) => s,
-                Err(e) => {
-                    return Err((storage, e));
-                }
+            #[cfg(feature = "auto-increment")]
+            let (storage, _) = if let Some(schema) = schema {
+                stream::iter(schema.column_defs.into_iter().map(Ok))
+                    .try_fold((storage, ()), |(storage, _), column| async move {
+                        if column.is_auto_incremented() {
+                            storage
+                                .set_increment_value(
+                                    table_name,
+                                    column.name.value.as_str(),
+                                    0 as i64,
+                                )
+                                .await
+                        } else {
+                            Ok((storage, ()))
+                        }
+                    })
+                    .await?
+            } else {
+                (storage, ())
             };
 
-            storage.delete_schema(schema).await
+            storage.delete_schema(table_name).await
         })
         .await
 }

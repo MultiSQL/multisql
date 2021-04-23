@@ -19,6 +19,10 @@ use std::marker::Sized;
 use crate::data::{Row, Schema};
 use crate::result::{MutResult, Result};
 
+pub trait FullStorage<Key: Debug>: ReadableStorage<Key> + WritableStorage<Key> {}
+pub trait ReadableStorage<Key: Debug>: Store<Key> {}
+pub trait WritableStorage<Key: Debug>: StoreMut<Key> + AlterTable + AutoIncrement {}
+
 pub type RowIter<T> = Box<dyn Iterator<Item = Result<(T, Row)>>>;
 
 /// By implementing `Store` trait, you can run `SELECT` queries.

@@ -135,11 +135,11 @@ test_case!(group_by, async move {
             "SELECT SUM(quantity), COUNT(1), city FROM Item GROUP BY city",
             select_with_null!(
                 "SUM(quantity)" | "COUNT(1)" | city;
-                I64(21)           I64(2)       Str("Seoul".to_owned());
-                I64(0)            I64(1)       Str("Dhaka".to_owned());
                 Null              I64(1)       Str("Beijing".to_owned());
                 I64(30)           I64(1)       Str("Daejeon".to_owned());
-                I64(24)           I64(1)       Str("Seattle".to_owned())
+                I64(0)            I64(1)       Str("Dhaka".to_owned());
+                I64(24)           I64(1)       Str("Seattle".to_owned());
+                I64(21)           I64(2)       Str("Seoul".to_owned())
             ),
         ),
         (
@@ -147,11 +147,11 @@ test_case!(group_by, async move {
             select!(
                 id  | city
                 I64 | Str;
-                1     "Seoul".to_owned();
-                2     "Dhaka".to_owned();
                 3     "Beijing".to_owned();
                 3     "Daejeon".to_owned();
-                5     "Seattle".to_owned()
+                2     "Dhaka".to_owned();
+                5     "Seattle".to_owned();
+                1     "Seoul".to_owned()
             ),
         ),
         (

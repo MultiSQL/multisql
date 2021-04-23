@@ -17,12 +17,13 @@ use {
         },
         macros::try_option,
         store::Store,
-        RecipeUtilities, Result, Value,
+        NullOrd, RecipeUtilities, Result, Value,
     },
     futures::stream::{self, StreamExt, TryStreamExt},
+    rayon::prelude::*,
     serde::Serialize,
     sqlparser::ast::{OrderByExpr, Select},
-    std::fmt::Debug,
+    std::{cmp::Ordering, fmt::Debug},
     thiserror::Error as ThisError,
 };
 
@@ -48,6 +49,9 @@ pub async fn select<'a, Key: 'static + Debug>(
     query: Select,
     order_by: Vec<OrderByExpr>,
 ) -> Result<LabelsAndRows> {
+    use std::time::Instant;
+    let mut time = Instant::now();
+
     let Plan {
         joins,
         select_items,
@@ -58,6 +62,9 @@ pub async fn select<'a, Key: 'static + Debug>(
         labels,
     } = Plan::new(storage, query, order_by).await?;
 
+    println!("Plan complete      {:?}s", time.elapsed().as_secs());
+    time = Instant::now();
+
     let rows = stream::iter(joins)
         .map(Ok)
         .try_fold(vec![], |rows, join| async {
@@ -65,7 +72,13 @@ pub async fn select<'a, Key: 'static + Debug>(
         })
         .await?;
 
+    println!("Joins complete     {:?}s", time.elapsed().as_secs());
+    time = Instant::now();
+
     let rows = order_by.execute(rows)?; // TODO: This should be done after filtering
+
+    println!("Order complete     {:?}s", time.elapsed().as_secs());
+    time = Instant::now();
 
     let selected_rows = rows
         .iter()
@@ -74,40 +87,30 @@ pub async fn select<'a, Key: 'static + Debug>(
                 select_items
                     .iter()
                     .map(|selection| selection.clone().simplify_by_row(row))
-                    .collect::<Result<Vec<PlannedRecipe>>>(),
+                    .collect::<Result<Vec<PlannedRecipe>>>()
+                    .map(|selection| (selection, row.clone())),
             ),
             Ok(false) => None,
             Err(error) => Some(Err(error)),
         })
-        .collect::<Result<Vec<Vec<PlannedRecipe>>>>()?;
+        .collect::<Result<Vec<(Vec<PlannedRecipe>, Row)>>>()?;
+
+    println!("Selection complete {:?}s", time.elapsed().as_secs());
+    time = Instant::now();
 
     let do_group = !groups.is_empty()
         || select_items
             .iter()
             .any(|select_item| !select_item.aggregates.is_empty());
 
-    //println!("Select debug:\nContains aggregates: {}\nContains non-aggregates: {}\nSelected Rows:\n\t{:?}", contains_aggregates, contains_non_aggregates, selected_rows);
-
     let final_rows = if do_group {
-        /*if contains_non_aggregates {
-            select_items
-                .iter()
-                .filter_map(|select_item| {
-                    if select_item.aggregates.is_empty() {
-                        Some()
-                    } else {
-                        None
-                    }
-                }).collect::<Result<Vec<usize>>>();
-        }*/
         let groups = if groups.is_empty() {
             vec![PlannedRecipe::TRUE]
         } else {
             groups
         };
         let mut ungrouped_groupers = selected_rows
-            .into_iter()
-            .zip(rows)
+            .into_par_iter()
             .filter_map(|(selected_row, row)| {
                 let group_constraint = try_option!(group_constraint.clone().simplify_by_row(&row));
                 let group_constraint = match group_constraint.as_solution() {
@@ -129,27 +132,41 @@ pub async fn select<'a, Key: 'static + Debug>(
             })
             .collect::<Result<Vec<(Option<PlannedRecipe>, Vec<Value>, Vec<PlannedRecipe>)>>>()?;
 
-        // I was originally thinking of doing this by sorting. That might still be a better method.
-        let mut groups = vec![];
-        while !ungrouped_groupers.is_empty() {
-            let partitioner = ungrouped_groupers
-                .get(0)
-                .ok_or(SelectError::Unreachable)?
+        ungrouped_groupers.sort_unstable_by(|groupers_a, groupers_b| {
+            groupers_a
                 .1
-                .clone();
-            let (partition, todo) = ungrouped_groupers
-                .into_iter()
-                .partition(|(_group_constriant, groupers, _selection)| groupers == &partitioner);
-            ungrouped_groupers = todo;
-            let partition = partition
-                .into_iter()
-                .map(|(group_constriant, _, selection)| (group_constriant, selection))
-                .collect();
-            groups.push(partition);
-        }
+                .iter()
+                .zip(&groupers_b.1)
+                .find_map(|(grouper_a, grouper_b)| {
+                    match grouper_a.null_cmp(grouper_b).unwrap_or(Ordering::Equal) {
+                        Ordering::Equal => None,
+                        other => Some(other),
+                    }
+                })
+                .unwrap_or(Ordering::Equal)
+        });
+        let groups = ungrouped_groupers.into_iter().fold(
+            vec![],
+            |mut groups: Vec<(Vec<Value>, Vec<(Option<PlannedRecipe>, Vec<PlannedRecipe>)>)>,
+             grouper: (Option<PlannedRecipe>, Vec<Value>, Vec<PlannedRecipe>)| {
+                let value = &grouper.1;
+                if let Some(last) = groups.last_mut() {
+                    if &last.0 == value {
+                        last.1.push((grouper.0, grouper.2));
+                    } else {
+                        groups.push((value.clone(), vec![(grouper.0, grouper.2)]));
+                    }
+                    groups
+                } else {
+                    vec![(value.clone(), vec![(grouper.0, grouper.2)])]
+                }
+            },
+        );
+        let groups: Vec<Vec<(Option<PlannedRecipe>, Vec<PlannedRecipe>)>> =
+            groups.into_iter().map(|(_, group)| group).collect();
 
         groups
-            .into_iter()
+            .into_par_iter()
             .filter_map(|group: Vec<(Option<PlannedRecipe>, Vec<PlannedRecipe>)>| {
                 // TODO: Improve
                 let first_row =
@@ -198,7 +215,7 @@ pub async fn select<'a, Key: 'static + Debug>(
     } else {
         selected_rows
             .into_iter()
-            .map(|selection| {
+            .map(|(selection, _)| {
                 selection
                     .into_iter()
                     .map(|selected| selected.confirm())
@@ -206,6 +223,8 @@ pub async fn select<'a, Key: 'static + Debug>(
             })
             .collect::<Result<Vec<Row>>>()?
     };
+
+    println!("Query complete     {:?}s", time.elapsed().as_secs());
 
     Ok((labels, final_rows))
 }

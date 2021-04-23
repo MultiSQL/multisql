@@ -12,7 +12,7 @@ mod literal;
 mod methods;
 
 pub use {
-    cast::Cast,
+    cast::{Cast, CastWithRules},
     convert::{Convert, ConvertFrom},
     error::ValueError,
 };

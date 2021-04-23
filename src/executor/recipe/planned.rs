@@ -4,7 +4,7 @@ use {
     },
     crate::{
         executor::types::{ComplexColumnName, Row},
-        Error, Result, Value,
+        Result, Value,
     },
 };
 

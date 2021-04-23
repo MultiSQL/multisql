@@ -62,12 +62,12 @@ fn decide_method(
     Ok(match &constraint.recipe {
         Recipe::Ingredient(Ingredient::Value(Value::Bool(true))) => JoinMethod::All,
         Recipe::Method(method) => match **method {
-            /*Method::BinaryOperation(
+            Method::BinaryOperation(
                 operator,
                 Recipe::Ingredient(Ingredient::Column(index_l)),
                 Recipe::Ingredient(Ingredient::Column(index_r)),
             ) if operator == Value::eq => {
-                // TODO: Be more strict, ensure that one column is from plan, and another from another.
+                // TODO: Be more strict, ensure that one column is from plane, and another from self.
                 let column_l = constraint
                     .meta
                     .columns
@@ -105,7 +105,7 @@ fn decide_method(
                     self_trust_ordered: false,
                     self_index,
                 }
-            }*/
+            }
             // TODO: Methods for:
             // (plan)Column = (other)Column AND (plan)Column = (other or otherother)Column
             // (plan)Column = (other)Column OR (plan)Column = (other or otherother)Column

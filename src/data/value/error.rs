@@ -1,4 +1,4 @@
-use {super::Value, serde::Serialize, std::fmt::Debug, thiserror::Error};
+use {super::Value, chrono::ParseError, serde::Serialize, std::fmt::Debug, thiserror::Error};
 
 #[derive(Error, Serialize, Debug, PartialEq)]
 pub enum ValueError {
@@ -25,8 +25,20 @@ pub enum ValueError {
     )]
     NumberOfFunctionParamsNotMatching { expected: usize, found: usize },
 
+    #[error("conversion rule is not accepted for this type")]
+    InvalidConversionRule,
+
+    #[error("impossible cast")]
+    ImpossibleCast, // Bad error-- phase out
+
+    #[error("date time failed to parse: {0}")]
+    DateTimeParseError(String),
+    #[error("failed to parse {0:?} as {1}")]
+    ParseError(Value, &'static str),
+
     #[error("cannot convert {0:?} into {1}")]
     CannotConvert(Value, &'static str),
+
     #[error("{1} only supports numeric values, found {0:?}")]
     OnlySupportsNumeric(Value, &'static str),
     #[error("{1} only supports boolean values, found {0:?}")]
@@ -34,14 +46,12 @@ pub enum ValueError {
     #[error("bad input: {0:?}")]
     BadInput(Value),
 
-    // Cast errors from value to value
-    #[error("impossible cast")]
-    ImpossibleCast,
-
     #[error("unimplemented literal type")]
     UnimplementedLiteralType,
     #[error("unimplemented cast")]
     UnimplementedCast,
+    #[error("unimplemented convert")]
+    UnimplementedConvert,
     #[error("unreachable literal cast from number to integer: {0}")]
     UnreachableLiteralCastFromNumberToInteger(String),
     #[error("unimplemented literal cast: {literal} as {data_type}")]

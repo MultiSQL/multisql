@@ -68,4 +68,13 @@ impl Value {
             .unwrap_or(string);
         Ok(Value::Str(truncated))
     }
+    pub fn round(self, places: Value) -> Result<Value> {
+        if let Value::F64(value) = self {
+            let places: i64 = places.convert()?;
+            let raiser: f64 = 10_u32.pow(places as u32).into();
+            Ok(Value::F64((value * raiser).round() / raiser))
+        } else {
+            Err(ValueError::BadInput(places).into())
+        }
+    }
 }

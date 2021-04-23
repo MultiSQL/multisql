@@ -1,7 +1,6 @@
 use crate::*;
 
 test_case!(left_right, async move {
-    //use executor::recipe::method::Function::{Left, Right};
     use Value::{Null, Str};
 
     let test_cases = vec![

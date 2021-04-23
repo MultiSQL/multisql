@@ -31,7 +31,6 @@ pub async fn validate_unique<'a, Key: 'static + Debug>(
     column_defs: &[ColumnDef],
     rows: &[Row],
 ) -> Result<()> {
-    println!("(Unique) Rows: {:?}", rows);
     let unique_columns: Vec<usize> = column_defs
         .iter()
         .enumerate()
@@ -95,7 +94,7 @@ pub async fn validate_unique<'a, Key: 'static + Debug>(
             let mut existing_values = existing_values.into_iter();
             let mut new_values = new_values.into_iter();
 
-            let mut new_value = new_values.next().unwrap();
+            let mut new_value = some_or_continue!(new_values.next());
             let mut existing_value = some_or!(existing_values.next(), {
                 loop {
                     let new_new = some_or_continue!(new_values.next());
@@ -107,12 +106,7 @@ pub async fn validate_unique<'a, Key: 'static + Debug>(
             });
 
             loop {
-                let cmp = existing_value.null_cmp(&new_value);
-                println!(
-                    "Unique Check - CMP: {:?}, New: {:?}, Existing: {:?}",
-                    cmp, new_value, existing_value
-                );
-                match cmp {
+                match existing_value.null_cmp(&new_value) {
                     Some(Ordering::Equal) => {
                         return Some(Err(ValidateError::DuplicateEntryOnUniqueField.into()))
                     }

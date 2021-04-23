@@ -22,8 +22,10 @@ pub enum QueryError {
     QueryNotSupported,
     #[error("values does not support columns, aggregates or subqueries")]
     MissingComponentsForValues,
-    #[error("literal does not support columns, aggregates or subqueries")]
+    #[error("limit does not support columns, aggregates or subqueries")]
     MissingComponentsForLimit,
+    #[error("offset does not support columns, aggregates or subqueries")]
+    MissingComponentsForOffset,
     #[error("expected values but found none")]
     NoValues,
 }
@@ -53,7 +55,7 @@ pub async fn query<'a, Key: 'static + Debug>(
         .map(|offset| {
             Recipe::new_without_meta(offset.value)?
                 .simplify_by_basic()?
-                .confirm_or_err(QueryError::MissingComponentsForLimit.into())?
+                .confirm_or_err(QueryError::MissingComponentsForOffset.into())?
                 .cast()
         })
         .transpose()?;
@@ -83,10 +85,9 @@ pub async fn query<'a, Key: 'static + Debug>(
                 .collect::<Result<Vec<Vec<Value>>>>()
                 .map(|values| {
                     (
-                        vec![
-                            String::new();
-                            values.get(0).map(|first_row| first_row.len()).unwrap_or(0)
-                        ],
+                        (0..values.get(0).map(|first_row| first_row.len()).unwrap_or(0))
+                            .map(|index| format!("unnamed_{}", index))
+                            .collect(),
                         values,
                     )
                 })
