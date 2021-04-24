@@ -40,6 +40,10 @@ impl Value {
         expect_arguments!(arguments, 2);
         Ok(arguments.remove(0).if_null(arguments.remove(0)))
     }
+    pub fn function_null_if(mut arguments: Vec<Self>) -> Result<Self> {
+        expect_arguments!(arguments, 2);
+        arguments.remove(0).null_if(arguments.remove(0))
+    }
     pub fn function_iif(mut arguments: Vec<Self>) -> Result<Self> {
         expect_arguments!(arguments, 3);
         arguments
@@ -61,6 +65,10 @@ impl Value {
     pub fn function_right(mut arguments: Vec<Self>) -> Result<Self> {
         expect_arguments!(arguments, 2);
         arguments.remove(0).right(arguments.remove(0))
+    }
+    pub fn function_length(mut arguments: Vec<Self>) -> Result<Self> {
+        expect_arguments!(arguments, 1);
+        arguments.remove(0).length()
     }
 
     pub fn function_round(mut arguments: Vec<Self>) -> Result<Self> {

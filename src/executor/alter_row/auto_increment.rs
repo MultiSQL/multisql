@@ -1,25 +1,15 @@
 #![cfg(feature = "auto-increment")]
 use {
-    crate::{
-        data::schema::ColumnDefExt,
-        executor::types::Row,
-        result::MutResult,
-        store::{AlterTable, AutoIncrement, Store, StoreMut},
-        Value,
-    },
+    crate::{data::schema::ColumnDefExt, executor::types::Row, Result, StorageInner, Value},
     sqlparser::ast::ColumnDef,
-    std::fmt::Debug,
 };
 
-pub async fn auto_increment<
-    T: 'static + Debug,
-    Storage: Store<T> + StoreMut<T> + AlterTable + AutoIncrement,
->(
-    storage: Storage,
+pub async fn auto_increment(
+    storage: &mut StorageInner,
     table_name: &str,
     column_defs: &[ColumnDef],
     rows: Vec<Row>,
-) -> MutResult<Storage, Vec<Row>> {
+) -> Result<Vec<Row>> {
     let auto_increment_columns = column_defs
         .iter()
         .enumerate()
@@ -35,7 +25,7 @@ pub async fn auto_increment<
         })
         .collect();
 
-    let (storage, column_values) = storage
+    let column_values = storage
         .generate_increment_values(table_name.to_string(), auto_increment_columns)
         .await?;
 
@@ -51,5 +41,5 @@ pub async fn auto_increment<
             }
         }
     }
-    Ok((storage, rows))
+    Ok(rows)
 }

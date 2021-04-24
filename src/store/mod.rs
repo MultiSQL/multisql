@@ -12,41 +12,88 @@ pub use auto_increment::AutoIncrement;
 #[cfg(not(feature = "auto-increment"))]
 pub trait AutoIncrement {}
 
-use async_trait::async_trait;
-use std::fmt::Debug;
-use std::marker::Sized;
+use {
+    crate::{
+        data::{Row, Schema},
+        result::Result,
+        Value,
+    },
+    async_trait::async_trait,
+    serde::Serialize,
+    std::fmt::Debug,
+    thiserror::Error,
+};
 
-use crate::data::{Row, Schema};
-use crate::result::{MutResult, Result};
+#[derive(Error, Serialize, Debug, PartialEq)]
+pub enum StorageError {
+    #[error("this storage has not yet implemented this method")]
+    Unimplemented,
+}
 
-pub trait FullStorage<Key: Debug>: ReadableStorage<Key> + WritableStorage<Key> {}
-pub trait ReadableStorage<Key: Debug>: Store<Key> {}
-pub trait WritableStorage<Key: Debug>: StoreMut<Key> + AlterTable + AutoIncrement {}
+pub struct Storage {
+    storage: Option<Box<dyn FullStorage>>,
+}
+impl Storage {
+    pub fn new(storage: Box<dyn FullStorage>) -> Self {
+        let storage = Some(storage);
+        Self { storage }
+    }
+    pub fn replace(&mut self, storage: Box<dyn FullStorage>) {
+        self.storage.replace(storage);
+    }
+    pub fn take(&mut self) -> Box<dyn FullStorage> {
+        self.storage
+            .take()
+            .expect("Unreachable: Storage wasn't replaced!")
+    }
+    pub fn take_readable(&mut self) -> &StorageInner {
+        /*let storage = self.take();
+        let readable = &*storage;
+        self.replace(storage);
+        readable*/
+        unimplemented!()
+    }
+}
 
-pub type RowIter<T> = Box<dyn Iterator<Item = Result<(T, Row)>>>;
+pub type StorageInner = dyn FullStorage;
+
+pub trait FullStorage: Store + StoreMut + AlterTable + AutoIncrement {}
+
+pub type RowIter = Box<dyn Iterator<Item = Result<(Value, Row)>>>;
 
 /// By implementing `Store` trait, you can run `SELECT` queries.
 #[async_trait(?Send)]
-pub trait Store<T: Debug> {
-    async fn fetch_schema(&self, table_name: &str) -> Result<Option<Schema>>;
+pub trait Store {
+    async fn fetch_schema(&self, _table_name: &str) -> Result<Option<Schema>> {
+        Err(StorageError::Unimplemented.into())
+    }
 
-    async fn scan_data(&self, table_name: &str) -> Result<RowIter<T>>;
+    async fn scan_data(&self, _table_name: &str) -> Result<RowIter> {
+        Err(StorageError::Unimplemented.into())
+    }
 }
 
 /// `StoreMut` takes role of mutation, related to `INSERT`, `CREATE`, `DELETE`, `DROP` and
 /// `UPDATE`.
 #[async_trait(?Send)]
-pub trait StoreMut<T: Debug>
-where
-    Self: Sized,
-{
-    async fn insert_schema(self, schema: &Schema) -> MutResult<Self, ()>;
+pub trait StoreMut {
+    async fn insert_schema(&mut self, _schema: &Schema) -> Result<()> {
+        Err(StorageError::Unimplemented.into())
+    }
 
-    async fn delete_schema(self, table_name: &str) -> MutResult<Self, ()>;
+    async fn delete_schema(&mut self, _table_name: &str) -> Result<()> {
+        Err(StorageError::Unimplemented.into())
+    }
 
-    async fn insert_data(self, table_name: &str, rows: Vec<Row>) -> MutResult<Self, ()>;
+    async fn insert_data(&mut self, _table_name: &str, _rows: Vec<Row>) -> Result<()> {
+        Err(StorageError::Unimplemented.into())
+    }
 
-    async fn update_data(self, rows: Vec<(T, Row)>) -> MutResult<Self, ()>;
+    async fn update_data(&mut self, _rows: Vec<(Value, Row)>) -> Result<()> {
+        Err(StorageError::Unimplemented.into())
+    }
 
-    async fn delete_data(self, keys: Vec<T>) -> MutResult<Self, ()>;
+    async fn delete_data(&mut self, _keys: Vec<Value>) -> Result<()> {
+        Err(StorageError::Unimplemented.into())
+    }
 }

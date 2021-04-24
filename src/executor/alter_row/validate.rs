@@ -1,7 +1,7 @@
 use {
     crate::{
         data::schema::ColumnDefExt, executor::types::Row, Recipe, RecipeUtilities, Resolve, Result,
-        SimplifyBy, Value,
+        SimplifyBy,
     },
     serde::Serialize,
     sqlparser::ast::{ColumnDef, DataType, Ident},

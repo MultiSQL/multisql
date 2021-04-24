@@ -1,3 +1,4 @@
+/*
 #[cfg(feature = "sled-storage")]
 use futures::executor::block_on;
 #[cfg(feature = "sled-storage")]
@@ -36,12 +37,12 @@ fn mutable_api() {
     for query in parse(sqls).unwrap() {
         glue.execute(&query).unwrap();
     }
-}
+}*/
 
 fn main() {
     #[cfg(feature = "sled-storage")]
     {
-        mutable_api();
-        immutable_api();
+        /*mutable_api();
+        immutable_api();*/
     }
 }

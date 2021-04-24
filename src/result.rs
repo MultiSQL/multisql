@@ -5,6 +5,8 @@ use {
             AlterError, ExecuteError, FetchError, JoinError, ManualError, PlanError, QueryError,
             RecipeError, SelectError, UpdateError, ValidateError,
         },
+        store::StorageError,
+        CSVStorageError,
     },
     serde::Serialize,
     std::marker::{Send, Sync},
@@ -18,6 +20,8 @@ use crate::store::AlterTableError;
 pub enum WIPError {
     #[error("TODO")]
     TODO,
+    #[error("{0}")]
+    Debug(String),
 }
 
 #[derive(ThisError, Serialize, Debug)]
@@ -60,6 +64,10 @@ pub enum Error {
     Validate(#[from] ValidateError),
     #[error(transparent)]
     WIP(#[from] WIPError),
+    #[error(transparent)]
+    StorageImplementation(#[from] StorageError),
+    #[error(transparent)]
+    CSVStorage(#[from] CSVStorageError),
 }
 
 unsafe impl Send for Error {} // !!!! UNSAFE CODE WHICH I DON'T UNDERSTAND FULLY
@@ -90,6 +98,8 @@ impl PartialEq for Error {
             (Query(l), Query(r)) => l == r,
             (Validate(l), Validate(r)) => l == r,
             (WIP(l), WIP(r)) => l == r,
+            (StorageImplementation(l), StorageImplementation(r)) => l == r,
+            (CSVStorage(l), CSVStorage(r)) => l == r,
             _ => false,
         }
     }

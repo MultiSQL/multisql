@@ -1,15 +1,9 @@
-use boolinator::Boolinator;
-use futures::stream::{self, TryStream, TryStreamExt};
-use serde::Serialize;
-use std::fmt::Debug;
-use std::rc::Rc;
-use thiserror::Error as ThisError;
-
-use sqlparser::ast::{ColumnDef, Ident};
-
-use crate::data::Row;
-use crate::result::{Error, Result};
-use crate::store::Store;
+use {
+    crate::{result::Result, StorageInner},
+    serde::Serialize,
+    sqlparser::ast::{ColumnDef, Ident},
+    thiserror::Error as ThisError,
+};
 
 #[derive(ThisError, Serialize, Debug, PartialEq)]
 pub enum FetchError {
@@ -17,10 +11,7 @@ pub enum FetchError {
     TableNotFound(String),
 }
 
-pub async fn fetch_columns<T: 'static + Debug>(
-    storage: &dyn Store<T>,
-    table_name: &str,
-) -> Result<Vec<Ident>> {
+pub async fn fetch_columns(storage: &StorageInner, table_name: &str) -> Result<Vec<Ident>> {
     Ok(storage
         .fetch_schema(table_name)
         .await?

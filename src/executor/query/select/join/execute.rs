@@ -1,16 +1,15 @@
 use {
     super::{JoinError, JoinMethod, JoinPlan, JoinType},
     crate::{
-        executor::types::{ComplexColumnName, Row, Table},
-        store::Store,
-        Ingredient, MetaRecipe, Method, PlannedRecipe, Recipe, Result, Value,
+        executor::types::{ComplexColumnName, Row},
+        Ingredient, MetaRecipe, Method, PlannedRecipe, Recipe, Result, StorageInner, Value,
     },
-    std::fmt::Debug,
 };
 
 #[derive(Debug)]
 pub struct JoinExecute {
-    pub table: Table,
+    pub database: String,
+    pub table: String,
     pub method: JoinMethod,
     pub join_type: JoinType,
 }
@@ -18,6 +17,7 @@ pub struct JoinExecute {
 impl JoinExecute {
     pub fn new(plan: JoinPlan, plane_columns: &Vec<ComplexColumnName>) -> Result<Self> {
         let JoinPlan {
+            database,
             table,
             join_type,
             constraint,
@@ -26,6 +26,7 @@ impl JoinExecute {
         } = plan;
         let method = decide_method(constraint, columns, plane_columns)?;
         Ok(Self {
+            database,
             table,
             method,
             join_type,
@@ -34,21 +35,30 @@ impl JoinExecute {
     pub fn set_first_table(&mut self) {
         self.method = JoinMethod::FirstTable;
     }
-    pub async fn get_rows<'a, Key: 'static + Debug>(
-        &self,
-        storage: &'a dyn Store<Key>,
-    ) -> Result<Vec<Row>> {
+    pub async fn get_rows<'a>(&self, storage: &StorageInner) -> Result<Vec<Row>> {
         storage
             .scan_data(self.table.as_str())
             .await?
             .map(|result| result.map(|(_, row)| row.0))
             .collect::<Result<Vec<Row>>>()
     }
-    pub async fn execute<'a, Key: 'static + Debug>(
+    pub async fn execute<'a>(
         self,
-        storage: &'a dyn Store<Key>,
+        storages: &Vec<(String, &mut StorageInner)>,
         plane_rows: Vec<Row>,
     ) -> Result<Vec<Row>> {
+        let storage = storages
+            .into_iter()
+            .find_map(|(name, storage)| {
+                if name == &self.database {
+                    Some(&**storage)
+                } else {
+                    None
+                }
+            })
+            .or(storages.get(0).map(|(_, storage)| &**storage))
+            .ok_or(JoinError::Unreachable)?;
+
         let rows = self.get_rows(storage).await?;
         self.method.run(&self.join_type, plane_rows, rows)
     }

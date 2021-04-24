@@ -32,7 +32,7 @@ all-features = true
 
 	# Storages
 		sled-storage = ["sled", "bincode"]
-		csv-storage = ["csv"]
+		csv-storage = ["csv", "linecount"]
 
 	# Performance
 		multithreading = ["rayon"]
@@ -78,6 +78,7 @@ all-features = true
 
 			# CSV
 				csv = { version = "1.1.6", optional = true }
+				linecount = { version = "0.1.0", optional = true }
 
 		# Performance
 			# Multithreading

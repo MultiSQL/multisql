@@ -1,15 +1,14 @@
 #![cfg(feature = "sled-storage")]
 
-use sled::IVec;
 use std::{cell::RefCell, convert::TryFrom, rc::Rc};
 
-use gluesql::{generate_alter_table_tests, generate_tests, sled, tests::*, SledStorage};
+use gluesql::{generate_alter_table_tests, generate_tests, sled, tests::*, SledStorage, Storage};
 
 struct SledTester {
-    storage: Rc<RefCell<Option<SledStorage>>>,
+    storage: Rc<RefCell<Option<Storage>>>,
 }
 
-impl Tester<IVec, SledStorage> for SledTester {
+impl Tester for SledTester {
     fn new(namespace: &str) -> Self {
         let path = format!("data/{}", namespace);
 
@@ -26,6 +25,7 @@ impl Tester<IVec, SledStorage> for SledTester {
             .mode(sled::Mode::HighThroughput);
 
         let storage = SledStorage::try_from(config)
+            .map(Storage::new_sled)
             .map(Some)
             .map(RefCell::new)
             .map(Rc::new)
@@ -34,7 +34,7 @@ impl Tester<IVec, SledStorage> for SledTester {
         SledTester { storage }
     }
 
-    fn get_cell(&mut self) -> Rc<RefCell<Option<SledStorage>>> {
+    fn get_cell(&mut self) -> Rc<RefCell<Option<Storage>>> {
         Rc::clone(&self.storage)
     }
 }

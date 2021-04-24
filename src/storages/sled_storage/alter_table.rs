@@ -9,32 +9,13 @@ use sqlparser::ast::{ColumnDef, Ident};
 
 use super::{error::err_into, fetch_schema, SledStorage};
 use crate::utils::Vector;
-use crate::{schema::ColumnDefExt, AlterTable, AlterTableError, MutResult, Row, Schema, Value};
-
-macro_rules! try_self {
-    ($self: expr, $expr: expr) => {
-        match $expr {
-            Err(e) => {
-                return Err(($self, e.into()));
-            }
-            Ok(v) => v,
-        }
-    };
-}
-
-macro_rules! try_into {
-    ($self: expr, $expr: expr) => {
-        try_self!($self, $expr.map_err(err_into))
-    };
-}
+use crate::{schema::ColumnDefExt, AlterTable, AlterTableError, Result, Row, Schema, Value};
 
 macro_rules! fetch_schema {
     ($self: expr, $tree: expr, $table_name: expr) => {{
-        let (key, schema) = try_self!($self, fetch_schema($tree, $table_name));
-        let schema = try_into!(
-            $self,
-            schema.ok_or_else(|| AlterTableError::TableNotFound($table_name.to_string()))
-        );
+        let (key, schema) = fetch_schema($tree, $table_name)?;
+        let schema =
+            schema.ok_or_else(|| AlterTableError::TableNotFound($table_name.to_string()))?;
 
         (key, schema)
     }};
@@ -42,7 +23,7 @@ macro_rules! fetch_schema {
 
 #[async_trait(?Send)]
 impl AlterTable for SledStorage {
-    async fn rename_schema(self, table_name: &str, new_table_name: &str) -> MutResult<Self, ()> {
+    async fn rename_schema(&mut self, table_name: &str, new_table_name: &str) -> Result<()> {
         let (_, Schema { column_defs, .. }) = fetch_schema!(self, &self.tree, table_name);
         let schema = Schema {
             table_name: new_table_name.to_string(),
@@ -53,43 +34,43 @@ impl AlterTable for SledStorage {
 
         // remove existing schema
         let key = format!("schema/{}", table_name);
-        try_into!(self, tree.remove(key));
+        tree.remove(key).map_err(err_into)?;
 
         // insert new schema
-        let value = try_into!(self, bincode::serialize(&schema));
+        let value = bincode::serialize(&schema).map_err(err_into)?;
         let key = format!("schema/{}", new_table_name);
         let key = key.as_bytes();
-        try_into!(self, self.tree.insert(key, value));
+        self.tree.insert(key, value).map_err(err_into)?;
 
         // replace data
         let prefix = format!("data/{}/", table_name);
 
         for item in tree.scan_prefix(prefix.as_bytes()) {
-            let (key, value) = try_into!(self, item);
+            let (key, value) = item.map_err(err_into)?;
 
-            let new_key = try_into!(self, str::from_utf8(key.as_ref()));
+            let new_key = str::from_utf8(key.as_ref()).map_err(err_into)?;
             let new_key = new_key.replace(table_name, new_table_name);
-            try_into!(self, tree.insert(new_key, value));
+            tree.insert(new_key, value).map_err(err_into)?;
 
-            try_into!(self, tree.remove(key));
+            tree.remove(key).map_err(err_into)?;
         }
 
-        Ok((self, ()))
+        Ok(())
     }
 
     async fn rename_column(
-        self,
+        &mut self,
         table_name: &str,
         old_column_name: &str,
         new_column_name: &str,
-    ) -> MutResult<Self, ()> {
+    ) -> Result<()> {
         let (key, Schema { column_defs, .. }) = fetch_schema!(self, &self.tree, table_name);
 
         let i = column_defs
             .iter()
             .position(|column_def| column_def.name.value == old_column_name)
             .ok_or(AlterTableError::RenamingColumnNotFound);
-        let i = try_into!(self, i);
+        let i = i.map_err(err_into)?;
 
         let ColumnDef {
             name: Ident { quote_style, .. },
@@ -113,13 +94,13 @@ impl AlterTable for SledStorage {
             table_name: table_name.to_string(),
             column_defs,
         };
-        let value = try_into!(self, bincode::serialize(&schema));
-        try_into!(self, self.tree.insert(key, value));
+        let value = bincode::serialize(&schema).map_err(err_into)?;
+        self.tree.insert(key, value).map_err(err_into)?;
 
-        Ok((self, ()))
+        Ok(())
     }
 
-    async fn add_column(self, table_name: &str, column_def: &ColumnDef) -> MutResult<Self, ()> {
+    async fn add_column(&mut self, table_name: &str, column_def: &ColumnDef) -> Result<()> {
         let (
             key,
             Schema {
@@ -134,10 +115,7 @@ impl AlterTable for SledStorage {
         {
             let adding_column = column_def.name.value.to_string();
 
-            return Err((
-                self,
-                AlterTableError::AddingColumnAlreadyExists(adding_column).into(),
-            ));
+            return Err(AlterTableError::AddingColumnAlreadyExists(adding_column).into());
         }
 
         let ColumnDef { data_type, .. } = column_def;
@@ -150,10 +128,9 @@ impl AlterTable for SledStorage {
             )*/,
             (None, true) => Value::Null,
             (None, false) => {
-                return Err((
-                    self,
+                return Err(
                     AlterTableError::DefaultValueRequired(column_def.to_string()).into(),
-                ));
+                );
             }
         };
 
@@ -161,12 +138,12 @@ impl AlterTable for SledStorage {
         let prefix = format!("data/{}/", table_name);
 
         for item in self.tree.scan_prefix(prefix.as_bytes()) {
-            let (key, row) = try_into!(self, item);
-            let row: Row = try_into!(self, bincode::deserialize(&row));
+            let (key, row) = item.map_err(err_into)?;
+            let row: Row = bincode::deserialize(&row).map_err(err_into)?;
             let row = Row(row.0.into_iter().chain(once(value.clone())).collect());
-            let row = try_into!(self, bincode::serialize(&row));
+            let row = bincode::serialize(&row).map_err(err_into)?;
 
-            try_into!(self, self.tree.insert(key, row));
+            self.tree.insert(key, row).map_err(err_into)?;
         }
 
         // update schema
@@ -179,18 +156,18 @@ impl AlterTable for SledStorage {
             table_name,
             column_defs,
         };
-        let schema_value = try_into!(self, bincode::serialize(&schema));
-        try_into!(self, self.tree.insert(key, schema_value));
+        let schema_value = bincode::serialize(&schema).map_err(err_into)?;
+        self.tree.insert(key, schema_value).map_err(err_into)?;
 
-        Ok((self, ()))
+        Ok(())
     }
 
     async fn drop_column(
-        self,
+        &mut self,
         table_name: &str,
         column_name: &str,
         if_exists: bool,
-    ) -> MutResult<Self, ()> {
+    ) -> Result<()> {
         let (
             key,
             Schema {
@@ -206,13 +183,12 @@ impl AlterTable for SledStorage {
         let index = match (index, if_exists) {
             (Some(index), _) => index,
             (None, true) => {
-                return Ok((self, ()));
+                return Ok(());
             }
             (None, false) => {
-                return Err((
-                    self,
+                return Err(
                     AlterTableError::DroppingColumnNotFound(column_name.to_string()).into(),
-                ));
+                );
             }
         };
 
@@ -220,17 +196,17 @@ impl AlterTable for SledStorage {
         let prefix = format!("data/{}/", table_name);
 
         for item in self.tree.scan_prefix(prefix.as_bytes()) {
-            let (key, row) = try_into!(self, item);
-            let row: Row = try_into!(self, bincode::deserialize(&row));
+            let (key, row) = item.map_err(err_into)?;
+            let row: Row = bincode::deserialize(&row).map_err(err_into)?;
             let row = Row(row
                 .0
                 .into_iter()
                 .enumerate()
                 .filter_map(|(i, v)| (i != index).as_some(v))
                 .collect());
-            let row = try_into!(self, bincode::serialize(&row));
+            let row = bincode::serialize(&row).map_err(err_into)?;
 
-            try_into!(self, self.tree.insert(key, row));
+            self.tree.insert(key, row).map_err(err_into)?;
         }
 
         // update schema
@@ -244,9 +220,9 @@ impl AlterTable for SledStorage {
             table_name,
             column_defs,
         };
-        let schema_value = try_into!(self, bincode::serialize(&schema));
-        try_into!(self, self.tree.insert(key, schema_value));
+        let schema_value = bincode::serialize(&schema).map_err(err_into)?;
+        self.tree.insert(key, schema_value).map_err(err_into)?;
 
-        Ok((self, ()))
+        Ok(())
     }
 }

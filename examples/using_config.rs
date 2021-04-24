@@ -6,7 +6,7 @@ use gluesql::{parse, sled, Glue, SledStorage};
 
 #[cfg(feature = "sled-storage")]
 fn main() {
-    let config = sled::Config::default()
+    /*let config = sled::Config::default()
         .path("data/using_config")
         .temporary(true)
         .mode(sled::Mode::HighThroughput);
@@ -24,7 +24,7 @@ fn main() {
 
     for query in parse(sqls).unwrap() {
         glue.execute(&query).unwrap();
-    }
+    }*/
 }
 
 #[cfg(not(feature = "sled-storage"))]

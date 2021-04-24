@@ -1,7 +1,4 @@
-use {
-    crate::{executor::Recipe, Value},
-    std::fmt::Debug,
-};
+use {crate::Value, serde::Serialize, std::fmt::Debug};
 
 pub type Table = String;
 pub type TableWithAlias = (Alias, Table);
@@ -13,8 +10,27 @@ pub type ObjectName = Vec<String>;
 
 #[derive(Debug, Clone)]
 pub struct ComplexColumnName {
-    pub table: TableWithAlias,
+    pub table: ComplexTableName,
     pub name: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct ComplexTableName {
+    pub database: String,
+    pub alias: Alias,
+    pub name: String,
+}
+impl ComplexColumnName {
+    pub fn of_name(name: String) -> Self {
+        ComplexColumnName {
+            table: ComplexTableName {
+                database: String::new(),
+                name: String::new(),
+                alias: None,
+            },
+            name,
+        }
+    }
 }
 
 impl PartialEq<ObjectName> for ComplexColumnName {
@@ -28,10 +44,10 @@ impl PartialEq<ObjectName> for ComplexColumnName {
         let tables_eq = other
             .get(1)
             .map(|table| {
-                table == &self.table.1
+                table == &self.table.name
                     || self
                         .table
-                        .0
+                        .alias
                         .as_ref()
                         .map(|alias| table == alias)
                         .unwrap_or(false)

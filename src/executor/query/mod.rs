@@ -4,13 +4,12 @@ pub use select::{join::*, ManualError, PlanError, SelectError};
 
 use {
     crate::{
-        executor::types::LabelsAndRows, macros::warning, result::Result, store::Store, Cast,
-        Recipe, RecipeUtilities, Value,
+        executor::types::LabelsAndRows, macros::warning, result::Result, Cast, Recipe,
+        RecipeUtilities, StorageInner, Value,
     },
     select::select,
     serde::Serialize,
     sqlparser::ast::{Query, SetExpr},
-    std::fmt::Debug,
     thiserror::Error as ThisError,
 };
 
@@ -30,8 +29,8 @@ pub enum QueryError {
     NoValues,
 }
 
-pub async fn query<'a, Key: 'static + Debug>(
-    storage: &'a dyn Store<Key>,
+pub async fn query(
+    storages: &Vec<(String, &mut StorageInner)>,
     query: Query,
 ) -> Result<LabelsAndRows> {
     let Query {
@@ -61,7 +60,7 @@ pub async fn query<'a, Key: 'static + Debug>(
         .transpose()?;
     let (mut labels, mut rows) = match body {
         SetExpr::Select(query) => {
-            let (labels, rows) = select(storage, *query, order_by).await?;
+            let (labels, rows) = select(storages, *query, order_by).await?;
 
             Ok((labels, rows))
         }

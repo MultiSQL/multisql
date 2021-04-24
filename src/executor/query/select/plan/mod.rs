@@ -5,12 +5,11 @@ use {
     },
     crate::{
         executor::{types::ComplexColumnName, PlannedRecipe},
-        Result, Store,
+        Result, StorageInner,
     },
     futures::future::join_all,
     serde::Serialize,
     sqlparser::ast::{OrderByExpr, Select},
-    std::fmt::Debug,
     thiserror::Error as ThisError,
 };
 
@@ -35,8 +34,8 @@ pub enum PlanError {
 }
 
 impl Plan {
-    pub async fn new<'a, Key: 'static + Debug>(
-        storage: &'a dyn Store<Key>,
+    pub async fn new(
+        storages: &Vec<(String, &mut StorageInner)>,
         select: Select,
         order_by: Vec<OrderByExpr>,
     ) -> Result<Plan> {
@@ -51,7 +50,7 @@ impl Plan {
         let mut joins: Vec<JoinPlan> = join_all(
             joins
                 .into_iter()
-                .map(|join| JoinPlan::new(join, storage))
+                .map(|join| JoinPlan::new(join, storages))
                 .collect::<Vec<_>>(),
         )
         .await
@@ -140,10 +139,10 @@ impl Plan {
                             specified_table
                                 .clone()
                                 .map(|specified_table| {
-                                    column.table.1 == specified_table
+                                    column.table.name == specified_table
                                         || column
                                             .table
-                                            .0
+                                            .alias
                                             .clone()
                                             .map(|alias| alias == specified_table)
                                             .unwrap_or(false)
@@ -158,7 +157,7 @@ impl Plan {
                                     Some((
                                         PlannedRecipe::of_index(index),
                                         if include_table {
-                                            format!("{}.{}", column.table.1, column.name)
+                                            format!("{}.{}", column.table.name, column.name)
                                         } else {
                                             column.name.clone()
                                         },

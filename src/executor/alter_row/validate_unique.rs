@@ -1,11 +1,10 @@
 use {
     super::ValidateError,
     crate::{
-        data::schema::ColumnDefExt, executor::types::Row, macros::try_option, NullOrd, Result,
-        Store, Value,
+        data::schema::ColumnDefExt, executor::types::Row, NullOrd, Result, StorageInner, Value,
     },
     sqlparser::ast::ColumnDef,
-    std::{cmp::Ordering, fmt::Debug},
+    std::cmp::Ordering,
 };
 
 macro_rules! some_or_continue {
@@ -25,8 +24,8 @@ macro_rules! some_or {
     };
 }
 
-pub async fn validate_unique<'a, Key: 'static + Debug>(
-    storage: &'a dyn Store<Key>,
+pub async fn validate_unique(
+    storage: &StorageInner,
     table_name: &str,
     column_defs: &[ColumnDef],
     rows: &[Row],

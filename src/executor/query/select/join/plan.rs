@@ -1,20 +1,20 @@
 use {
-    super::{JoinError, JoinExecute, JoinManual, JoinMethod, JoinType},
+    super::{JoinManual, JoinType},
     crate::{
         executor::{
             fetch::fetch_columns,
-            types::{ComplexColumnName, Table, TableWithAlias},
+            types::{ComplexColumnName, ComplexTableName},
             MetaRecipe,
         },
-        store::Store,
-        Result,
+        JoinError, Result, StorageInner,
     },
-    std::{cmp::Ordering, fmt::Debug},
+    std::cmp::Ordering,
 };
 
 #[derive(Debug)]
 pub struct JoinPlan {
-    pub table: Table,
+    pub database: String,
+    pub table: String,
     pub columns: Vec<ComplexColumnName>,
     pub join_type: JoinType,
     pub constraint: MetaRecipe,
@@ -38,18 +38,23 @@ impl Ord for JoinPlan {
 }
 
 impl JoinPlan {
-    pub async fn new<'a, Key: 'static + Debug>(
+    pub async fn new<'a>(
         join_manual: JoinManual,
-        storage: &'a dyn Store<Key>,
+        storages: &Vec<(String, &mut StorageInner)>,
     ) -> Result<Self> {
         let JoinManual {
             table,
             constraint,
             join_type,
         } = join_manual;
-        let columns = get_columns(storage, table.clone()).await?;
-        let table = table.1;
+        let columns = get_columns(storages, table.clone()).await?;
+        let ComplexTableName {
+            database,
+            name: table,
+            ..
+        } = table;
         Ok(Self {
+            database,
             table,
             join_type,
             columns,
@@ -78,11 +83,23 @@ impl JoinPlan {
     }
 }
 
-async fn get_columns<'a, Key: 'static + Debug>(
-    storage: &'a dyn Store<Key>,
-    table: TableWithAlias,
+async fn get_columns(
+    storages: &Vec<(String, &mut StorageInner)>,
+    table: ComplexTableName,
 ) -> Result<Vec<ComplexColumnName>> {
-    Ok(fetch_columns(storage, table.1.as_str())
+    let storage = storages
+        .into_iter()
+        .find_map(|(name, storage)| {
+            if name == &table.database {
+                Some(&**storage)
+            } else {
+                None
+            }
+        })
+        .or(storages.get(0).map(|(_, storage)| &**storage))
+        .ok_or(JoinError::TableNotFound(table.clone()))?;
+
+    Ok(fetch_columns(storage, table.name.as_str())
         .await?
         .into_iter()
         .map(|name| ComplexColumnName {

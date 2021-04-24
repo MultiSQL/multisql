@@ -168,7 +168,7 @@ impl PlannedRecipe {
                 .flatten()
                 .map(|column| {
                     if include_table {
-                        format!("{}.{}", column.table.1, column.name)
+                        format!("{}.{}", column.table.name, column.name)
                     } else {
                         column.name.clone()
                     }

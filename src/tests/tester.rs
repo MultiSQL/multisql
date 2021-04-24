@@ -1,35 +1,23 @@
-use async_trait::async_trait;
-use std::cell::RefCell;
-use std::fmt::Debug;
-use std::rc::Rc;
+use {
+    crate::{
+        executor::{execute, Payload},
+        parse_sql::parse,
+        result::Result,
+        Storage,
+    },
+    async_trait::async_trait,
+    std::{cell::RefCell, rc::Rc},
+};
 
-use crate::executor::{execute, Payload};
-use crate::parse_sql::parse;
-use crate::result::Result;
-use crate::store::{AlterTable, AutoIncrement, Store, StoreMut};
-
-pub async fn run<T: 'static + Debug, U: Store<T> + StoreMut<T> + AlterTable + AutoIncrement>(
-    cell: Rc<RefCell<Option<U>>>,
-    sql: &str,
-) -> Result<Payload> {
+pub async fn run(cell: Rc<RefCell<Option<Storage>>>, sql: &str) -> Result<Payload> {
     println!("[Run] {}", sql);
 
     let mut storage = cell.replace(None).unwrap();
 
     let query = &parse(sql).unwrap()[0];
-
-    let result = match execute(storage, query).await {
-        Ok((s, payload)) => {
-            storage = s;
-
-            Ok(payload)
-        }
-        Err((s, error)) => {
-            storage = s;
-
-            Err(error)
-        }
-    };
+    let mut storage_inner = storage.take();
+    let result = execute(vec![(String::new(), &mut *storage_inner)], query).await;
+    storage.replace(storage_inner);
 
     cell.replace(Some(storage));
 
@@ -45,20 +33,16 @@ pub async fn run<T: 'static + Debug, U: Store<T> + StoreMut<T> + AlterTable + Au
 /// Actual test cases are in [/src/tests/](https://github.com/gluesql/gluesql/blob/main/src/tests/),
 /// not in `/tests/`.
 #[async_trait]
-pub trait Tester<T: 'static + Debug, U: Store<T> + StoreMut<T> + AlterTable> {
+pub trait Tester {
     fn new(namespace: &str) -> Self;
 
-    fn get_cell(&mut self) -> Rc<RefCell<Option<U>>>;
+    fn get_cell(&mut self) -> Rc<RefCell<Option<Storage>>>;
 }
 
 #[macro_export]
 macro_rules! test_case {
     ($name: ident, $content: expr) => {
-        pub async fn $name<T, U>(mut tester: impl tests::Tester<T, U>)
-        where
-            T: 'static + std::fmt::Debug,
-            U: Store<T> + StoreMut<T> + AlterTable + AutoIncrement,
-        {
+        pub async fn $name(mut tester: impl tests::Tester) {
             use std::rc::Rc;
 
             let cell = tester.get_cell();

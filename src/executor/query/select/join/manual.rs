@@ -1,7 +1,7 @@
 use {
     super::{JoinError, JoinType},
     crate::{
-        executor::{types::TableWithAlias, MetaRecipe},
+        executor::{types::ComplexTableName, MetaRecipe},
         Result,
     },
     sqlparser::ast::{Join as AstJoin, JoinConstraint, JoinOperator, TableFactor},
@@ -9,7 +9,7 @@ use {
 
 #[derive(Debug, Clone)]
 pub struct JoinManual {
-    pub table: TableWithAlias,
+    pub table: ComplexTableName,
     pub constraint: MetaRecipe,
     pub join_type: JoinType,
 }
@@ -50,19 +50,25 @@ impl JoinManual {
         };
         Ok((join_type, constraint))
     }
-    pub fn table_identity(table: TableFactor) -> Result<TableWithAlias> {
+    pub fn table_identity(table: TableFactor) -> Result<ComplexTableName> {
         match table {
             TableFactor::Table { name, alias, .. } => {
-                let name = name
-                    .0
-                    .get(0)
-                    .ok_or(JoinError::UnimplementedNumberOfComponents)?
-                    .value
-                    .clone(); // We only support single component table names for now
-                              // TODO
+                let name_parts = name.0.len();
+                if name_parts > 2 || name_parts < 1 {
+                    return Err(JoinError::UnimplementedNumberOfComponents.into());
+                }
+                let database = if name_parts == 2 {
+                    name.0.get(0).unwrap().value.clone()
+                } else {
+                    String::new()
+                };
+                let name = name.0.last().unwrap().value.clone();
                 let alias = alias.map(|alias| alias.name.value);
-
-                Ok((alias, name))
+                Ok(ComplexTableName {
+                    database,
+                    name,
+                    alias,
+                })
             }
             _ => Err(JoinError::UnimplementedTableType.into()),
         }

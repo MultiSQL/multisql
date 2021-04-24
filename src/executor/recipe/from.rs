@@ -19,10 +19,13 @@ impl TryIntoMethod<FunctionOperator> for String {
             "LEFT" => Ok(Value::function_left),
             "RIGHT" => Ok(Value::function_right),
 
+            "LEN" => Ok(Value::function_length),
+
             "ROUND" => Ok(Value::function_round),
 
             "IIF" => Ok(Value::function_iif),
             "IFNULL" => Ok(Value::function_if_null),
+            "NULLIF" => Ok(Value::function_null_if),
 
             unimplemented => {
                 Err(RecipeError::UnimplementedMethod(String::from(unimplemented)).into())

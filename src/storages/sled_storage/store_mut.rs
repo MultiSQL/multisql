@@ -1,105 +1,91 @@
-use async_trait::async_trait;
-use sled::{transaction::ConflictableTransactionError, IVec};
-
-use super::{err_into, SledStorage};
-use crate::{MutResult, Row, Schema, StoreMut};
-
-macro_rules! try_into {
-    ($self: expr, $expr: expr) => {
-        match $expr.map_err(err_into) {
-            Err(e) => {
-                return Err(($self, e));
-            }
-            Ok(v) => v,
-        }
-    };
-}
-
-macro_rules! transaction {
-    ($self: expr, $expr: expr) => {{
-        let result = $self.tree.transaction($expr).map_err(|error| error.into());
-
-        match result {
-            Ok(_) => Ok(($self, ())),
-            Err(e) => Err(($self, e)),
-        }
-    }};
-}
+use {
+    super::{err_into, SledStorage},
+    crate::{Result, Row, Schema, StoreMut, Value},
+    async_trait::async_trait,
+    sled::{transaction::ConflictableTransactionError, IVec},
+    std::convert::From,
+};
 
 #[async_trait(?Send)]
-impl StoreMut<IVec> for SledStorage {
-    async fn insert_schema(self, schema: &Schema) -> MutResult<Self, ()> {
+impl StoreMut for SledStorage {
+    async fn insert_schema(&mut self, schema: &Schema) -> Result<()> {
         let key = format!("schema/{}", schema.table_name);
         let key = key.as_bytes();
-        let value = try_into!(self, bincode::serialize(schema));
+        let value = bincode::serialize(schema).map_err(err_into)?;
 
-        try_into!(self, self.tree.insert(key, value));
+        self.tree.insert(key, value).map_err(err_into)?;
 
-        Ok((self, ()))
+        Ok(())
     }
 
-    async fn delete_schema(self, table_name: &str) -> MutResult<Self, ()> {
+    async fn delete_schema(&mut self, table_name: &str) -> Result<()> {
         let prefix = format!("data/{}/", table_name);
         let tree = &self.tree;
 
         for item in tree.scan_prefix(prefix.as_bytes()) {
-            let (key, _) = try_into!(self, item);
+            let (key, _) = item.map_err(err_into)?;
 
-            try_into!(self, tree.remove(key));
+            tree.remove(key).map_err(err_into)?;
         }
 
         let key = format!("schema/{}", table_name);
-        try_into!(self, tree.remove(key));
+        tree.remove(key).map_err(err_into)?;
 
-        Ok((self, ()))
+        Ok(())
     }
 
-    async fn insert_data(self, table_name: &str, rows: Vec<Row>) -> MutResult<Self, ()> {
-        transaction!(self, |tree| {
-            for row in rows.iter() {
-                let id = tree.generate_id()?;
-                let id = id.to_be_bytes();
-                let prefix = format!("data/{}/", table_name);
+    async fn insert_data(&mut self, table_name: &str, rows: Vec<Row>) -> Result<()> {
+        self.tree
+            .transaction(|tree| {
+                for row in rows.iter() {
+                    let id = tree.generate_id()?;
+                    let id = id.to_be_bytes();
+                    let prefix = format!("data/{}/", table_name);
 
-                let bytes = prefix
-                    .into_bytes()
-                    .into_iter()
-                    .chain(id.iter().copied())
-                    .collect::<Vec<_>>();
+                    let bytes = prefix
+                        .into_bytes()
+                        .into_iter()
+                        .chain(id.iter().copied())
+                        .collect::<Vec<_>>();
 
-                let key = IVec::from(bytes);
-                let value = bincode::serialize(row)
-                    .map_err(err_into)
-                    .map_err(ConflictableTransactionError::Abort)?;
+                    let key = IVec::from(bytes);
+                    let value = bincode::serialize(row)
+                        .map_err(err_into)
+                        .map_err(ConflictableTransactionError::Abort)?;
 
-                tree.insert(key, value)?;
-            }
+                    tree.insert(key, value)?;
+                }
 
-            Ok(())
-        })
+                Ok(())
+            })
+            .map_err(|error| error.into())
     }
 
-    async fn update_data(self, rows: Vec<(IVec, Row)>) -> MutResult<Self, ()> {
-        transaction!(self, |tree| {
-            for (key, row) in rows.iter() {
-                let value = bincode::serialize(row)
-                    .map_err(err_into)
-                    .map_err(ConflictableTransactionError::Abort)?;
+    async fn update_data(&mut self, rows: Vec<(Value, Row)>) -> Result<()> {
+        self.tree
+            .transaction(|tree| {
+                for (key, row) in rows.iter() {
+                    let value = bincode::serialize(row)
+                        .map_err(err_into)
+                        .map_err(ConflictableTransactionError::Abort)?;
 
-                tree.insert(key, value)?;
-            }
+                    tree.insert(IVec::from(key), value)?;
+                }
 
-            Ok(())
-        })
+                Ok(())
+            })
+            .map_err(|error| error.into())
     }
 
-    async fn delete_data(self, keys: Vec<IVec>) -> MutResult<Self, ()> {
-        transaction!(self, |tree| {
-            for key in keys.iter() {
-                tree.remove(key)?;
-            }
+    async fn delete_data(&mut self, keys: Vec<Value>) -> Result<()> {
+        self.tree
+            .transaction(|tree| {
+                for key in keys.iter() {
+                    tree.remove(IVec::from(key))?;
+                }
 
-            Ok(())
-        })
+                Ok(())
+            })
+            .map_err(|error| error.into())
     }
 }

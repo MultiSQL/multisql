@@ -6,14 +6,15 @@ mod plan;
 pub use {execute::JoinExecute, manual::JoinManual, method::JoinMethod, plan::JoinPlan};
 
 use {
-    crate::{executor::types::Row, Value},
-    serde::Serialize,
-    std::fmt::Debug,
+    crate::executor::types::ComplexTableName, serde::Serialize, std::fmt::Debug,
     thiserror::Error as ThisError,
 };
 
 #[derive(ThisError, Serialize, Debug, PartialEq)]
 pub enum JoinError {
+    #[error("table '{0:?}' could not be found")]
+    TableNotFound(ComplexTableName),
+
     #[error("join type not yet implemented")]
     UnimplementedJoinType,
     #[error("join constraint not yet implemented")]

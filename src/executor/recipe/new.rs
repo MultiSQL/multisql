@@ -3,7 +3,7 @@ use {
     crate::{
         executor::{
             query::{JoinManual, JoinType},
-            types::{ObjectName, TableWithAlias},
+            types::{ComplexTableName, ObjectName},
         },
         Result, Value,
     },
@@ -102,7 +102,7 @@ impl RecipeMeta {
 }
 
 pub struct Subquery {
-    pub table: TableWithAlias,
+    pub table: ComplexTableName,
     pub column: Recipe,
     pub constraint: Option<Expr>,
 }

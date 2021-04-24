@@ -16,14 +16,13 @@ use {
             PlannedRecipe,
         },
         macros::try_option,
-        store::Store,
-        NullOrd, RecipeUtilities, Result, Value,
+        NullOrd, RecipeUtilities, Result, StorageInner, Value,
     },
     futures::stream::{self, StreamExt, TryStreamExt},
     rayon::prelude::*,
     serde::Serialize,
     sqlparser::ast::{OrderByExpr, Select},
-    std::{cmp::Ordering, fmt::Debug},
+    std::cmp::Ordering,
     thiserror::Error as ThisError,
 };
 
@@ -44,14 +43,11 @@ pub enum SelectError {
     Unreachable,
 }
 
-pub async fn select<'a, Key: 'static + Debug>(
-    storage: &'a dyn Store<Key>,
+pub async fn select(
+    storages: &Vec<(String, &mut StorageInner)>,
     query: Select,
     order_by: Vec<OrderByExpr>,
 ) -> Result<LabelsAndRows> {
-    use std::time::Instant;
-    let mut time = Instant::now();
-
     let Plan {
         joins,
         select_items,
@@ -60,25 +56,16 @@ pub async fn select<'a, Key: 'static + Debug>(
         groups,
         order_by,
         labels,
-    } = Plan::new(storage, query, order_by).await?;
-
-    println!("Plan complete      {:?}s", time.elapsed().as_secs());
-    time = Instant::now();
+    } = Plan::new(storages, query, order_by).await?;
 
     let rows = stream::iter(joins)
         .map(Ok)
         .try_fold(vec![], |rows, join| async {
-            join.execute(storage, rows).await
+            join.execute(storages, rows).await
         })
         .await?;
 
-    println!("Joins complete     {:?}s", time.elapsed().as_secs());
-    time = Instant::now();
-
     let rows = order_by.execute(rows)?; // TODO: This should be done after filtering
-
-    println!("Order complete     {:?}s", time.elapsed().as_secs());
-    time = Instant::now();
 
     let selected_rows = rows
         .iter()
@@ -94,10 +81,6 @@ pub async fn select<'a, Key: 'static + Debug>(
             Err(error) => Some(Err(error)),
         })
         .collect::<Result<Vec<(Vec<PlannedRecipe>, Row)>>>()?;
-
-    println!("Selection complete {:?}s", time.elapsed().as_secs());
-    time = Instant::now();
-
     let do_group = !groups.is_empty()
         || select_items
             .iter()
@@ -223,8 +206,6 @@ pub async fn select<'a, Key: 'static + Debug>(
             })
             .collect::<Result<Vec<Row>>>()?
     };
-
-    println!("Query complete     {:?}s", time.elapsed().as_secs());
 
     Ok((labels, final_rows))
 }

@@ -37,6 +37,7 @@ impl Cast<bool> for Value {
                 _ => return Err(ValueError::ImpossibleCast.into()),
             },
             Value::Null => return Err(ValueError::ImpossibleCast.into()),
+            _ => unimplemented!(),
         }))
     }
 }
@@ -55,6 +56,7 @@ impl Cast<i64> for Value {
             Value::F64(value) => value.trunc() as i64,
             Value::Str(value) => value.parse().map_err(|_| ValueError::ImpossibleCast)?,
             Value::Null => return Err(ValueError::ImpossibleCast.into()),
+            _ => unimplemented!(),
         }))
     }
 }
@@ -73,6 +75,7 @@ impl Cast<f64> for Value {
             Value::F64(value) => value,
             Value::Str(value) => value.parse().map_err(|_| ValueError::ImpossibleCast)?,
             Value::Null => return Err(ValueError::ImpossibleCast.into()),
+            _ => unimplemented!(),
         }))
     }
 }
@@ -84,6 +87,7 @@ impl Cast<String> for Value {
             Value::F64(value) => value.to_string(),
             Value::Str(value) => value,
             Value::Null => String::from("NULL"),
+            _ => unimplemented!(),
         }))
     }
 }

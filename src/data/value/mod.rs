@@ -20,6 +20,7 @@ pub use {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Value {
     Bool(bool),
+    Bytes(Vec<u8>),
     I64(i64),
     F64(f64),
     Str(String),

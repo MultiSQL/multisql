@@ -1,3 +1,4 @@
+/*
 #[cfg(feature = "sled-storage")]
 mod sled_multi_threaded {
     use {
@@ -73,8 +74,8 @@ mod sled_multi_threaded {
         println!("Hello {}!", to_greet); // Will typically output "Hello Foo!" but will sometimes output "Hello World!"; depends on which thread finished first.
     }
 }
-
+*/
 fn main() {
-    #[cfg(feature = "sled-storage")]
-    sled_multi_threaded::run();
+    /*#[cfg(feature = "sled-storage")]
+    sled_multi_threaded::run();*/
 }

@@ -19,6 +19,13 @@ impl Value {
             alternative
         }
     }
+    pub fn null_if(self, evaluate: Self) -> Result<Self> {
+        Ok(if evaluate.convert()? {
+            self
+        } else {
+            Value::Null
+        })
+    }
     pub fn iif(self, case_true: Self, case_false: Self) -> Result<Self> {
         Ok(if self.convert()? {
             case_true
@@ -26,6 +33,7 @@ impl Value {
             case_false
         })
     }
+
     pub fn to_uppercase(self) -> Result<Self> {
         protect_null!(self);
         let string: String = self.convert()?;
@@ -68,6 +76,11 @@ impl Value {
             .unwrap_or(string);
         Ok(Value::Str(truncated))
     }
+    pub fn length(self) -> Result<Value> {
+        let string: String = self.convert()?;
+        Ok(Value::I64(string.len() as i64))
+    }
+
     pub fn round(self, places: Value) -> Result<Value> {
         if let Value::F64(value) = self {
             let places: i64 = places.convert()?;
