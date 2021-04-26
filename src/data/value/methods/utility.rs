@@ -81,13 +81,16 @@ impl Value {
         Ok(Value::I64(string.len() as i64))
     }
 
+    pub fn concat(self, strings: Vec<Value>) -> Result<Value> {
+        strings
+            .into_iter()
+            .try_fold(self, |all, this| all.string_concat(this))
+    }
+
     pub fn round(self, places: Value) -> Result<Value> {
-        if let Value::F64(value) = self {
-            let places: i64 = places.convert()?;
-            let raiser: f64 = 10_u32.pow(places as u32).into();
-            Ok(Value::F64((value * raiser).round() / raiser))
-        } else {
-            Err(ValueError::BadInput(places).into())
-        }
+        let value: f64 = self.convert()?;
+        let places: i64 = places.convert()?;
+        let raiser: f64 = 10_u32.pow(places as u32).into();
+        Ok(Value::F64((value * raiser).round() / raiser))
     }
 }

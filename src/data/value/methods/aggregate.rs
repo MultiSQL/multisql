@@ -44,6 +44,6 @@ impl Value {
     pub fn aggregate_sum(self, accumulator: Value) -> Result<Value> {
         accumulator
             .if_null(Value::I64(0)) // TODO: Handle lack of implicit i64 -> f64
-            .generic_add(self.clone())
+            .generic_add(self.clone().if_null(Value::I64(0)))
     }
 }

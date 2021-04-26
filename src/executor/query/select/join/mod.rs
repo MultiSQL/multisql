@@ -32,11 +32,11 @@ pub enum JoinError {
 
 #[derive(Ord, Eq, PartialEq, PartialOrd, Debug, Clone)]
 pub enum JoinType {
-    Inner, // Reduces rows so go first
+    CrossJoin, // All join: NO FILTER
+    Inner,     // Reduces rows so go first ideally -- has bugs for now
     Left,
     Right,
     Full,
-    CrossJoin, // All join: NO FILTER
 }
 
 impl JoinType {

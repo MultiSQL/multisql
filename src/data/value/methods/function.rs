@@ -71,6 +71,10 @@ impl Value {
         arguments.remove(0).length()
     }
 
+    pub fn function_concat(mut arguments: Vec<Self>) -> Result<Self> {
+        arguments.remove(0).concat(arguments)
+    }
+
     pub fn function_round(mut arguments: Vec<Self>) -> Result<Self> {
         expect_arguments!(arguments, 2);
         arguments.remove(0).round(arguments.remove(0))
@@ -99,5 +103,8 @@ impl Value {
             }
             _ => return Err(ValueError::UnimplementedConvert.into()),
         })
+    }
+    pub fn function_try_convert(arguments: Vec<Self>) -> Result<Self> {
+        Ok(Value::function_convert(arguments).unwrap_or(Value::Null))
     }
 }

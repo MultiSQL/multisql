@@ -12,6 +12,7 @@ impl TryIntoMethod<FunctionOperator> for String {
     fn into_method(self) -> Result<FunctionOperator> {
         match self.to_uppercase().as_str() {
             "CONVERT" => Ok(Value::function_convert),
+            "TRY_CONVERT" => Ok(Value::function_try_convert),
 
             "UPPER" => Ok(Value::function_to_uppercase),
             "LOWER" => Ok(Value::function_to_lowercase),
@@ -20,6 +21,8 @@ impl TryIntoMethod<FunctionOperator> for String {
             "RIGHT" => Ok(Value::function_right),
 
             "LEN" => Ok(Value::function_length),
+
+            "CONCAT" => Ok(Value::function_concat),
 
             "ROUND" => Ok(Value::function_round),
 

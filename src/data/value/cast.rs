@@ -151,7 +151,7 @@ impl CastWithRules<NaiveDateTime> for Value {
                 .ok_or(ValueError::ParseError(try_value.clone(), "TIMESTAMP").into())
         }
         const TRY_RULES_TIMESTAMP: [i64; 1] = [000];
-        const TRY_RULES_DATETIME: [i64; 6] = [010, 011, 020, 021, 030, 031];
+        const TRY_RULES_DATETIME: [i64; 7] = [010, 011, 020, 021, 030, 031, 060];
         const TRY_RULES_DATE: [i64; 3] = [022, 032, 033];
         const TRY_RULES_TIME: [i64; 2] = [100, 101];
         match rule {
@@ -199,6 +199,8 @@ impl CastWithRules<NaiveDateTime> for Value {
             Value::I64(033) => for_format_date(self, "%e-%b-%y"),
 
             // 0(5-8)* - Locales
+            // 06* - Australia
+            Value::I64(060) => for_format_datetime(self, "%d/%m/%Y %H:%M"),
             // (TODO(?))
 
             // 10* - Time

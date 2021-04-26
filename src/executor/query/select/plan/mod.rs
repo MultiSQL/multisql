@@ -91,7 +91,10 @@ impl Plan {
                 } else {
                     if len == len_last {
                         // TODO
-                        panic!("Impossible Join, table not present or tables require eachother")
+                        panic!(
+                            "Impossible Join, table not present or tables require eachother: {:?}",
+                            join
+                        )
                         // TODO: Handle
                     }
                     needed_joins.push((needed_index, join))
