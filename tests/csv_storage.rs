@@ -2,7 +2,7 @@
 
 use std::{cell::RefCell, rc::Rc};
 
-use gluesql::{tests::*, CSVStorage, Storage};
+use multisql::{tests::*, CSVStorage, Storage};
 
 struct CSVTester {
 	storage: Rc<RefCell<Option<Storage>>>,
@@ -34,4 +34,4 @@ impl Tester for CSVTester {
 	}
 }
 
-//gluesql::generate_tests!(tokio::test, CSVTester);
+//multisql::generate_tests!(tokio::test, CSVTester);

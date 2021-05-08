@@ -1,6 +1,6 @@
 macro_rules! warning {
 	($expr: expr) => {
-		println!("GlueSQL Warning: {}", $expr);
+		println!("multisql Warning: {}", $expr);
 	};
 }
 pub(crate) use warning;

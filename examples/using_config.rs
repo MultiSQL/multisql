@@ -3,7 +3,7 @@
 use std::convert::TryFrom;
 
 #[cfg(feature = "sled-storage")]
-use gluesql::{parse, sled, Glue, SledStorage};
+use multisql::{parse, sled, Glue, SledStorage};
 */
 
 #[cfg(feature = "sled-storage")]

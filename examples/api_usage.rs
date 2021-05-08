@@ -2,7 +2,7 @@
 #[cfg(feature = "sled-storage")]
 use futures::executor::block_on;
 #[cfg(feature = "sled-storage")]
-use gluesql::{execute, parse, Glue, SledStorage};
+use multisql::{execute, parse, Glue, SledStorage};
 
 #[cfg(feature = "sled-storage")]
 fn immutable_api() {

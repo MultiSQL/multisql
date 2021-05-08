@@ -28,9 +28,9 @@ pub async fn run(cell: Rc<RefCell<Option<Storage>>>, sql: &str) -> Result<Payloa
 /// you should implement this `Tester` trait.
 ///
 /// To see how to use it,
-/// * [tests/sled_storage.rs](https://github.com/gluesql/gluesql/blob/main/tests/sled_storage.rs)
+/// * [tests/sled_storage.rs](https://github.com/multisql/multisql/blob/main/tests/sled_storage.rs)
 ///
-/// Actual test cases are in [/src/tests/](https://github.com/gluesql/gluesql/blob/main/src/tests/),
+/// Actual test cases are in [/src/tests/](https://github.com/multisql/multisql/blob/main/src/tests/),
 /// not in `/tests/`.
 #[async_trait]
 pub trait Tester {

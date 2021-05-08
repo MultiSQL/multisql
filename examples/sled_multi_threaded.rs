@@ -2,12 +2,12 @@
 #[cfg(feature = "sled-storage")]
 mod sled_multi_threaded {
 	use {
-		gluesql::{parse, Glue, Payload, SledStorage, Value},
+		multisql::{parse, Glue, Payload, SledStorage, Value},
 		std::thread,
 	};
 
 	pub fn run() {
-		let storage = SledStorage::new("/tmp/gluesql/hello_world").expect("Something went wrong!");
+		let storage = SledStorage::new("/tmp/multisql/hello_world").expect("Something went wrong!");
 		let mut glue = Glue::new(storage.clone());
 		let queries = "
 		  CREATE TABLE IF NOT EXISTS greet (name TEXT);

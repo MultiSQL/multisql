@@ -1,6 +1,6 @@
 /*#[cfg(feature = "sled-storage")]
 mod hello_world {
-	use gluesql::{parse, Glue, Payload, SledStorage, Value};
+	use multisql::{parse, Glue, Payload, SledStorage, Value};
 
 	pub fn run() {
 		/*
@@ -9,7 +9,7 @@ mod hello_world {
 		/*
 			Open a Sled database, this will create one if one does not yet exist
 		*/
-		let storage = SledStorage::new("/tmp/gluesql/hello_world").expect("Something went wrong!");
+		let storage = SledStorage::new("/tmp/multisql/hello_world").expect("Something went wrong!");
 		/*
 			Wrap the Sled database with Glue
 		*/
