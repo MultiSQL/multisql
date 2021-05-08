@@ -1,5 +1,5 @@
 /*use criterion::{criterion_group, criterion_main, Criterion};
-use gluesql::{parse, Glue, SledStorage};
+use multisql::{parse, Glue, SledStorage};
 use std::convert::TryFrom;
 
 const ITEM_SIZE: u32 = 5000;

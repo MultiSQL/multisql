@@ -74,7 +74,7 @@ test_case!(cast_literal, async move {
 });
 
 test_case!(cast_value, async move {
-	// More test cases are in `gluesql::Value` unit tests.
+	// More test cases are in `multisql::Value` unit tests.
 
 	use Value::*;
 
