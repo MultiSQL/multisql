@@ -1,17 +1,16 @@
 [package]
-name = "gluesql"
-version = "0.6.0-planner-beta"
-authors = ["Taehoon Moon <taehoon.moon@outlook.com>", "Kyran Gostelow <kyran@gostelow.me>"]
-edition = "2018"
-description = "GlueSQL - Open source SQL database engine fully written in Rust with pure functional execution layer, easily swappable storage and web assembly support!"
-license = "Apache-2.0"
-repository = "https://github.com/gluesql/gluesql"
-documentation = "https://docs.rs/gluesql/"
-readme = "README.md"
-keywords = ["sql-database", "sql", "functional", "webassembly"]
+	name = "gluesql"
+	version = "0.6.0-planner-beta"
+	authors = ["Kyran Gostelow <kyran@gostelow.me>", "Taehoon Moon <taehoon.moon@outlook.com>"]
+	edition = "2018"
+	description = "GlueSQL - Open source SQL database engine fully written in Rust with pure functional execution layer, easily swappable storage and web assembly support!"
+	license = "Apache-2.0"
+	repository = "https://github.com/SyRis-Consulting/gluesql"
+	readme = "README.md"
+	keywords = ["sql-database", "sql", "functional", "webassembly"]
 
 [package.metadata.docs.rs]
-all-features = true
+	all-features = true
 
 [features]
 	default = [
@@ -91,9 +90,9 @@ all-features = true
 		# API
 
 [dev-dependencies]
-tokio = { version = "0.3.3", features = ["macros", "rt"] }
-criterion = "0.3"
+	tokio = { version = "0.3.3", features = ["macros", "rt"] }
+	criterion = "0.3"
 
-[[bench]]
-name = "sled_benchmark"
-harness = false
+#[[bench]]
+#	name = "sled_benchmark"
+#	harness = false

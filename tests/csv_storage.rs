@@ -2,36 +2,36 @@
 
 use std::{cell::RefCell, rc::Rc};
 
-use gluesql::{generate_tests, tests::*, CSVStorage, Storage};
+use gluesql::{tests::*, CSVStorage, Storage};
 
 struct CSVTester {
-    storage: Rc<RefCell<Option<Storage>>>,
+	storage: Rc<RefCell<Option<Storage>>>,
 }
 
 impl Tester for CSVTester {
-    fn new(namespace: &str) -> Self {
-        let path = format!("data/{}.csv", namespace);
+	fn new(namespace: &str) -> Self {
+		let path = format!("data/{}.csv", namespace);
 
-        match std::fs::remove_file(&path) {
-            Ok(()) => (),
-            Err(e) => {
-                println!("fs::remove_file {:?}", e);
-            }
-        }
+		match std::fs::remove_file(&path) {
+			Ok(()) => (),
+			Err(e) => {
+				println!("fs::remove_file {:?}", e);
+			}
+		}
 
-        let storage = CSVStorage::new(&path)
-            .map(Storage::new_csv)
-            .map(Some)
-            .map(RefCell::new)
-            .map(Rc::new)
-            .expect("New CSV Tester");
+		let storage = CSVStorage::new(&path)
+			.map(Storage::new_csv)
+			.map(Some)
+			.map(RefCell::new)
+			.map(Rc::new)
+			.expect("New CSV Tester");
 
-        CSVTester { storage }
-    }
+		CSVTester { storage }
+	}
 
-    fn get_cell(&mut self) -> Rc<RefCell<Option<Storage>>> {
-        Rc::clone(&self.storage)
-    }
+	fn get_cell(&mut self) -> Rc<RefCell<Option<Storage>>> {
+		Rc::clone(&self.storage)
+	}
 }
 
-//generate_tests!(tokio::test, CSVTester);
+//gluesql::generate_tests!(tokio::test, CSVTester);

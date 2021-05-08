@@ -1,28 +1,28 @@
 use crate::*;
 
 test_case!(nested_select, async move {
-    let create_sqls: [&str; 2] = [
-        "
+	let create_sqls: [&str; 2] = [
+		"
         CREATE TABLE User (
             id INTEGER,
             name TEXT
         );
     ",
-        "
+		"
         CREATE TABLE Request (
             id INTEGER,
             quantity INTEGER,
             user_id INTEGER,
         );
     ",
-    ];
+	];
 
-    for sql in create_sqls.iter() {
-        run!(sql);
-    }
+	for sql in create_sqls.iter() {
+		run!(sql);
+	}
 
-    let insert_sqls = [
-        "
+	let insert_sqls = [
+		"
         INSERT INTO User (id, name) VALUES
             (1, \"Taehoon\"),
             (2,    \"Mike\"),
@@ -30,7 +30,7 @@ test_case!(nested_select, async move {
             (4,   \"Berry\"),
             (5,    \"Hwan\");
         ",
-        "
+		"
         INSERT INTO Request (id, quantity, user_id) VALUES
             (101, 1, 1),
             (102, 4, 2),
@@ -48,13 +48,13 @@ test_case!(nested_select, async move {
             (114, 1, 1),
             (115, 2, 1);
         ",
-    ];
+	];
 
-    for insert_sql in insert_sqls.iter() {
-        run!(insert_sql);
-    }
+	for insert_sql in insert_sqls.iter() {
+		run!(insert_sql);
+	}
 
-    let select_sqls = [
+	let select_sqls = [
         (6, "SELECT * FROM Request WHERE quantity IN (5, 1);"),
         (9, "SELECT * FROM Request WHERE quantity NOT IN (5, 1);"),
         (
@@ -74,7 +74,7 @@ test_case!(nested_select, async move {
         (9, "SELECT * FROM Request WHERE user_id IN (SELECT id FROM User WHERE name IN (\"Taehoon\", \"Hwan\"));"),
     ];
 
-    for (num, sql) in select_sqls.iter() {
-        count!(*num, sql);
-    }
+	for (num, sql) in select_sqls.iter() {
+		count!(*num, sql);
+	}
 });

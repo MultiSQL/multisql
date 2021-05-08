@@ -1,66 +1,66 @@
-use {crate::*, sqlparser::ast::DataType, std::borrow::Cow};
+use {crate::*, sqlparser::ast::DataType};
 
 test_case!(types, async move {
-    run!("CREATE TABLE TableB (id BOOLEAN);");
-    run!("CREATE TABLE TableC (uid INTEGER, null_val INTEGER NULL);");
-    run!("INSERT INTO TableB VALUES (FALSE);");
-    run!("INSERT INTO TableC VALUES (1, NULL);");
+	run!("CREATE TABLE TableB (id BOOLEAN);");
+	run!("CREATE TABLE TableC (uid INTEGER, null_val INTEGER NULL);");
+	run!("INSERT INTO TableB VALUES (FALSE);");
+	run!("INSERT INTO TableC VALUES (1, NULL);");
 
-    let test_cases = vec![
-        (
-            "INSERT INTO TableB SELECT uid FROM TableC;",
-            Err(ValueError::IncompatibleDataType {
-                data_type: DataType::Boolean.to_string(),
-                value: format!("{:?}", Value::I64(1)),
-            }
-            .into()),
-        ),
-        (
-            "INSERT INTO TableC (uid) VALUES (\"A\")",
-            Err(ValueError::IncompatibleDataType {
-                data_type: DataType::Int.to_string(),
-                value: format!("{:?}", Value::Str(String::from("A"))),
-            }
-            .into()),
-        ),
-        (
-            "INSERT INTO TableC VALUES (NULL, 30);",
-            Err(ValueError::NullValueOnNotNullField.into()),
-        ),
-        (
-            "INSERT INTO TableC SELECT null_val FROM TableC;",
-            Err(ValidateError::WrongNumberOfValues.into()),
-        ),
-        (
-            "UPDATE TableC SET uid = TRUE;",
-            Err(ValueError::IncompatibleDataType {
-                data_type: DataType::Int.to_string(),
-                value: format!("{:?}", Value::Bool(true)),
-            }
-            .into()),
-        ),
-        // TODO: Subqueries
-        /*
-        (
-            "UPDATE TableC SET uid = (SELECT id FROM TableB LIMIT 1) WHERE uid = 1",
-            Err(ValueError::IncompatibleDataType {
-                data_type: DataType::Int.to_string(),
-                value: format!("{:?}", Value::Bool(false)),
-            }
-            .into()),
-        ),
-        */
-        (
-            "UPDATE TableC SET uid = NULL;",
-            Err(ValueError::NullValueOnNotNullField.into()),
-        ),
-        /*(
-            "UPDATE TableC SET uid = (SELECT null_val FROM TableC);",
-            Err(ValueError::NullValueOnNotNullField.into()),
-        ),*/
-    ];
+	let test_cases = vec![
+		(
+			"INSERT INTO TableB SELECT uid FROM TableC;",
+			Err(ValueError::IncompatibleDataType {
+				data_type: DataType::Boolean.to_string(),
+				value: format!("{:?}", Value::I64(1)),
+			}
+			.into()),
+		),
+		(
+			"INSERT INTO TableC (uid) VALUES (\"A\")",
+			Err(ValueError::IncompatibleDataType {
+				data_type: DataType::Int.to_string(),
+				value: format!("{:?}", Value::Str(String::from("A"))),
+			}
+			.into()),
+		),
+		(
+			"INSERT INTO TableC VALUES (NULL, 30);",
+			Err(ValueError::NullValueOnNotNullField.into()),
+		),
+		(
+			"INSERT INTO TableC SELECT null_val FROM TableC;",
+			Err(ValidateError::WrongNumberOfValues.into()),
+		),
+		(
+			"UPDATE TableC SET uid = TRUE;",
+			Err(ValueError::IncompatibleDataType {
+				data_type: DataType::Int.to_string(),
+				value: format!("{:?}", Value::Bool(true)),
+			}
+			.into()),
+		),
+		// TODO: Subqueries
+		/*
+		(
+			"UPDATE TableC SET uid = (SELECT id FROM TableB LIMIT 1) WHERE uid = 1",
+			Err(ValueError::IncompatibleDataType {
+				data_type: DataType::Int.to_string(),
+				value: format!("{:?}", Value::Bool(false)),
+			}
+			.into()),
+		),
+		*/
+		(
+			"UPDATE TableC SET uid = NULL;",
+			Err(ValueError::NullValueOnNotNullField.into()),
+		),
+		/*(
+			"UPDATE TableC SET uid = (SELECT null_val FROM TableC);",
+			Err(ValueError::NullValueOnNotNullField.into()),
+		),*/
+	];
 
-    for (sql, expected) in test_cases.into_iter() {
-        test!(expected, sql);
-    }
+	for (sql, expected) in test_cases.into_iter() {
+		test!(expected, sql);
+	}
 });

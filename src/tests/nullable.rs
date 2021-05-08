@@ -1,26 +1,26 @@
 use crate::*;
 
 test_case!(nullable, async move {
-    run!(
-        r#"
+	run!(
+		r#"
 CREATE TABLE Test (
     id INTEGER NULL,
     num INTEGER,
     name TEXT
 )"#
-    );
-    run!(
-        "
+	);
+	run!(
+		"
         INSERT INTO Test (id, num, name) VALUES
             (NULL, 2, \"Hello\"),
             (   1, 9, \"World\"),
             (   3, 4, \"Great\");
     "
-    );
+	);
 
-    use Value::*;
+	use Value::*;
 
-    let test_cases = vec![
+	let test_cases = vec![
         (
             "SELECT id, num, name FROM Test",
             select_with_null!(
@@ -211,44 +211,44 @@ CREATE TABLE Test (
         ),
     ];
 
-    for (sql, expected) in test_cases.into_iter() {
-        test!(Ok(expected), sql);
-    }
+	for (sql, expected) in test_cases.into_iter() {
+		test!(Ok(expected), sql);
+	}
 
-    run!("UPDATE Test SET id = 2");
+	run!("UPDATE Test SET id = 2");
 
-    let test_cases = vec![
-        ("SELECT id FROM Test", Ok(select!(id I64; 2; 2; 2))),
-        (
-            "SELECT id, num FROM Test",
-            Ok(select!(
-                id  | num
-                I64 | I64;
-                2     2;
-                2     9;
-                2     4
-            )),
-        ),
-        (
-            r#"INSERT INTO Test VALUES (1, NULL, "ok")"#,
-            Err(ValueError::NullValueOnNotNullField.into()),
-        ),
-    ];
+	let test_cases = vec![
+		("SELECT id FROM Test", Ok(select!(id I64; 2; 2; 2))),
+		(
+			"SELECT id, num FROM Test",
+			Ok(select!(
+				id  | num
+				I64 | I64;
+				2     2;
+				2     9;
+				2     4
+			)),
+		),
+		(
+			r#"INSERT INTO Test VALUES (1, NULL, "ok")"#,
+			Err(ValueError::NullValueOnNotNullField.into()),
+		),
+	];
 
-    for (sql, expected) in test_cases.into_iter() {
-        test!(expected, sql);
-    }
+	for (sql, expected) in test_cases.into_iter() {
+		test!(expected, sql);
+	}
 });
 
 test_case!(nullable_text, async move {
-    run!(
-        "
+	run!(
+		"
         CREATE TABLE Foo (
             id INTEGER,
             name TEXT NULL
         );
     "
-    );
+	);
 
-    run!("INSERT INTO Foo (id, name) VALUES (1, \"Hello\"), (2, Null);");
+	run!("INSERT INTO Foo (id, name) VALUES (1, \"Hello\"), (2, Null);");
 });

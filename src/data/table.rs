@@ -8,48 +8,48 @@ use crate::result::Result;
 
 #[derive(Error, Serialize, Debug, PartialEq)]
 pub enum TableError {
-    #[error("unreachable")]
-    Unreachable,
+	#[error("unreachable")]
+	Unreachable,
 
-    #[error("TableFactorNotSupported")]
-    TableFactorNotSupported,
+	#[error("TableFactorNotSupported")]
+	TableFactorNotSupported,
 }
 
 pub struct Table<'a> {
-    name: &'a String,
-    alias: Option<&'a String>,
+	name: &'a String,
+	alias: Option<&'a String>,
 }
 
 impl<'a> Table<'a> {
-    pub fn new(table_factor: &'a TableFactor) -> Result<Self> {
-        match table_factor {
-            TableFactor::Table { name, alias, .. } => {
-                let name = get_name(name)?;
-                let alias = alias.as_ref().map(|TableAlias { name, .. }| &name.value);
+	pub fn new(table_factor: &'a TableFactor) -> Result<Self> {
+		match table_factor {
+			TableFactor::Table { name, alias, .. } => {
+				let name = get_name(name)?;
+				let alias = alias.as_ref().map(|TableAlias { name, .. }| &name.value);
 
-                Ok(Self { name, alias })
-            }
-            _ => Err(TableError::TableFactorNotSupported.into()),
-        }
-    }
+				Ok(Self { name, alias })
+			}
+			_ => Err(TableError::TableFactorNotSupported.into()),
+		}
+	}
 
-    pub fn get_name(&self) -> &'a String {
-        self.name
-    }
+	pub fn get_name(&self) -> &'a String {
+		self.name
+	}
 
-    pub fn get_alias(&self) -> &'a String {
-        match self.alias {
-            Some(alias) => alias,
-            None => self.name,
-        }
-    }
+	pub fn get_alias(&self) -> &'a String {
+		match self.alias {
+			Some(alias) => alias,
+			None => self.name,
+		}
+	}
 }
 
 pub fn get_name(table_name: &ObjectName) -> Result<&String> {
-    let ObjectName(idents) = table_name;
+	let ObjectName(idents) = table_name;
 
-    idents
-        .last()
-        .map(|ident| &ident.value)
-        .ok_or_else(|| TableError::Unreachable.into())
+	idents
+		.last()
+		.map(|ident| &ident.value)
+		.ok_or_else(|| TableError::Unreachable.into())
 }

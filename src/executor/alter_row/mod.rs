@@ -5,10 +5,10 @@ mod validate;
 mod validate_unique;
 
 pub use {
-    insert::insert,
-    update::update,
-    validate::{columns_to_positions, validate, ValidateError},
-    validate_unique::validate_unique,
+	insert::insert,
+	update::update,
+	validate::{columns_to_positions, validate, ValidateError},
+	validate_unique::validate_unique,
 };
 
 #[cfg(feature = "auto-increment")]
