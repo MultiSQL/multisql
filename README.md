@@ -7,7 +7,7 @@ Main *TODO*s:
 - [ ] `TRUNCATE`
 - [ ] `FIRST`/`LAST`
 - [ ] `EXECUTE`
-- [ ] Variables
+- [x] Variables
 - [ ] `WITH`
 - [ ] `IN`
 - [ ] Subqueries
