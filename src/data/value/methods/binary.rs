@@ -1,6 +1,6 @@
 use {
-    super::ValueCore,
-    crate::{Convert, ConvertFrom, Result, Value, ValueError},
+	super::ValueCore,
+	crate::{Convert, ConvertFrom, Result, Value, ValueError},
 };
 
 // These were using references, they now consume their variables. See ::recipe.
@@ -62,63 +62,63 @@ macro_rules! comparative_binary_ops {
 }
 
 macro_rules! generic {
-    ($name: ident, $generic_name: ident) => {
-        pub fn $generic_name(self, other: Self) -> Result<Self> {
-            if matches!(self, Value::Null) || matches!(other, Value::Null) {
-                Ok(Value::Null)
-            } else if !i64::convert_from(self.clone()).is_err()
-                && !i64::convert_from(other.clone()).is_err()
-            {
-                self.$name::<i64>(other)
-            } else if !f64::convert_from(self.clone()).is_err()
-                && !f64::convert_from(other.clone()).is_err()
-            {
-                self.$name::<f64>(other)
-            } else {
-                Err(ValueError::OnlySupportsNumeric(
-                    if f64::convert_from(self.clone()).is_err() {
-                        self
-                    } else {
-                        other
-                    },
-                    stringify!($name),
-                )
-                .into())
-            }
-        }
-    };
+	($name: ident, $generic_name: ident) => {
+		pub fn $generic_name(self, other: Self) -> Result<Self> {
+			if matches!(self, Value::Null) || matches!(other, Value::Null) {
+				Ok(Value::Null)
+			} else if !i64::convert_from(self.clone()).is_err()
+				&& !i64::convert_from(other.clone()).is_err()
+			{
+				self.$name::<i64>(other)
+			} else if !f64::convert_from(self.clone()).is_err()
+				&& !f64::convert_from(other.clone()).is_err()
+			{
+				self.$name::<f64>(other)
+			} else {
+				Err(ValueError::OnlySupportsNumeric(
+					if f64::convert_from(self.clone()).is_err() {
+						self
+					} else {
+						other
+					},
+					stringify!($name),
+				)
+				.into())
+			}
+		}
+	};
 }
 
 natural_binary_ops!(
-    (add, Add, +, generic_add),
-    (subtract, Sub, -, generic_subtract),
-    (multiply, Mul, *, generic_multiply),
-    (divide, Div, /, generic_divide),
-    (modulus, Rem, %, generic_modulus)
+	(add, Add, +, generic_add),
+	(subtract, Sub, -, generic_subtract),
+	(multiply, Mul, *, generic_multiply),
+	(divide, Div, /, generic_divide),
+	(modulus, Rem, %, generic_modulus)
 );
 
 boolean_binary_ops!(
-    (and, &),
-    (or, |),
-    (xor, ^)
+	(and, &),
+	(or, |),
+	(xor, ^)
 );
 
 comparative_binary_ops!(
-    (eq, ==),
-    (not_eq, !=),
-    (gt, >),
-    (gt_eq, >=),
-    (lt, <),
-    (lt_eq, <=)
+	(eq, ==),
+	(not_eq, !=),
+	(gt, >),
+	(gt_eq, >=),
+	(lt, <),
+	(lt_eq, <=)
 );
 
 impl Value {
-    pub fn string_concat(self, other: Self) -> Result<Self> {
-        Ok(format!(
-            "{}{}",
-            String::convert_from(self)?,
-            String::convert_from(other)?
-        )
-        .into())
-    }
+	pub fn string_concat(self, other: Self) -> Result<Self> {
+		Ok(format!(
+			"{}{}",
+			String::convert_from(self)?,
+			String::convert_from(other)?
+		)
+		.into())
+	}
 }

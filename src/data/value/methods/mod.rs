@@ -5,8 +5,8 @@ mod unary;
 mod utility;
 
 use {
-    crate::{ConvertFrom, Value},
-    std::convert::Into,
+	crate::{ConvertFrom, Value},
+	std::convert::Into,
 };
 
 pub trait ValueCore: Into<Value> + ConvertFrom<Value> {}
