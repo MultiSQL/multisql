@@ -1,13 +1,13 @@
 [package]
-	name = "gluesql"
-	version = "0.6.0-planner-beta"
+	name = "multisql"
+	version = "0.0.0"
 	authors = ["Kyran Gostelow <kyran@gostelow.me>", "Taehoon Moon <taehoon.moon@outlook.com>"]
 	edition = "2018"
-	description = "GlueSQL - Open source SQL database engine fully written in Rust with pure functional execution layer, easily swappable storage and web assembly support!"
+	description = "MultiSQL"
 	license = "Apache-2.0"
-	repository = "https://github.com/SyRis-Consulting/gluesql"
+	repository = "https://github.com/SyRis-Consulting/multisql"
 	readme = "README.md"
-	keywords = ["sql-database", "sql", "functional", "webassembly"]
+	keywords = ["sql-database", "sql"]
 
 [package.metadata.docs.rs]
 	all-features = true
