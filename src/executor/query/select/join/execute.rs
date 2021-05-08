@@ -12,6 +12,7 @@ pub struct JoinExecute {
 	pub table: String,
 	pub method: JoinMethod,
 	pub join_type: JoinType,
+	pub widths: (usize, usize),
 }
 
 impl JoinExecute {
@@ -24,12 +25,14 @@ impl JoinExecute {
 			columns,
 			..
 		} = plan;
+		let widths = (plane_columns.len(), columns.len());
 		let method = decide_method(constraint, columns, plane_columns)?;
 		Ok(Self {
 			database,
 			table,
 			method,
 			join_type,
+			widths,
 		})
 	}
 	pub fn set_first_table(&mut self) {
@@ -60,7 +63,13 @@ impl JoinExecute {
 			.ok_or(JoinError::Unreachable)?;
 
 		let rows = self.get_rows(storage).await?;
-		self.method.run(&self.join_type, plane_rows, rows)
+		self.method.run(
+			&self.join_type,
+			self.widths.0,
+			self.widths.1,
+			plane_rows,
+			rows,
+		)
 	}
 }
 

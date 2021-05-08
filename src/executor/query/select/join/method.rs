@@ -38,6 +38,8 @@ impl JoinMethod {
 	pub fn run(
 		self,
 		join: &JoinType,
+		left_width: usize,
+		right_width: usize,
 		mut plane_rows: Vec<Row>,
 		mut self_rows: Vec<Row>,
 	) -> Result<Vec<Row>> {
@@ -56,8 +58,6 @@ impl JoinMethod {
 					result_rows
 				}),
 			JoinMethod::General(recipe) => {
-				let left_width = plane_rows.get(0).map(|row| row.len()).unwrap_or(0);
-				let right_width = self_rows.get(0).map(|row| row.len()).unwrap_or(0);
 				let unfolded_rows: Vec<Result<(Vec<usize>, Vec<Row>)>> = plane_rows
 					.into_par_iter()
 					.map(|left_row| {
@@ -181,19 +181,6 @@ impl JoinMethod {
 					.into_iter()
 					.peekable();
 
-				// For later
-				// Trust that rows have same len
-				let left_len = left_partitions
-					.peek()
-					.map(|left_partition| left_partition.1.get(0).map(|row| row.len()))
-					.flatten()
-					.unwrap_or(0);
-				let right_len = right_partitions
-					.peek()
-					.map(|right_partition| right_partition.1.get(0).map(|row| row.len()))
-					.flatten()
-					.unwrap_or(0);
-
 				let mut left_results = vec![];
 				let mut inner_results = vec![];
 				let mut right_results = vec![];
@@ -234,7 +221,7 @@ impl JoinMethod {
 					.map(|(_, left_rows)| {
 						left_rows
 							.into_iter()
-							.map(|left| join_parts(left, vec![Value::Null; right_len]))
+							.map(|left| join_parts(left, vec![Value::Null; right_width]))
 							.collect::<Vec<Row>>()
 					})
 					.reduce(|mut all, set| {
@@ -274,7 +261,7 @@ impl JoinMethod {
 					.map(|(_, right_rows)| {
 						right_rows
 							.into_iter()
-							.map(|right| join_parts(vec![Value::Null; left_len], right))
+							.map(|right| join_parts(vec![Value::Null; left_width], right))
 							.collect::<Vec<Row>>()
 					})
 					.reduce(|mut all, set| {

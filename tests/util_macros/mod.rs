@@ -1,5 +1,19 @@
 #![allow(unused_macros)]
 #![allow(unused_imports)]
+macro_rules! make_all {
+	($($path_part: ident)::*, [$($test: ident),*]) => {
+		$(pub(crate) mod $test;)*
+		macro_rules! all {
+			($storage: ident) => {
+				use crate::$($path_part)::*::{$($test),*};
+				$($test::all!($storage);)*
+			};
+		}
+		pub(crate) use all;
+	}
+}
+pub(crate) use make_all;
+
 macro_rules! make_basic_table {
 	($glue: expr) => {
 		$glue
@@ -42,6 +56,9 @@ macro_rules! rows {
 	}};
 	(($($type: ident),*) : ($($value: expr),*)) => {
 		vec![multisql::Row(vec![$(multisql::Value::$type($value)),*])]
+	};
+	(($($_type: ident),*) :) => {
+		vec![]
 	};
 }
 pub(crate) use rows;

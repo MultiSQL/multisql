@@ -1,7 +1,7 @@
 use {
 	super::{
 		alter_row::{insert, update},
-		alter_table::{create_table, drop},
+		alter_table::{create_table, drop, truncate},
 		query::query,
 		types::ComplexColumnName,
 	},
@@ -51,9 +51,9 @@ pub enum Payload {
 	Delete(usize),
 	Update(usize),
 	DropTable,
-
 	#[cfg(feature = "alter-table")]
 	AlterTable,
+	TruncateTable,
 }
 
 pub async fn execute(
@@ -86,6 +86,9 @@ pub async fn execute(
 		Statement::AlterTable { name, operation } => alter_table(storages[0].1, name, operation)
 			.await
 			.map(|_| Payload::AlterTable),
+		Statement::Truncate { table_name, .. } => truncate(storages[0].1, table_name)
+			.await
+			.map(|_| Payload::TruncateTable),
 
 		//-- Rows
 		Statement::Insert {
@@ -98,7 +101,7 @@ pub async fn execute(
 			table_name,
 			selection,
 			assignments,
-		} => update(storages[0].1, table_name, selection, assignments).await,
+		} => update(storages[0].1, &context, table_name, selection, assignments).await,
 		Statement::Delete {
 			table_name,
 			selection,
@@ -120,7 +123,12 @@ pub async fn execute(
 				.collect();
 			let filter = selection
 				.clone()
-				.map(|selection| PlannedRecipe::new(MetaRecipe::new(selection)?, &columns))
+				.map(|selection| {
+					PlannedRecipe::new(
+						MetaRecipe::new(selection)?.simplify_by_context(context)?,
+						&columns,
+					)
+				})
 				.unwrap_or(Ok(PlannedRecipe::TRUE))?;
 
 			let keys = storages[0]

@@ -6,6 +6,7 @@ use {
 		executor::types::{ComplexColumnName, Row},
 		Result, Value,
 	},
+	fstrings::*,
 };
 
 #[derive(Debug, Clone)]
@@ -112,7 +113,10 @@ impl PlannedRecipe {
 					.map(|index| {
 						Ok(row
 							.get(index)
-							.ok_or(RecipeError::MissingColumn(Vec::new() /*unreachable*/))?
+							.ok_or(RecipeError::MissingColumn(vec![
+								String::from("Unreachable"),
+								f!("{row=:?} {index=:?}"),
+							]))?
 							.clone())
 					})
 					.unwrap_or(Ok(Value::Null))
