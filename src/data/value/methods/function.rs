@@ -75,9 +75,59 @@ impl Value {
         arguments.remove(0).concat(arguments)
     }
 
+    pub fn function_replace(mut arguments: Vec<Self>) -> Result<Self> {
+        expect_arguments!(arguments, 3);
+        arguments
+            .remove(0)
+            .replace(arguments.remove(0), arguments.remove(0))
+    }
+
+    pub fn function_now(arguments: Vec<Self>) -> Result<Self> {
+        expect_arguments!(arguments, 0);
+        Value::now()
+    }
+    pub fn function_year(mut arguments: Vec<Self>) -> Result<Self> {
+        expect_arguments!(arguments, 1);
+        arguments.remove(0).year()
+    }
+    pub fn function_month(mut arguments: Vec<Self>) -> Result<Self> {
+        expect_arguments!(arguments, 1);
+        arguments.remove(0).month()
+    }
+    pub fn function_day(mut arguments: Vec<Self>) -> Result<Self> {
+        expect_arguments!(arguments, 1);
+        arguments.remove(0).day()
+    }
+    pub fn function_hour(mut arguments: Vec<Self>) -> Result<Self> {
+        expect_arguments!(arguments, 1);
+        arguments.remove(0).hour()
+    }
+    pub fn function_date_add(mut arguments: Vec<Self>) -> Result<Self> {
+        expect_arguments!(arguments, 3);
+        arguments
+            .remove(0)
+            .date_add(arguments.remove(0), arguments.remove(0))
+    }
+    pub fn function_date_from_parts(mut arguments: Vec<Self>) -> Result<Self> {
+        expect_arguments!(arguments, 3);
+        arguments
+            .remove(0)
+            .date_from_parts(arguments.remove(0), arguments.remove(0))
+    }
+
     pub fn function_round(mut arguments: Vec<Self>) -> Result<Self> {
+        optional_expect_arguments!(arguments, 1, 2);
+        let value = arguments.remove(0);
+        let places = if !arguments.is_empty() {
+            arguments.remove(0)
+        } else {
+            Self::I64(0)
+        };
+        value.round(places)
+    }
+    pub fn function_pow(mut arguments: Vec<Self>) -> Result<Self> {
         expect_arguments!(arguments, 2);
-        arguments.remove(0).round(arguments.remove(0))
+        arguments.remove(0).pow(arguments.remove(0))
     }
 
     pub fn function_convert(mut arguments: Vec<Self>) -> Result<Self> {
@@ -91,10 +141,10 @@ impl Value {
         };
         Ok(match datatype.to_uppercase().as_str() {
             // Unfortunatly we cannot get datatype directly, it needs to be given as string
-            //"BOOLEAN" => Value::Bool(value.cast_with_rule(rule)?),
+            "BOOLEAN" => Value::Bool(value.cast_with_rule(rule)?),
             "INTEGER" => Value::I64(value.cast_with_rule(rule)?),
-            //"FLOAT" => Value::F64(value.cast_with_rule(rule)?),
-            //"TEXT" => Value::Str(value.cast_with_rule(rule)?),
+            "FLOAT" => Value::F64(value.cast_with_rule(rule)?),
+            "TEXT" => Value::Str(value.cast_with_rule(rule)?),
             "TIMESTAMP" => {
                 // Temp, need Value::Timestamp
                 let datetime: NaiveDateTime = value.cast_with_rule(rule)?;

@@ -29,6 +29,7 @@ pub async fn validate_unique(
     table_name: &str,
     column_defs: &[ColumnDef],
     rows: &[Row],
+    ignore_keys: Option<&Vec<Value>>,
 ) -> Result<()> {
     let unique_columns: Vec<usize> = column_defs
         .iter()
@@ -42,11 +43,18 @@ pub async fn validate_unique(
         })
         .collect();
     let mut existing_values: Vec<Vec<Value>> = vec![vec![]; unique_columns.len()];
+
     storage
         .scan_data(table_name)
         .await?
         .map(|result| {
-            let row = result?.1 .0;
+            let (key, row) = result?;
+            if let Some(ignore_keys) = ignore_keys {
+                if ignore_keys.iter().any(|ignore_key| ignore_key == &key) {
+                    return Ok(());
+                }
+            }
+            let row = row.0;
             unique_columns
                 .iter()
                 .enumerate()

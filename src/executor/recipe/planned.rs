@@ -101,14 +101,15 @@ impl PlannedRecipe {
         self.recipe.simplify(SimplifyBy::Row(&row))
     }
     fn condense_row(&self, row: &Row) -> Result<Row> {
-        self.needed_column_indexes
+        Ok(self
+            .needed_column_indexes
             .iter()
             .map(|index| {
                 row.get(*index)
-                    .ok_or(RecipeError::Unreachable.into())
                     .map(|value| value.clone())
+                    .unwrap_or(Value::Null) // Maybe this is problematic
             })
-            .collect::<Result<Vec<Value>>>()
+            .collect::<Vec<Value>>())
     }
     pub fn simplify_by_row(self, row: &Row) -> Result<Self> {
         let row = self.condense_row(row)?;

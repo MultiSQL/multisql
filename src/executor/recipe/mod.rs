@@ -54,6 +54,8 @@ pub enum RecipeError {
     #[error("this should be impossible, please report, failure: {0}")]
     UnreachableNotAggregate(String),
     #[error("this should be impossible, please report")]
+    UnreachableNoRow,
+    #[error("this should be impossible, please report")]
     Unreachable,
 }
 
@@ -80,6 +82,12 @@ pub enum Method {
     Function(FunctionOperator, Vec<Recipe>),
 
     Cast(DataType, Recipe),
+
+    Case {
+        operand: Option<Recipe>,
+        cases: Vec<(Recipe, Recipe)>,
+        else_result: Option<Recipe>,
+    },
 }
 
 // Cannot derive Debug for references. Perhaps these shouldn't consume their operators. TODO.

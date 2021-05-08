@@ -55,6 +55,7 @@ impl PartialEq for Value {
             (Value::I64(l), Value::I64(r)) => l == r,
             (Value::F64(l), Value::F64(r)) => l == r,
             (Value::Str(l), Value::Str(r)) => l == r,
+            (Value::Bytes(l), Value::Bytes(r)) => l == r,
 
             #[cfg(feature = "implicit_float_conversion")]
             (Value::I64(l), Value::F64(r)) => (*l as f64) == *r,
@@ -72,6 +73,7 @@ impl PartialOrd for Value {
             (Value::I64(l), Value::I64(r)) => Some(l.cmp(r)),
             (Value::F64(l), Value::F64(r)) => l.partial_cmp(r),
             (Value::Str(l), Value::Str(r)) => Some(l.cmp(r)),
+            (Value::Bytes(l), Value::Bytes(r)) => Some(l.cmp(r)),
 
             #[cfg(feature = "implicit_float_conversion")]
             (Value::I64(l), Value::F64(r)) => (*l as f64).partial_cmp(r),

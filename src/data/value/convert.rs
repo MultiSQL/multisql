@@ -1,6 +1,7 @@
 use {
     super::{Value, ValueError},
     crate::result::Result,
+    chrono::NaiveDateTime,
 };
 
 // TODO: No clone versions
@@ -56,5 +57,12 @@ impl Convert<String> for Value {
             Value::Str(inner) => inner,
             other => return Err(ValueError::CannotConvert(other, "TEXT").into()),
         })
+    }
+}
+
+impl Convert<NaiveDateTime> for Value {
+    fn convert(self) -> Result<NaiveDateTime> {
+        let secs = self.convert()?;
+        Ok(NaiveDateTime::from_timestamp(secs, 0))
     }
 }

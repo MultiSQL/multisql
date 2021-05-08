@@ -21,10 +21,19 @@ impl TryIntoMethod<FunctionOperator> for String {
             "RIGHT" => Ok(Value::function_right),
 
             "LEN" => Ok(Value::function_length),
-
             "CONCAT" => Ok(Value::function_concat),
+            "REPLACE" => Ok(Value::function_replace),
+
+            "NOW" => Ok(Value::function_now),
+            "YEAR" => Ok(Value::function_year),
+            "MONTH" => Ok(Value::function_month),
+            "DAY" => Ok(Value::function_day),
+            "HOUR" => Ok(Value::function_hour),
+            "DATEADD" => Ok(Value::function_date_add),
+            "DATEFROMPARTS" => Ok(Value::function_date_from_parts),
 
             "ROUND" => Ok(Value::function_round),
+            "POW" => Ok(Value::function_pow),
 
             "IIF" => Ok(Value::function_iif),
             "IFNULL" => Ok(Value::function_if_null),

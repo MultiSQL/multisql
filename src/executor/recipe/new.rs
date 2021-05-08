@@ -200,6 +200,29 @@ impl Recipe {
                     )))))
                 }
             }
+            Expr::Case {
+                operand,
+                conditions,
+                results,
+                else_result,
+            } => Ok(Recipe::Method(Box::new(Method::Case {
+                operand: operand
+                    .map(|operand| Self::with_meta(*operand, meta))
+                    .transpose()?,
+                cases: conditions
+                    .into_iter()
+                    .zip(results)
+                    .map(|(condition, result)| {
+                        Ok((
+                            Self::with_meta(condition, meta)?,
+                            Self::with_meta(result, meta)?,
+                        ))
+                    })
+                    .collect::<Result<Vec<_>>>()?,
+                else_result: else_result
+                    .map(|else_result| Self::with_meta(*else_result, meta))
+                    .transpose()?,
+            }))),
             Expr::Cast { data_type, expr } => Ok(Recipe::Method(Box::new(Method::Cast(
                 data_type,
                 Self::with_meta(*expr, meta)?,

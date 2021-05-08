@@ -1,8 +1,9 @@
 use {
     crate::{
-        data::schema::ColumnDefExt, executor::types::Row, Recipe, RecipeUtilities, Resolve, Result,
-        SimplifyBy,
+        data::schema::ColumnDefExt, executor::types::Row, Ingredient, Recipe, RecipeUtilities,
+        Resolve, Result, SimplifyBy, Value,
     },
+    rayon::prelude::*,
     serde::Serialize,
     sqlparser::ast::{ColumnDef, DataType, Ident},
     thiserror::Error as ThisError,
@@ -74,7 +75,7 @@ pub fn validate(
             Ok((index, failure_recipe, nullable, data_type))
         })
         .collect::<Result<Vec<(Option<usize>, Option<Recipe>, bool, &DataType)>>>()?;
-    rows.into_iter()
+    rows.into_par_iter()
         .map(|row| {
             column_info
                 .iter()
@@ -83,7 +84,23 @@ pub fn validate(
                         .map(|index| {
                             row.get(index).map(|value| {
                                 let mut value = value.clone();
-                                value.validate_null(nullable.clone())?;
+                                if let Err(error) = value.validate_null(nullable.clone()) {
+                                    value = if let Some(fallback) = failure_recipe.clone() {
+                                        if !matches!(
+                                            fallback,
+                                            Recipe::Ingredient(Ingredient::Value(Value::Null))
+                                        ) {
+                                            fallback
+                                                .simplify(SimplifyBy::Basic)?
+                                                .as_solution()
+                                                .ok_or(ValidateError::BadDefault)?
+                                        } else {
+                                            return Err(error);
+                                        }
+                                    } else {
+                                        return Err(error);
+                                    }
+                                }
                                 value = value.validate_type(data_type)?;
                                 Ok(value)
                             })

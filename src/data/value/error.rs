@@ -35,6 +35,8 @@ pub enum ValueError {
     DateTimeParseError(String),
     #[error("failed to parse {0:?} as {1}")]
     ParseError(Value, &'static str),
+    #[error("something went wrong with date math")]
+    DateError, // Should avoid throwing
 
     #[error("cannot convert {0:?} into {1}")]
     CannotConvert(Value, &'static str),

@@ -102,10 +102,45 @@ impl Cast<usize> for Value {
 }
 
 // Non-Core
+impl CastWithRules<bool> for Value {
+    fn cast_with_rule(self, rule: Self) -> Result<bool> {
+        match rule {
+            Value::I64(000) | Value::Bool(true) => self.cast(),
+            _ => Err(ValueError::InvalidConversionRule.into()),
+        }
+    }
+}
 impl CastWithRules<i64> for Value {
     fn cast_with_rule(self, rule: Self) -> Result<i64> {
         match rule {
             Value::I64(000) | Value::Bool(true) => self.cast(),
+            _ => Err(ValueError::InvalidConversionRule.into()),
+        }
+    }
+}
+impl CastWithRules<f64> for Value {
+    fn cast_with_rule(self, rule: Self) -> Result<f64> {
+        match rule {
+            Value::I64(000) | Value::Bool(true) => self.cast(),
+            _ => Err(ValueError::InvalidConversionRule.into()),
+        }
+    }
+}
+impl CastWithRules<String> for Value {
+    fn cast_with_rule(self, rule: Self) -> Result<String> {
+        match rule {
+            Value::I64(000) | Value::Bool(true) => self.cast(),
+            Value::Str(specified) if specified == String::from("DATETIME") => {
+                Ok(NaiveDateTime::from_timestamp(self.convert()?, 0)
+                    .format("%F %T")
+                    .to_string())
+            }
+            Value::Str(format) if matches!(self, Value::I64(..)) => {
+                // TODO: TIMESTAMP type
+                Ok(NaiveDateTime::from_timestamp(self.convert()?, 0)
+                    .format(&format)
+                    .to_string())
+            }
             _ => Err(ValueError::InvalidConversionRule.into()),
         }
     }
@@ -152,8 +187,9 @@ impl CastWithRules<NaiveDateTime> for Value {
         }
         const TRY_RULES_TIMESTAMP: [i64; 1] = [000];
         const TRY_RULES_DATETIME: [i64; 7] = [010, 011, 020, 021, 030, 031, 060];
-        const TRY_RULES_DATE: [i64; 3] = [022, 032, 033];
+        const TRY_RULES_DATE: [i64; 4] = [022, 032, 033, 061];
         const TRY_RULES_TIME: [i64; 2] = [100, 101];
+
         match rule {
             Value::Bool(true) => try_rules(&self, &TRY_RULES_TIMESTAMP),
             Value::Str(custom) => match custom.as_str() {
@@ -201,6 +237,7 @@ impl CastWithRules<NaiveDateTime> for Value {
             // 0(5-8)* - Locales
             // 06* - Australia
             Value::I64(060) => for_format_datetime(self, "%d/%m/%Y %H:%M"),
+            Value::I64(061) => for_format_date(self, "%d/%m/%Y"),
             // (TODO(?))
 
             // 10* - Time

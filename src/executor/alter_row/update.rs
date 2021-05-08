@@ -92,7 +92,7 @@ pub async fn update(
     let table_name = table_name.as_str();
     #[cfg(feature = "auto-increment")]
     let rows = auto_increment(&mut *storage, table_name, &column_defs, rows).await?;
-    validate_unique(&*storage, table_name, &column_defs, &rows).await?;
+    validate_unique(&*storage, table_name, &column_defs, &rows, Some(&keys)).await?;
     let keyed_rows: Vec<(Value, Row)> = keys.into_iter().zip(rows.into_iter().map(Row)).collect();
     let num_rows = keyed_rows.len();
     storage
