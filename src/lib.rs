@@ -12,7 +12,6 @@ mod utils;
 pub mod data;
 pub mod result;
 pub mod store;
-pub mod tests;
 
 pub use data::*;
 pub use executor::*;
