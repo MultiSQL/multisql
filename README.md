@@ -23,7 +23,7 @@ Main *TODO*s:
 - [ ] Memory storage
 - [ ] XML+ZIP (Excel and such) storage
 - [ ] Multi Database everything
-	[x] - `SELECT`
+	- [x] `SELECT`
 	- [ ] `INSERT`
 	- [ ] `UPDATE`
 	- [ ] `DELETE`
@@ -34,3 +34,6 @@ Eventually:
 - [ ] Config
 	- [ ] Permissions
 - [ ] Pre plan (allows choice and analysis of specific optimisations and such)
+- [ ] Primary Key
+- [ ] Foreign Key
+- [ ] Indexing
