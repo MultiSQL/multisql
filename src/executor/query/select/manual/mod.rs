@@ -5,7 +5,7 @@ use {
 			types::{Alias, ObjectName},
 			MetaRecipe,
 		},
-		Result,
+		Context, Result,
 	},
 	serde::Serialize,
 	sqlparser::ast::{Expr, Ident, Select, SelectItem as SelectItemAst},
@@ -35,7 +35,7 @@ pub enum SelectItem {
 }
 
 impl Manual {
-	pub fn new(select: Select) -> Result<Self> {
+	pub fn new(select: Select, context: &Context) -> Result<Self> {
 		let Select {
 			projection,
 			from,
@@ -52,21 +52,21 @@ impl Manual {
 		} = select;
 
 		let constraint = selection
-			.map(|selection| MetaRecipe::new(selection))
+			.map(|selection| MetaRecipe::new(selection)?.simplify_by_context(context))
 			.unwrap_or(Ok(MetaRecipe::TRUE))?;
 
 		let group_constraint = having
-			.map(|having| MetaRecipe::new(having))
+			.map(|having| MetaRecipe::new(having)?.simplify_by_context(context))
 			.unwrap_or(Ok(MetaRecipe::TRUE))?;
 
 		let groups = group_by
 			.into_iter()
-			.map(|expression| MetaRecipe::new(expression))
+			.map(|expression| MetaRecipe::new(expression)?.simplify_by_context(context))
 			.collect::<Result<Vec<MetaRecipe>>>()?;
 
 		let (select_items, mut subqueries): (Vec<SelectItem>, Vec<Vec<JoinManual>>) = projection
 			.into_iter()
-			.map(convert_select_item)
+			.map(|select_item| convert_select_item(select_item, context))
 			.collect::<Result<Vec<(SelectItem, Vec<JoinManual>)>>>()?
 			.into_iter()
 			.unzip();
@@ -127,7 +127,10 @@ fn identifier_into_object_name(identifier: Vec<Ident>) -> ObjectName {
 		.collect()
 }
 
-fn convert_select_item(select_item: SelectItemAst) -> Result<(SelectItem, Vec<JoinManual>)> {
+fn convert_select_item(
+	select_item: SelectItemAst,
+	context: &Context,
+) -> Result<(SelectItem, Vec<JoinManual>)> {
 	Ok(match select_item {
 		SelectItemAst::UnnamedExpr(_) | SelectItemAst::ExprWithAlias { .. } => {
 			let (expression, alias) = match select_item {
@@ -142,7 +145,7 @@ fn convert_select_item(select_item: SelectItemAst) -> Result<(SelectItem, Vec<Jo
 				SelectItemAst::ExprWithAlias { expr, alias } => (expr, Some(alias.value)),
 				_ => unreachable!(),
 			};
-			let recipe = MetaRecipe::new(expression)?;
+			let recipe = MetaRecipe::new(expression)?.simplify_by_context(context)?;
 			let subqueries = recipe.meta.subqueries.clone();
 			(SelectItem::Recipe(recipe, alias), subqueries)
 		}

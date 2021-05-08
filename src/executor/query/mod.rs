@@ -4,7 +4,7 @@ pub use select::{join::*, ManualError, PlanError, SelectError};
 
 use {
 	crate::{
-		executor::types::LabelsAndRows, macros::warning, result::Result, Cast, Recipe,
+		executor::types::LabelsAndRows, macros::warning, result::Result, Cast, Context, MetaRecipe,
 		RecipeUtilities, StorageInner, Value,
 	},
 	select::select,
@@ -31,6 +31,7 @@ pub enum QueryError {
 
 pub async fn query(
 	storages: &Vec<(String, &mut StorageInner)>,
+	context: &Context,
 	query: Query,
 ) -> Result<LabelsAndRows> {
 	let Query {
@@ -44,23 +45,23 @@ pub async fn query(
 	} = query;
 	let limit: Option<usize> = limit
 		.map(|expression| {
-			Recipe::new_without_meta(expression)?
-				.simplify_by_basic()?
+			MetaRecipe::new(expression)?
+				.simplify_by_context(context)?
 				.confirm_or_err(QueryError::MissingComponentsForLimit.into())?
 				.cast()
 		})
 		.transpose()?;
 	let offset: Option<usize> = offset
 		.map(|offset| {
-			Recipe::new_without_meta(offset.value)?
-				.simplify_by_basic()?
+			MetaRecipe::new(offset.value)?
+				.simplify_by_context(context)?
 				.confirm_or_err(QueryError::MissingComponentsForOffset.into())?
 				.cast()
 		})
 		.transpose()?;
 	let (mut labels, mut rows) = match body {
 		SetExpr::Select(query) => {
-			let (labels, rows) = select(storages, *query, order_by).await?;
+			let (labels, rows) = select(storages, context, *query, order_by).await?;
 
 			Ok((labels, rows))
 		}
@@ -75,8 +76,8 @@ pub async fn query(
 					values_row
 						.into_iter()
 						.map(|cell| {
-							Recipe::new_without_meta(cell)?
-								.simplify_by_basic()?
+							MetaRecipe::new(cell)?
+								.simplify_by_context(context)?
 								.confirm_or_err(QueryError::MissingComponentsForValues.into())
 						})
 						.collect::<Result<Vec<Value>>>()

@@ -1,4 +1,6 @@
 // Re-export
+#[cfg(feature = "sled-storage")]
+pub use sled;
 pub use sqlparser as parser;
 
 mod executor;
@@ -14,15 +16,10 @@ pub mod tests;
 
 pub use data::*;
 pub use executor::*;
+pub use glue::*;
 pub use parse_sql::*;
 pub use result::*;
-pub use store::*;
-
-#[cfg(feature = "sled-storage")]
-pub use glue::Glue;
-#[cfg(feature = "sled-storage")]
-pub use sled;
-#[cfg(feature = "sled-storage")]
 pub use storages::*;
+pub use store::*;
 
 pub(crate) use utils::macros;

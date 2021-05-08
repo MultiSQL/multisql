@@ -7,11 +7,14 @@ use {
 	},
 	crate::{
 		data::{get_name, Schema},
+		glue::Context,
 		parse_sql::Query,
 		MetaRecipe, PlannedRecipe, Result, Row, StorageInner, Value,
 	},
+	fstrings::*,
 	serde::Serialize,
-	sqlparser::ast::{ColumnDef, Statement},
+	sqlparser::ast::{ColumnDef, SetVariableValue, Statement},
+	std::convert::TryInto,
 	thiserror::Error as ThisError,
 };
 
@@ -22,6 +25,9 @@ use super::alter_table::alter_table;
 pub enum ExecuteError {
 	#[error("query not supported")]
 	QueryNotSupported,
+
+	#[error("SET does not currently support columns, aggregates or subqueries")]
+	MissingComponentsForSet,
 
 	#[error("unsupported insert value type: {0}")]
 	UnreachableUnsupportedInsertValueType(String),
@@ -35,6 +41,7 @@ pub enum ExecuteError {
 
 #[derive(Serialize, Debug, PartialEq)]
 pub enum Payload {
+	Success,
 	Create,
 	Insert(usize),
 	Select {
@@ -51,6 +58,7 @@ pub enum Payload {
 
 pub async fn execute(
 	mut storages: Vec<(String, &mut StorageInner)>,
+	context: &mut Context,
 	statement: &Query,
 ) -> Result<Payload> {
 	let Query(statement) = statement;
@@ -85,7 +93,7 @@ pub async fn execute(
 			columns,
 			source,
 			..
-		} => insert(storages, table_name, columns, source).await,
+		} => insert(storages, &context, table_name, columns, source).await,
 		Statement::Update {
 			table_name,
 			selection,
@@ -144,13 +152,29 @@ pub async fn execute(
 				.await
 				.map(|_| Payload::Delete(num_keys))
 		}
+
 		//- Selection
 		Statement::Query(query_value) => {
-			let result = query(&storages, *query_value.clone()).await?;
+			let result = query(&storages, &context, *query_value.clone()).await?;
 			let (labels, rows) = result;
 			let rows = rows.into_iter().map(Row).collect(); // I don't like this. TODO
 			let payload = Payload::Select { labels, rows };
 			Ok(payload)
+		}
+
+		//- Context
+		Statement::SetVariable {
+			variable, value, ..
+		} => {
+			println_f!("{variable=:?} {value=:?}");
+			let first_value = value.get(0).unwrap(); // Why might one want anything else?
+			let value: Value = match first_value {
+				SetVariableValue::Ident(..) => unimplemented!(),
+				SetVariableValue::Literal(literal) => literal.try_into()?,
+			};
+			let name = variable.value.clone();
+			context.set_variable(name, value);
+			Ok(Payload::Success)
 		}
 		_ => Err(ExecuteError::QueryNotSupported.into()),
 	}

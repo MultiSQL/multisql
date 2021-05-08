@@ -3,13 +3,14 @@ use {
 	crate::{
 		data::{get_name, Schema},
 		executor::query::query,
-		ExecuteError, Payload, Result, Row, StorageInner,
+		Context, ExecuteError, Payload, Result, Row, StorageInner,
 	},
 	sqlparser::ast::{Ident, ObjectName, Query},
 };
 
 pub async fn insert(
 	mut storages: Vec<(String, &mut StorageInner)>,
+	context: &Context,
 	table_name: &ObjectName,
 	columns: &Vec<Ident>,
 	source: &Box<Query>,
@@ -22,7 +23,7 @@ pub async fn insert(
 		.ok_or(ExecuteError::TableNotExists)?;
 
 	// TODO: Multi storage
-	let (_, rows) = query(&storages, *source.clone()).await?;
+	let (_, rows) = query(&storages, context, *source.clone()).await?;
 	let column_positions = columns_to_positions(&column_defs, columns)?;
 
 	let rows = validate(&column_defs, &column_positions, rows)?;
