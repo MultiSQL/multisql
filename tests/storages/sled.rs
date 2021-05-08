@@ -1,7 +1,7 @@
 static mut SLED_NUM: u16 = 0;
 macro_rules! storage {
 	() => {{
-		use {fstrings::*, multisql::*, std::convert::TryFrom};
+		use {fstrings::*, multisql::*};
 
 		let path = unsafe {
 			SLED_NUM = SLED_NUM + 1;
@@ -15,12 +15,7 @@ macro_rules! storage {
 			}
 		}
 
-		let config = sled::Config::default()
-			.path(path)
-			.temporary(true)
-			.mode(sled::Mode::HighThroughput);
-
-		let storage = SledStorage::try_from(config)
+		let storage = SledStorage::new(&path)
 			.map(Storage::new_sled)
 			.expect("Create Storage");
 
@@ -32,3 +27,4 @@ pub fn sled_storage() -> multisql::Glue {
 }
 
 crate::functionality::all!(sled_storage);
+crate::original::all!(sled_storage);

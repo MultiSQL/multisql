@@ -8,9 +8,7 @@
 	repository = "https://github.com/SyRis-Consulting/multisql"
 	readme = "README.md"
 	keywords = ["sql-database", "sql"]
-
-[package.metadata.docs.rs]
-	all-features = true
+	metadata.docs.rs.all-features = true
 
 [features]
 	default = [
