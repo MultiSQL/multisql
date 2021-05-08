@@ -11,7 +11,7 @@ use {
 #[derive(Debug, Clone)]
 pub struct PlannedRecipe {
 	pub recipe: Recipe,
-	pub needed_column_indexes: Vec<usize>,
+	pub needed_column_indexes: Vec<Option<usize>>,
 	pub aggregates: Vec<Recipe>,
 }
 
@@ -25,27 +25,31 @@ impl PlannedRecipe {
 		let MetaRecipe { recipe, meta } = meta_recipe;
 		let aggregates = meta.aggregates;
 		let needed_column_indexes = meta
-			.columns
+			.objects
 			.into_iter()
 			.map(|needed_column| {
-				let needed_column_index_options: Vec<usize> = columns
-					.iter()
-					.enumerate()
-					.filter_map(|(index, column)| {
-						if column == &needed_column {
-							Some(index.clone())
-						} else {
-							None
+				needed_column
+					.map(|needed_column| {
+						let needed_column_index_options: Vec<usize> = columns
+							.iter()
+							.enumerate()
+							.filter_map(|(index, column)| {
+								if column == &needed_column {
+									Some(index.clone())
+								} else {
+									None
+								}
+							})
+							.collect();
+						match needed_column_index_options.len() {
+							0 => Err(RecipeError::MissingColumn(needed_column).into()),
+							1 => Ok(Some(needed_column_index_options[0])),
+							_ => Err(RecipeError::AmbiguousColumn(needed_column).into()),
 						}
 					})
-					.collect();
-				match needed_column_index_options.len() {
-					0 => Err(RecipeError::MissingColumn(needed_column).into()),
-					1 => Ok(needed_column_index_options[0]),
-					_ => Err(RecipeError::AmbiguousColumn(needed_column).into()),
-				}
+					.unwrap_or(Ok(None))
 			})
-			.collect::<Result<Vec<usize>>>()?;
+			.collect::<Result<Vec<Option<usize>>>>()?;
 
 		Ok(Self {
 			recipe,
@@ -56,7 +60,7 @@ impl PlannedRecipe {
 	pub fn of_index(index: usize) -> Self {
 		Self {
 			recipe: Recipe::SINGLE_COLUMN,
-			needed_column_indexes: vec![index],
+			needed_column_indexes: vec![Some(index)],
 			aggregates: vec![],
 		}
 	}
@@ -101,15 +105,19 @@ impl PlannedRecipe {
 		self.recipe.simplify(SimplifyBy::Row(&row))
 	}
 	fn condense_row(&self, row: &Row) -> Result<Row> {
-		Ok(self
-			.needed_column_indexes
+		self.needed_column_indexes
 			.iter()
 			.map(|index| {
-				row.get(*index)
-					.map(|value| value.clone())
-					.unwrap_or(Value::Null) // Maybe this is problematic
+				index
+					.map(|index| {
+						Ok(row
+							.get(index)
+							.ok_or(RecipeError::MissingColumn(Vec::new() /*unreachable*/))?
+							.clone())
+					})
+					.unwrap_or(Ok(Value::Null))
 			})
-			.collect::<Vec<Value>>())
+			.collect::<Result<Vec<Value>>>()
 	}
 	pub fn simplify_by_row(self, row: &Row) -> Result<Self> {
 		let row = self.condense_row(row)?;
@@ -165,7 +173,8 @@ impl PlannedRecipe {
 		if let Recipe::Ingredient(Ingredient::Column(_)) = self.recipe {
 			self.needed_column_indexes
 				.get(0)
-				.map(|index| columns.get(index.clone()))
+				.map(|index| index.map(|index| columns.get(index)))
+				.flatten()
 				.flatten()
 				.map(|column| {
 					if include_table {

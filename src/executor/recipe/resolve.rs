@@ -6,6 +6,7 @@ use {
 #[derive(Clone)]
 pub enum SimplifyBy<'a> {
 	Basic,
+	OptRow(&'a Vec<Option<Value>>),
 	Row(&'a Row),
 	CompletedAggregate(Vec<Value>),
 }
@@ -40,6 +41,13 @@ impl Resolve for Ingredient {
 			Ingredient::Column(index) => {
 				if let SimplifyBy::Row(row) = component {
 					Ingredient::Value(row.get(index).ok_or(RecipeError::UnreachableNoRow)?.clone())
+				} else if let SimplifyBy::OptRow(row) = component {
+					row.get(index)
+						.map(Clone::clone)
+						.flatten()
+						.map(|value| Ingredient::Value(value))
+						.unwrap_or(self)
+						.clone()
 				} else {
 					self
 				}

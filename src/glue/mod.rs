@@ -9,17 +9,31 @@ use {
 	sqlparser::ast::{
 		Expr, Ident, ObjectName, Query as AstQuery, SetExpr, Statement, Value as AstValue, Values,
 	},
+	std::collections::HashMap,
 };
 
 mod value;
 
+pub(crate) type Variables = HashMap<String, Value>;
+#[derive(Default)]
+pub struct Context {
+	pub variables: Variables,
+}
+impl Context {
+	pub fn set_variable(&mut self, name: String, value: Value) {
+		self.variables.insert(name, value);
+	}
+}
+
 pub struct Glue {
 	storages: Vec<(String, Storage)>,
+	context: Option<Context>,
 }
 
 impl Glue {
 	pub fn new_multi(storages: Vec<(String, Storage)>) -> Self {
-		Self { storages }
+		let context = Some(Context::default());
+		Self { storages, context }
 	}
 	pub fn new_multi_glue(glues: Vec<Glue>) -> Self {
 		glues
@@ -31,9 +45,7 @@ impl Glue {
 			.unwrap()
 	}
 	pub fn new(name: String, storage: Storage) -> Self {
-		Self {
-			storages: vec![(name, storage)],
-		}
+		Self::new_multi(vec![(name, storage)])
 	}
 
 	pub fn execute_parsed(&mut self, query: Query) -> Result<Payload> {
@@ -46,11 +58,21 @@ impl Glue {
 			.iter_mut()
 			.map(|(name, storage)| (name.clone(), &mut **storage))
 			.collect();
-		let result = block_on(execute(give_storages, &query));
+
+		let mut context = self
+			.context
+			.take()
+			.expect("Unreachable: Context wasn't replaced!");
+
+		let result = block_on(execute(give_storages, &mut context, &query));
+
 		self.storages
 			.iter_mut()
 			.zip(storages)
 			.for_each(|((_name, storage), (_name_2, taken))| storage.replace(taken));
+
+		self.context.replace(context);
+
 		result
 	}
 
@@ -219,6 +241,7 @@ impl Payload {
 	}
 }
 
+/*
 #[cfg(test)]
 mod tests {
 	use {
@@ -236,15 +259,15 @@ mod tests {
 		let sled = SledStorage::try_from(config).unwrap();
 		let mut glue = Glue::new(String::from("sled"), Storage::new(Box::new(sled.clone())));
 		assert_eq!(
-            glue.execute(
-                    "CREATE TABLE api_test (id INTEGER PRIMARY KEY, name TEXT, nullable TEXT NULL, is BOOLEAN)",
-            ),
-            Ok(Payload::Create)
-        );
+			glue.execute(
+					"CREATE TABLE api_test (id INTEGER PRIMARY KEY, name TEXT, nullable TEXT NULL, is BOOLEAN)",
+			),
+			Ok(Payload::Create)
+		);
 		assert_eq!(
-            glue.execute("INSERT INTO api_test (id, name, nullable, is) VALUES (1, 'test1', 'not null', TRUE), (2, 'test2', NULL, FALSE)"), 
-            Ok(Payload::Insert(2))
-        );
+			glue.execute("INSERT INTO api_test (id, name, nullable, is) VALUES (1, 'test1', 'not null', TRUE), (2, 'test2', NULL, FALSE)"),
+			Ok(Payload::Insert(2))
+		);
 
 		assert_eq!(
 			glue.execute("SELECT id, name, is FROM api_test"), // Not selecting NULL because NULL != NULL. TODO: Expand this test so that NULL == NULL
@@ -378,19 +401,19 @@ mod tests {
 		assert_eq!(
 			csv_glue.execute(
 				r#"
-                INSERT INTO
-                    data (
-                        name,
-                        rating
-                    )
-                VALUES (
-                    'test2',
-                    '30.1'
-                ), (
-                    'test3',
-                    '0.1'
-                )
-            "#
+				INSERT INTO
+					data (
+						name,
+						rating
+					)
+				VALUES (
+					'test2',
+					'30.1'
+				), (
+					'test3',
+					'0.1'
+				)
+			"#
 			),
 			Ok(Payload::Insert(2))
 		);
@@ -400,13 +423,13 @@ mod tests {
 		assert_eq!(
 			multi_glue.execute(
 				r#"
-                SELECT
-                    *
-                FROM
-                    sled.api_insert_vec
-                    INNER JOIN csv.data
-                        ON sled.api_insert_vec.name = csv.data.name
-            "#
+				SELECT
+					*
+				FROM
+					sled.api_insert_vec
+					INNER JOIN csv.data
+						ON sled.api_insert_vec.name = csv.data.name
+			"#
 			),
 			Ok(Payload::Select {
 				labels: vec![
@@ -433,3 +456,4 @@ mod tests {
 		);
 	}
 }
+*/

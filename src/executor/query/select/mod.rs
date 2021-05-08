@@ -16,7 +16,7 @@ use {
 			PlannedRecipe,
 		},
 		macros::try_option,
-		NullOrd, RecipeUtilities, Result, StorageInner, Value,
+		Context, NullOrd, RecipeUtilities, Result, StorageInner, Value,
 	},
 	futures::stream::{self, StreamExt, TryStreamExt},
 	rayon::prelude::*,
@@ -45,6 +45,7 @@ pub enum SelectError {
 
 pub async fn select(
 	storages: &Vec<(String, &mut StorageInner)>,
+	context: &Context,
 	query: Select,
 	order_by: Vec<OrderByExpr>,
 ) -> Result<LabelsAndRows> {
@@ -56,7 +57,7 @@ pub async fn select(
 		groups,
 		order_by,
 		labels,
-	} = Plan::new(storages, query, order_by).await?;
+	} = Plan::new(storages, context, query, order_by).await?;
 
 	let rows = stream::iter(joins)
 		.map(Ok)

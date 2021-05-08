@@ -1,7 +1,7 @@
 use {
 	crate::{
-		executor::{execute, Payload},
-		parse_sql::parse,
+		executor::Payload,
+		//parse_sql::parse,
 		result::Result,
 		Storage,
 	},
@@ -9,8 +9,9 @@ use {
 	std::{cell::RefCell, rc::Rc},
 };
 
-pub async fn run(cell: Rc<RefCell<Option<Storage>>>, sql: &str) -> Result<Payload> {
-	println!("[Run] {}", sql);
+pub async fn run(_cell: Rc<RefCell<Option<Storage>>>, _sql: &str) -> Result<Payload> {
+	unreachable!()
+	/*println!("[Run] {}", sql);
 
 	let mut storage = cell.replace(None).unwrap();
 
@@ -21,7 +22,9 @@ pub async fn run(cell: Rc<RefCell<Option<Storage>>>, sql: &str) -> Result<Payloa
 
 	cell.replace(Some(storage));
 
-	result
+	result*/
+
+	// TODO!!! Move old tests to new method
 }
 
 /// If you want to make your custom storage and want to run integrate tests,

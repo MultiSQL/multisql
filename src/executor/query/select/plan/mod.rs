@@ -5,7 +5,7 @@ use {
 	},
 	crate::{
 		executor::{types::ComplexColumnName, PlannedRecipe},
-		Result, StorageInner,
+		Context, Result, StorageInner,
 	},
 	futures::future::join_all,
 	serde::Serialize,
@@ -36,6 +36,7 @@ pub enum PlanError {
 impl Plan {
 	pub async fn new(
 		storages: &Vec<(String, &mut StorageInner)>,
+		context: &Context,
 		select: Select,
 		order_by: Vec<OrderByExpr>,
 	) -> Result<Plan> {
@@ -45,7 +46,7 @@ impl Plan {
 			constraint,
 			group_constraint,
 			groups,
-		} = Manual::new(select)?;
+		} = Manual::new(select, context)?;
 
 		let mut joins: Vec<JoinPlan> = join_all(
 			joins

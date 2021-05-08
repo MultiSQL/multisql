@@ -70,9 +70,14 @@ impl JoinPlan {
 				if columns.iter().any(|table_column| {
 					self.constraint
 						.meta
-						.columns
+						.objects
 						.iter()
-						.any(|constraint_column| table_column == constraint_column)
+						.any(|constraint_column| {
+							constraint_column
+								.as_ref()
+								.map(|constraint_column| table_column == constraint_column)
+								.unwrap_or(false)
+						})
 				}) {
 					Some(index)
 				} else {

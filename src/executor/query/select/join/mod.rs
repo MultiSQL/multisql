@@ -14,6 +14,8 @@ use {
 pub enum JoinError {
 	#[error("table '{0:?}' could not be found")]
 	TableNotFound(ComplexTableName),
+	#[error("column '{0:?}' could not be found")]
+	ColumnNotFound(Option<Vec<String>>),
 
 	#[error("join type not yet implemented")]
 	UnimplementedJoinType,

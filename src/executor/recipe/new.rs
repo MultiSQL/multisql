@@ -5,7 +5,7 @@ use {
 			query::{JoinManual, JoinType},
 			types::{ComplexTableName, ObjectName},
 		},
-		Result, Value,
+		Context, Resolve, Result, SimplifyBy, Value,
 	},
 	sqlparser::ast::{Expr, FunctionArg, Ident, SelectItem, SetExpr},
 	std::convert::TryFrom,
@@ -19,6 +19,30 @@ pub struct MetaRecipe {
 impl MetaRecipe {
 	pub fn new(expression: Expr) -> Result<Self> {
 		let (recipe, meta) = Recipe::new_with_meta(expression)?;
+		Ok(Self { recipe, meta })
+	}
+	pub fn simplify_by_context(self, context: &Context) -> Result<Self> {
+		let meta_objects = self.meta.objects.clone();
+		let (meta_objects, row) = meta_objects
+			.into_iter()
+			.map(|object_name| {
+				object_name
+					.clone()
+					.map(|object_name| {
+						if object_name.len() == 1 {
+							context.variables.get(&object_name[0]).map(Clone::clone)
+						} else {
+							None
+						}
+					})
+					.flatten()
+					.map(|value| (None, Some(value)))
+					.unwrap_or((object_name, None))
+			})
+			.unzip();
+		let mut meta = self.meta;
+		meta.objects = meta_objects;
+		let recipe = self.recipe.simplify(SimplifyBy::OptRow(&row))?;
 		Ok(Self { recipe, meta })
 	}
 }
@@ -35,18 +59,18 @@ impl MetaRecipe {
 
 #[derive(Debug, Clone)]
 pub struct RecipeMeta {
-	pub columns: Vec<ObjectName>,
+	pub objects: Vec<Option<ObjectName>>,
 	pub aggregates: Vec<Recipe>,
 	pub subqueries: Vec<JoinManual>,
 }
 impl RecipeMeta {
 	pub const NEW: Self = Self {
-		columns: vec![],
+		objects: vec![],
 		aggregates: vec![],
 		subqueries: vec![],
 	};
 	fn append_column(&mut self, column: ObjectName) {
-		self.columns.push(column);
+		self.objects.push(Some(column));
 	}
 	fn append_aggregate(&mut self, aggregate: Recipe) {
 		self.aggregates.push(aggregate);
@@ -55,14 +79,17 @@ impl RecipeMeta {
 		self.subqueries.push(subquery);
 	}
 	fn find_column(&self, column: &ObjectName) -> Option<usize> {
-		self.columns
-			.iter()
-			.position(|search_column| search_column == column)
+		self.objects.iter().position(|search_column| {
+			search_column
+				.as_ref()
+				.map(|search_column| &column == &search_column)
+				.unwrap_or(false)
+		})
 	}
 	pub fn find_or_append_column(&mut self, column: ObjectName) -> usize {
 		self.find_column(&column).unwrap_or({
 			self.append_column(column);
-			self.columns.len() - 1
+			self.objects.len() - 1
 		})
 	}
 	pub fn aggregate(&mut self, aggregate: Recipe) -> Recipe {

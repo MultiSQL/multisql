@@ -80,13 +80,17 @@ fn decide_method(
 				// TODO: Be more strict, ensure that one column is from plane, and another from self.
 				let column_l = constraint
 					.meta
-					.columns
+					.objects
 					.get(index_l)
+					.ok_or(JoinError::Unreachable)?
+					.as_ref()
 					.ok_or(JoinError::Unreachable)?;
 				let column_r = constraint
 					.meta
-					.columns
+					.objects
 					.get(index_r)
+					.ok_or(JoinError::Unreachable)?
+					.as_ref()
 					.ok_or(JoinError::Unreachable)?;
 
 				let (self_index, plane_index) = if let Some(self_index) =
