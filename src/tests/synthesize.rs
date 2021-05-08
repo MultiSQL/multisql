@@ -30,16 +30,20 @@ test_case!(synthesize, async move {
     let test_cases = [
         (6, "SELECT * FROM TableA;"),
         (3, "SELECT * FROM TableA WHERE id = 3;"),
-        (
+        // TODO: Subqueries
+        /*(
             3,
             "SELECT * FROM TableA WHERE id = (SELECT id FROM TableA WHERE id = 3 LIMIT 1)",
-        ),
+        ),*/
+        // TODO: IN
+        /*
         (3, "SELECT * FROM TableA WHERE id IN (1, 2, 4)"),
         (3, "SELECT * FROM TableA WHERE test IN (500, 300)"),
         (
             2,
             "SELECT * FROM TableA WHERE id IN (SELECT target_id FROM TableA LIMIT 3)",
         ),
+        */
         (1, "SELECT * FROM TableA WHERE id = 3 AND test = 500;"),
         (5, "SELECT * FROM TableA WHERE id = 3 OR test = 100;"),
         (1, "SELECT * FROM TableA WHERE id != 3 AND test != 100;"),
@@ -49,8 +53,10 @@ test_case!(synthesize, async move {
             1,
             "SELECT * FROM TableA WHERE (id = 3 OR test = 100) AND test = 300;",
         ),
+        /*
         (4, "SELECT * FROM TableA a WHERE target_id = (SELECT id FROM TableA b WHERE b.target_id = a.id LIMIT 1);"),
         (4, "SELECT * FROM TableA a WHERE target_id = (SELECT id FROM TableA WHERE target_id = a.id LIMIT 1);"),
+        */
         (3, "SELECT * FROM TableA WHERE NOT (id = 3);"),
         (2, "UPDATE TableA SET test = 200 WHERE test = 100;"),
         (0, "SELECT * FROM TableA WHERE test = 100;"),

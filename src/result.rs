@@ -1,17 +1,28 @@
 use {
     crate::{
-        data::{LiteralError, RowError, TableError, ValueError},
+        data::{RowError, TableError, ValueError},
         executor::{
-            AggregateError, AlterError, BlendError, EvaluateError, ExecuteError, FetchError,
-            FilterError, JoinError, LimitError, SelectError, UpdateError, ValidateError,
+            AlterError, ExecuteError, FetchError, JoinError, ManualError, PlanError, QueryError,
+            RecipeError, SelectError, UpdateError, ValidateError,
         },
+        store::StorageError,
+        CSVStorageError,
     },
     serde::Serialize,
+    std::marker::{Send, Sync},
     thiserror::Error as ThisError,
 };
 
 #[cfg(feature = "alter-table")]
 use crate::store::AlterTableError;
+
+#[derive(ThisError, Serialize, Debug, PartialEq)]
+pub enum WIPError {
+    #[error("TODO")]
+    TODO,
+    #[error("{0}")]
+    Debug(String),
+}
 
 #[derive(ThisError, Serialize, Debug)]
 pub enum Error {
@@ -30,32 +41,37 @@ pub enum Error {
     #[error(transparent)]
     Fetch(#[from] FetchError),
     #[error(transparent)]
-    Evaluate(#[from] EvaluateError),
-    #[error(transparent)]
     Select(#[from] SelectError),
     #[error(transparent)]
-    Join(#[from] JoinError),
-    #[error(transparent)]
-    Blend(#[from] BlendError),
-    #[error(transparent)]
-    Aggregate(#[from] AggregateError),
-    #[error(transparent)]
     Update(#[from] UpdateError),
-    #[error(transparent)]
-    Filter(#[from] FilterError),
-    #[error(transparent)]
-    Limit(#[from] LimitError),
     #[error(transparent)]
     Row(#[from] RowError),
     #[error(transparent)]
     Table(#[from] TableError),
     #[error(transparent)]
-    Validate(#[from] ValidateError),
-    #[error(transparent)]
     Value(#[from] ValueError),
     #[error(transparent)]
-    Literal(#[from] LiteralError),
+    Recipe(#[from] RecipeError),
+    #[error(transparent)]
+    Join(#[from] JoinError),
+    #[error(transparent)]
+    Plan(#[from] PlanError),
+    #[error(transparent)]
+    Manual(#[from] ManualError),
+    #[error(transparent)]
+    Query(#[from] QueryError),
+    #[error(transparent)]
+    Validate(#[from] ValidateError),
+    #[error(transparent)]
+    WIP(#[from] WIPError),
+    #[error(transparent)]
+    StorageImplementation(#[from] StorageError),
+    #[error(transparent)]
+    CSVStorage(#[from] CSVStorageError),
 }
+
+unsafe impl Send for Error {} // !!!! UNSAFE CODE WHICH I DON'T UNDERSTAND FULLY
+unsafe impl Sync for Error {} // !!!! UNSAFE CODE WHICH I DON'T UNDERSTAND FULLY
 
 pub type Result<T> = std::result::Result<T, Error>;
 pub type MutResult<T, U> = std::result::Result<(T, U), (T, Error)>;
@@ -66,23 +82,24 @@ impl PartialEq for Error {
 
         match (self, other) {
             #[cfg(feature = "alter-table")]
-            (AlterTable(e), AlterTable(e2)) => e == e2,
-            (Execute(e), Execute(e2)) => e == e2,
-            (Alter(e), Alter(e2)) => e == e2,
-            (Fetch(e), Fetch(e2)) => e == e2,
-            (Evaluate(e), Evaluate(e2)) => e == e2,
-            (Select(e), Select(e2)) => e == e2,
-            (Join(e), Join(e2)) => e == e2,
-            (Blend(e), Blend(e2)) => e == e2,
-            (Aggregate(e), Aggregate(e2)) => e == e2,
-            (Update(e), Update(e2)) => e == e2,
-            (Filter(e), Filter(e2)) => e == e2,
-            (Limit(e), Limit(e2)) => e == e2,
-            (Row(e), Row(e2)) => e == e2,
-            (Table(e), Table(e2)) => e == e2,
-            (Validate(e), Validate(e2)) => e == e2,
-            (Value(e), Value(e2)) => e == e2,
-            (Literal(e), Literal(e2)) => e == e2,
+            (AlterTable(l), AlterTable(r)) => l == r,
+            (Execute(l), Execute(r)) => l == r,
+            (Alter(l), Alter(r)) => l == r,
+            (Fetch(l), Fetch(r)) => l == r,
+            (Select(l), Select(r)) => l == r,
+            (Update(l), Update(r)) => l == r,
+            (Row(l), Row(r)) => l == r,
+            (Table(l), Table(r)) => l == r,
+            (Value(l), Value(r)) => l == r,
+            (Recipe(l), Recipe(r)) => l == r,
+            (Join(l), Join(r)) => l == r,
+            (Plan(l), Plan(r)) => l == r,
+            (Manual(l), Manual(r)) => l == r,
+            (Query(l), Query(r)) => l == r,
+            (Validate(l), Validate(r)) => l == r,
+            (WIP(l), WIP(r)) => l == r,
+            (StorageImplementation(l), StorageImplementation(r)) => l == r,
+            (CSVStorage(l), CSVStorage(r)) => l == r,
             _ => false,
         }
     }

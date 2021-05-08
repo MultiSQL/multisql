@@ -1,6 +1,7 @@
 use crate::*;
 
 test_case!(upper_lower, async move {
+    //use executor::recipe::method::Function::{Lower, Upper};
     use Value::{Null, Str};
 
     let test_cases = vec![
@@ -55,7 +56,7 @@ test_case!(upper_lower, async move {
         ),
         (
             "SELECT LOWER() FROM Item",
-            Err(EvaluateError::NumberOfFunctionParamsNotMatching {
+            Err(ValueError::NumberOfFunctionParamsNotMatching {
                 expected: 1,
                 found: 0,
             }
@@ -63,11 +64,11 @@ test_case!(upper_lower, async move {
         ),
         (
             "SELECT LOWER(1) FROM Item",
-            Err(EvaluateError::FunctionRequiresStringValue("LOWER".to_owned()).into()),
+            Err(ValueError::CannotConvert(Value::I64(1), "TEXT").into()),
         ),
         (
             "SELECT WHATEVER(1) FROM Item",
-            Err(EvaluateError::FunctionNotSupported("WHATEVER".to_owned()).into()),
+            Err(RecipeError::UnimplementedMethod("WHATEVER".to_owned()).into()),
         ),
     ];
 

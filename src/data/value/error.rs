@@ -1,4 +1,4 @@
-use {serde::Serialize, std::fmt::Debug, thiserror::Error};
+use {super::Value, chrono::ParseError, serde::Serialize, std::fmt::Debug, thiserror::Error};
 
 #[derive(Error, Serialize, Debug, PartialEq)]
 pub enum ValueError {
@@ -14,53 +14,48 @@ pub enum ValueError {
     #[error("failed to parse number")]
     FailedToParseNumber,
 
-    #[error("add on non numeric value")]
-    AddOnNonNumeric,
-
-    #[error("subtract on non numeric value")]
-    SubtractOnNonNumeric,
-
-    #[error("multiply on non numeric value")]
-    MultiplyOnNonNumeric,
-
-    #[error("divide on non numeric value")]
-    DivideOnNonNumeric,
-
-    #[error("floating numbers cannot be grouped by")]
-    FloatCannotBeGroupedBy,
-
-    #[error("unary plus operation for non numeric value")]
-    UnaryPlusOnNonNumeric,
-
-    #[error("unary minus operation for non numeric value")]
-    UnaryMinusOnNonNumeric,
-
     #[error("unreachable failure on parsing number")]
     UnreachableNumberParsing,
 
     #[error("floating columns cannot be set to unique constraint")]
     ConflictOnFloatWithUniqueConstraint,
 
-    // Cast errors from value to value
-    #[error("impossible cast")]
-    ImpossibleCast,
+    #[error(
+        "number of function parameters not matching (expected: {expected:?}, found: {found:?})"
+    )]
+    NumberOfFunctionParamsNotMatching { expected: usize, found: usize },
 
+    #[error("conversion rule is not accepted for this type")]
+    InvalidConversionRule,
+
+    #[error("impossible cast")]
+    ImpossibleCast, // Bad error-- phase out
+
+    #[error("date time failed to parse: {0}")]
+    DateTimeParseError(String),
+    #[error("failed to parse {0:?} as {1}")]
+    ParseError(Value, &'static str),
+    #[error("something went wrong with date math")]
+    DateError, // Should avoid throwing
+
+    #[error("cannot convert {0:?} into {1}")]
+    CannotConvert(Value, &'static str),
+
+    #[error("{1} only supports numeric values, found {0:?}")]
+    OnlySupportsNumeric(Value, &'static str),
+    #[error("{1} only supports boolean values, found {0:?}")]
+    OnlySupportsBoolean(Value, &'static str),
+    #[error("bad input: {0:?}")]
+    BadInput(Value),
+
+    #[error("unimplemented literal type")]
+    UnimplementedLiteralType,
     #[error("unimplemented cast")]
     UnimplementedCast,
-
-    // Cast errors from literal to value
-    #[error("literal cast failed from text to integer: {0}")]
-    LiteralCastFromTextToIntegerFailed(String),
-
-    #[error("literal cast failed from text to float: {0}")]
-    LiteralCastToFloatFailed(String),
-
-    #[error("literal cast failed to boolean: {0}")]
-    LiteralCastToBooleanFailed(String),
-
+    #[error("unimplemented convert")]
+    UnimplementedConvert,
     #[error("unreachable literal cast from number to integer: {0}")]
     UnreachableLiteralCastFromNumberToInteger(String),
-
     #[error("unimplemented literal cast: {literal} as {data_type}")]
     UnimplementedLiteralCast { data_type: String, literal: String },
 }

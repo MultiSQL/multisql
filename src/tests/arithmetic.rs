@@ -61,31 +61,23 @@ test_case!(arithmetic, async move {
 
     let test_cases = vec![
         (
-            ValueError::AddOnNonNumeric.into(),
+            ValueError::OnlySupportsNumeric(Value::Str("A".to_string()), "add").into(),
             "SELECT * FROM Arith WHERE name + id < 1",
         ),
         (
-            ValueError::SubtractOnNonNumeric.into(),
+            ValueError::OnlySupportsNumeric(Value::Str("A".to_string()), "subtract").into(),
             "SELECT * FROM Arith WHERE name - id < 1",
         ),
         (
-            ValueError::MultiplyOnNonNumeric.into(),
+            ValueError::OnlySupportsNumeric(Value::Str("A".to_string()), "multiply").into(),
             "SELECT * FROM Arith WHERE name * id < 1",
         ),
         (
-            ValueError::DivideOnNonNumeric.into(),
+            ValueError::OnlySupportsNumeric(Value::Str("A".to_string()), "divide").into(),
             "SELECT * FROM Arith WHERE name / id < 1",
         ),
         (
-            UpdateError::ColumnNotFound("aaa".to_owned()).into(),
-            "UPDATE Arith SET aaa = 1",
-        ),
-        (
-            LiteralError::UnsupportedBinaryArithmetic(
-                format!("{:?}", data::Literal::Boolean(true)),
-                format!("{:?}", data::Literal::Number(Cow::Owned("1".to_owned()))),
-            )
-            .into(),
+            ValueError::OnlySupportsNumeric(Value::Bool(true), "add").into(),
             "SELECT * FROM Arith WHERE TRUE + 1 = 1",
         ),
     ];
@@ -120,12 +112,12 @@ test_case!(blend, async move {
 
     let sql = "SELECT 1 * 2 + 1 - 3 / 1 FROM Arith LIMIT 1;";
     let found = run!(sql);
-    let expected = select!("1 * 2 + 1 - 3 / 1"; I64; 0);
+    let expected = select!("unnamed_0"; I64; 0);
     assert_eq!(expected, found);
 
     let found = run!("SELECT id, id + 1, id + num, 1 + 1 FROM Arith");
     let expected = select!(
-        id  | "id + 1" | "id + num" | "1 + 1"
+        "id"  | "unnamed_1" | "unnamed_2" | "unnamed_3"
         I64 | I64      | I64        | I64;
         1     2          7            2;
         2     3          10           2;
@@ -141,6 +133,6 @@ test_case!(blend, async move {
       JOIN Arith b ON a.id = b.id + 1
     ";
     let found = run!(sql);
-    let expected = select!("a.id + b.id"; I64; 3; 5; 7; 9);
+    let expected = select!("unnamed_0"; I64; 3; 5; 7; 9);
     assert_eq!(expected, found);
 });

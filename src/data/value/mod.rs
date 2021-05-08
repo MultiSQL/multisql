@@ -1,96 +1,123 @@
 use {
-    super::Literal,
     crate::result::Result,
     regex::Regex,
     serde::{Deserialize, Serialize},
-    sqlparser::ast::{DataType, Expr},
-    std::{
-        cmp::Ordering,
-        convert::{TryFrom, TryInto},
-        fmt::Debug,
-    },
+    sqlparser::ast::DataType,
+    std::{cmp::Ordering, fmt::Debug},
 };
 
+mod cast;
+mod convert;
 mod error;
-mod group_key;
-mod into;
 mod literal;
-mod unique_key;
+mod methods;
 
-pub use {error::ValueError, literal::TryFromLiteral};
+pub use {
+    cast::{Cast, CastWithRules},
+    convert::{Convert, ConvertFrom},
+    error::ValueError,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Value {
     Bool(bool),
+    Bytes(Vec<u8>),
     I64(i64),
     F64(f64),
     Str(String),
     Null,
 }
 
-impl PartialEq<Value> for Value {
+impl From<bool> for Value {
+    fn from(from: bool) -> Value {
+        Value::Bool(from)
+    }
+}
+impl From<i64> for Value {
+    fn from(from: i64) -> Value {
+        Value::I64(from)
+    }
+}
+impl From<f64> for Value {
+    fn from(from: f64) -> Value {
+        Value::F64(from)
+    }
+}
+impl From<String> for Value {
+    fn from(from: String) -> Value {
+        Value::Str(from)
+    }
+}
+
+impl PartialEq for Value {
     fn eq(&self, other: &Value) -> bool {
         match (self, other) {
             (Value::Bool(l), Value::Bool(r)) => l == r,
             (Value::I64(l), Value::I64(r)) => l == r,
             (Value::F64(l), Value::F64(r)) => l == r,
             (Value::Str(l), Value::Str(r)) => l == r,
+            (Value::Bytes(l), Value::Bytes(r)) => l == r,
+
+            #[cfg(feature = "implicit_float_conversion")]
+            (Value::I64(l), Value::F64(r)) => (*l as f64) == *r,
+            #[cfg(feature = "implicit_float_conversion")]
+            (Value::F64(l), Value::I64(r)) => *l == (*r as f64),
             _ => false,
         }
     }
 }
 
-impl PartialOrd<Value> for Value {
+impl PartialOrd for Value {
     fn partial_cmp(&self, other: &Value) -> Option<Ordering> {
         match (self, other) {
             (Value::Bool(l), Value::Bool(r)) => Some(l.cmp(r)),
             (Value::I64(l), Value::I64(r)) => Some(l.cmp(r)),
-            (Value::I64(l), Value::F64(r)) => (*l as f64).partial_cmp(r),
-            (Value::F64(l), Value::I64(r)) => l.partial_cmp(&(*r as f64)),
             (Value::F64(l), Value::F64(r)) => l.partial_cmp(r),
             (Value::Str(l), Value::Str(r)) => Some(l.cmp(r)),
+            (Value::Bytes(l), Value::Bytes(r)) => Some(l.cmp(r)),
+
+            #[cfg(feature = "implicit_float_conversion")]
+            (Value::I64(l), Value::F64(r)) => (*l as f64).partial_cmp(r),
+
+            #[cfg(feature = "implicit_float_conversion")]
+            (Value::F64(l), Value::I64(r)) => l.partial_cmp(&(*r as f64)),
+
             _ => None,
         }
     }
 }
 
-trait BoolToValue: Sized {
-    fn into_value(self, v1: Value, v2: Value) -> Value;
+pub trait NullOrd {
+    fn null_cmp(&self, other: &Self) -> Option<Ordering>;
 }
 
-impl BoolToValue for bool {
-    #[inline]
-    fn into_value(self, v1: Value, v2: Value) -> Value {
-        if self {
-            v1
-        } else {
-            v2
-        }
+impl NullOrd for Value {
+    fn null_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.partial_cmp(other).or(match (self, other) {
+            (Value::Null, Value::Null) => None,
+            (Value::Null, _) => Some(Ordering::Less),
+            (_, Value::Null) => Some(Ordering::Greater),
+            _ => None,
+        })
     }
 }
 
 impl Value {
-    pub fn from_expr(data_type: &DataType, nullable: bool, expr: &Expr) -> Result<Self> {
-        let literal = Literal::try_from(expr)?;
-        let value = Value::try_from_literal(&data_type, &literal)?;
+    pub fn validate_type(mut self, data_type: &DataType) -> Result<Self> {
+        let mut valid = self.type_is_valid(data_type);
 
-        value.validate_null(nullable)?;
-
-        Ok(value)
-    }
-
-    pub fn validate_type(&self, data_type: &DataType) -> Result<()> {
-        let valid = matches!(
-            (data_type, self),
-            (DataType::Boolean, Value::Bool(_))
-                | (DataType::Int, Value::I64(_))
-                | (DataType::Float(_), Value::F64(_))
-                | (DataType::Text, Value::Str(_))
-                | (DataType::Boolean, Value::Null)
-                | (DataType::Int, Value::Null)
-                | (DataType::Float(_), Value::Null)
-                | (DataType::Text, Value::Null)
-        );
+        if !valid {
+            let converted = match data_type {
+                DataType::Float(_) => self.clone().convert().map(Value::F64).ok(),
+                _ => None,
+            };
+            if let Some(converted) = converted {
+                if converted.type_is_valid(data_type) {
+                    valid = true;
+                    self = converted;
+                }
+            }
+        }
 
         if !valid {
             return Err(ValueError::IncompatibleDataType {
@@ -100,7 +127,21 @@ impl Value {
             .into());
         }
 
-        Ok(())
+        Ok(self)
+    }
+
+    fn type_is_valid(&self, data_type: &DataType) -> bool {
+        matches!(
+            (data_type, self),
+            (DataType::Boolean, Value::Bool(_))
+                | (DataType::Int, Value::I64(_))
+                | (DataType::Float(_), Value::F64(_))
+                | (DataType::Text, Value::Str(_))
+                | (DataType::Boolean, Value::Null)
+                | (DataType::Int, Value::Null)
+                | (DataType::Float(_), Value::Null)
+                | (DataType::Text, Value::Null)
+        )
     }
 
     pub fn validate_null(&self, nullable: bool) -> Result<()> {
@@ -111,7 +152,7 @@ impl Value {
         Ok(())
     }
 
-    pub fn cast(&self, data_type: &DataType) -> Result<Self> {
+    pub fn cast_datatype(&self, data_type: &DataType) -> Result<Self> {
         match (data_type, self) {
             (DataType::Boolean, Value::Bool(_))
             | (DataType::Int, Value::I64(_))
@@ -119,10 +160,10 @@ impl Value {
             | (DataType::Text, Value::Str(_)) => Ok(self.clone()),
             (_, Value::Null) => Ok(Value::Null),
 
-            (DataType::Boolean, value) => value.try_into().map(Value::Bool),
-            (DataType::Int, value) => value.try_into().map(Value::I64),
-            (DataType::Float(_), value) => value.try_into().map(Value::F64),
-            (DataType::Text, value) => Ok(Value::Str(value.into())),
+            (DataType::Boolean, value) => value.clone().cast().map(Value::Bool),
+            (DataType::Int, value) => value.clone().cast().map(Value::I64),
+            (DataType::Float(_), value) => value.clone().cast().map(Value::F64),
+            (DataType::Text, value) => value.clone().cast().map(Value::Str),
 
             (DataType::Time, Value::Str(value)) => {
                 let regex =
@@ -172,75 +213,58 @@ impl Value {
         }
     }
 
-    pub fn add(&self, other: &Value) -> Result<Value> {
-        use Value::*;
-
-        match (self, other) {
-            (I64(a), I64(b)) => Ok(I64(a + b)),
-            (F64(a), F64(b)) => Ok(F64(a + b)),
-            (Null, _) | (_, Null) => Ok(Null),
-            _ => Err(ValueError::AddOnNonNumeric.into()),
+    /*pub fn convert_datatype(&self, data_type: &DataType) -> Result<Self> {
+        match (data_type, self) {
+            (DataType::Time, Value::Str(value)) => {
+                let regex =
+                    Regex::new(r"^(\d|[0-1]\d|2[0-3]):([0-5]\d)(:([0-5]\d))? ?([AaPp][Mm])?$");
+                if let Ok(regex) = regex {
+                    if let Some(captures) = regex.captures(value) {
+                        let modifier: bool = captures
+                            .iter()
+                            .last()
+                            .map(|capture| {
+                                capture
+                                    .map(|capture| {
+                                        Regex::new(r"^[Pp][Mm]$")
+                                            .ok()
+                                            .map(|regex| regex.is_match(capture.into()))
+                                    })
+                                    .flatten()
+                            })
+                            .flatten()
+                            .unwrap_or(false);
+                        let mut items: Vec<i64> = captures
+                            .iter()
+                            .skip(1)
+                            .filter_map(|capture| {
+                                capture
+                                    .map(|capture| {
+                                        let capture: &str = capture.into();
+                                        capture.parse::<i64>().ok()
+                                    })
+                                    .flatten()
+                            })
+                            .collect();
+                        items.resize(3, 0);
+                        let seconds = items.iter().fold(0, |acc, item| (acc * 60) + item)
+                            + if modifier { 12 * 60 * 60 } else { 0 };
+                        Ok(Value::I64(seconds))
+                    } else {
+                        Err(())
+                    }
+                } else {
+                    Err(())
+                }
+                .map_err(|_| ValueError::ImpossibleCast.into())
+            }
         }
-    }
-
-    pub fn subtract(&self, other: &Value) -> Result<Value> {
-        use Value::*;
-
-        match (self, other) {
-            (I64(a), I64(b)) => Ok(I64(a - b)),
-            (F64(a), F64(b)) => Ok(F64(a - b)),
-            (Null, _) | (_, Null) => Ok(Null),
-            _ => Err(ValueError::SubtractOnNonNumeric.into()),
-        }
-    }
-
-    pub fn multiply(&self, other: &Value) -> Result<Value> {
-        use Value::*;
-
-        match (self, other) {
-            (I64(a), I64(b)) => Ok(I64(a * b)),
-            (F64(a), F64(b)) => Ok(F64(a * b)),
-            (Null, _) | (_, Null) => Ok(Null),
-            _ => Err(ValueError::MultiplyOnNonNumeric.into()),
-        }
-    }
-
-    pub fn divide(&self, other: &Value) -> Result<Value> {
-        use Value::*;
-
-        match (self, other) {
-            (I64(a), I64(b)) => Ok(I64(a / b)),
-            (F64(a), F64(b)) => Ok(F64(a / b)),
-            (Null, _) | (_, Null) => Ok(Null),
-            _ => Err(ValueError::DivideOnNonNumeric.into()),
-        }
-    }
+    }*/
 
     pub fn is_some(&self) -> bool {
         use Value::*;
 
         !matches!(self, Null)
-    }
-
-    pub fn unary_plus(&self) -> Result<Value> {
-        use Value::*;
-
-        match self {
-            I64(_) | F64(_) => Ok(self.clone()),
-            Null => Ok(Null),
-            _ => Err(ValueError::UnaryPlusOnNonNumeric.into()),
-        }
-    }
-
-    pub fn unary_minus(&self) -> Result<Value> {
-        use Value::*;
-
-        match self {
-            I64(a) => Ok(I64(-a)),
-            F64(a) => Ok(F64(-a)),
-            Null => Ok(Null),
-            _ => Err(ValueError::UnaryMinusOnNonNumeric.into()),
-        }
     }
 }
 
@@ -263,7 +287,7 @@ mod tests {
 
         macro_rules! cast {
             ($input: expr => $data_type: expr, $expected: expr) => {
-                let found = $input.cast(&$data_type).unwrap();
+                let found = $input.cast_datatype(&$data_type).unwrap();
 
                 match ($expected, found) {
                     (Null, Null) => {}
@@ -296,10 +320,11 @@ mod tests {
         cast!(Str("11".to_owned())  => Int, I64(11));
         cast!(Null                  => Int, Null);
 
-        // Time
+        /*// Time
         cast!(Str("11:00".to_owned())  => Time, I64(11*60*60));
         cast!(Str("1:00PM".to_owned())  => Time, I64((12+1)*60*60));
         cast!(Str("23:35".to_owned())  => Time, I64((23*60*60) + 35*60));
+        */
 
         // Float
         cast!(Bool(true)            => Float(None), F64(1.0));

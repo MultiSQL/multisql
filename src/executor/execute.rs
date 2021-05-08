@@ -1,30 +1,22 @@
 use {
     super::{
-        alter::{create_table, drop},
-        fetch::{fetch, fetch_columns},
-        filter::Filter,
-        select::select_with_labels,
-        update::Update,
-        validate::{validate_unique, ColumnValidation},
+        alter_row::{insert, update},
+        alter_table::{create_table, drop},
+        query::query,
+        types::ComplexColumnName,
     },
     crate::{
-        data::{bulk_build_rows_expr, bulk_build_rows_row, get_name, Row, Schema},
+        data::{get_name, Schema},
         parse_sql::Query,
-        result::{MutResult, Result},
-        store::{AlterTable, AutoIncrement, Store, StoreMut},
+        MetaRecipe, PlannedRecipe, Result, Row, StorageInner, Value,
     },
-    futures::stream::TryStreamExt,
     serde::Serialize,
-    sqlparser::ast::{Query as AstQuery, SetExpr, Statement, Values},
-    std::{fmt::Debug, rc::Rc},
+    sqlparser::ast::{ColumnDef, Statement},
     thiserror::Error as ThisError,
 };
 
 #[cfg(feature = "alter-table")]
-use super::alter::alter_table;
-
-#[cfg(feature = "auto-increment")]
-use super::column_options::auto_increment;
+use super::alter_table::alter_table;
 
 #[derive(ThisError, Serialize, Debug, PartialEq)]
 pub enum ExecuteError {
@@ -36,6 +28,9 @@ pub enum ExecuteError {
 
     #[error("table does not exist")]
     TableNotExists,
+
+    #[error("column could not be found")]
+    ColumnNotFound,
 }
 
 #[derive(Serialize, Debug, PartialEq)]
@@ -54,34 +49,13 @@ pub enum Payload {
     AlterTable,
 }
 
-pub async fn execute<T: 'static + Debug, U: Store<T> + StoreMut<T> + AlterTable + AutoIncrement>(
-    storage: U,
-    query: &Query,
-) -> MutResult<U, Payload> {
-    macro_rules! try_block {
-        ($storage: expr, $block: block) => {{
-            match (|| async { $block })().await {
-                Err(e) => {
-                    return Err(($storage, e));
-                }
-                Ok(v) => v,
-            }
-        }};
-    }
-    macro_rules! try_into {
-        ($storage: expr, $expr: expr) => {
-            match $expr {
-                Err(e) => {
-                    return Err(($storage, e));
-                }
-                Ok(v) => v,
-            }
-        };
-    }
+pub async fn execute(
+    mut storages: Vec<(String, &mut StorageInner)>,
+    statement: &Query,
+) -> Result<Payload> {
+    let Query(statement) = statement;
 
-    let Query(query) = query;
-
-    match query {
+    match statement {
         //- Modification
         //-- Tables
         Statement::CreateTable {
@@ -89,21 +63,21 @@ pub async fn execute<T: 'static + Debug, U: Store<T> + StoreMut<T> + AlterTable 
             columns,
             if_not_exists,
             ..
-        } => create_table(storage, name, columns, *if_not_exists)
+        } => create_table(storages[0].1, name, columns, *if_not_exists)
             .await
-            .map(|(storage, _)| (storage, Payload::Create)),
+            .map(|_| Payload::Create),
         Statement::Drop {
             object_type,
             names,
             if_exists,
             ..
-        } => drop(storage, object_type, names, *if_exists)
+        } => drop(storages[0].1, object_type, names, *if_exists)
             .await
-            .map(|(storage, _)| (storage, Payload::DropTable)),
+            .map(|_| Payload::DropTable),
         #[cfg(feature = "alter-table")]
-        Statement::AlterTable { name, operation } => alter_table(storage, name, operation)
+        Statement::AlterTable { name, operation } => alter_table(storages[0].1, name, operation)
             .await
-            .map(|(storage, _)| (storage, Payload::AlterTable)),
+            .map(|_| Payload::AlterTable),
 
         //-- Rows
         Statement::Insert {
@@ -111,156 +85,73 @@ pub async fn execute<T: 'static + Debug, U: Store<T> + StoreMut<T> + AlterTable 
             columns,
             source,
             ..
-        } => {
-            #[allow(unused_variables)]
-            let (rows, column_defs, column_validation, table_name) = try_block!(storage, {
-                let table_name = get_name(table_name)?;
-                let Schema { column_defs, .. } = storage
-                    .fetch_schema(table_name)
-                    .await?
-                    .ok_or(ExecuteError::TableNotExists)?;
-                let column_defs = Rc::from(column_defs);
-                let column_validation = ColumnValidation::All(Rc::clone(&column_defs));
-
-                let rows = match &source.body {
-                    SetExpr::Values(Values(values_list)) => {
-                        bulk_build_rows_expr(
-                            &storage,
-                            &column_defs,
-                            columns,
-                            values_list.to_vec(),
-                            true,
-                            true,
-                        )
-                        .await?
-                    }
-                    SetExpr::Select(select_query) => {
-                        let query = Box::new(AstQuery {
-                            with: None,
-                            body: SetExpr::Select(select_query.clone()),
-                            order_by: vec![],
-                            limit: None,
-                            offset: None,
-                            fetch: None,
-                        });
-                        let rows = select(&storage, &query).await?.1;
-                        bulk_build_rows_row(&storage, &column_defs, columns, rows, true, true)
-                            .await?
-                        // TODO: Improve efficiency, this should happen much earlier than this.
-                    }
-                    set_expr => {
-                        return Err(ExecuteError::UnreachableUnsupportedInsertValueType(
-                            set_expr.to_string(),
-                        )
-                        .into());
-                    }
-                };
-
-                Ok((rows, column_defs, column_validation, table_name))
-            });
-
-            #[cfg(feature = "auto-increment")]
-            let (storage, rows) =
-                auto_increment::run(storage, rows, &column_defs, table_name).await?;
-
-            try_into!(storage, {
-                validate_unique(&storage, &table_name, column_validation, rows.iter()).await
-            });
-
-            let num_rows = rows.len();
-
-            storage
-                .insert_data(table_name, rows)
-                .await
-                .map(|(storage, _)| (storage, Payload::Insert(num_rows)))
-        }
+        } => insert(storages, table_name, columns, source).await,
         Statement::Update {
             table_name,
             selection,
             assignments,
-        } => {
-            let rows = try_block!(storage, {
-                let table_name = get_name(table_name)?;
-                let Schema { column_defs, .. } = storage
-                    .fetch_schema(table_name)
-                    .await?
-                    .ok_or(ExecuteError::TableNotExists)?;
-                let update = Update::new(&storage, table_name, assignments, &column_defs)?;
-                let filter = Filter::new(&storage, selection.as_ref(), None, None);
-
-                let all_columns = Rc::from(update.all_columns());
-                let columns_to_update = update.columns_to_update();
-                let rows = fetch(&storage, table_name, Rc::clone(&all_columns), filter)
-                    .await?
-                    .and_then(|item| {
-                        let update = &update;
-                        let (_, key, row) = item;
-                        async move {
-                            let row = update.apply(row).await?;
-                            Ok((key, row))
-                        }
-                    })
-                    .try_collect::<Vec<_>>()
-                    .await?;
-
-                let column_validation =
-                    ColumnValidation::SpecifiedColumns(Rc::from(column_defs), columns_to_update);
-                validate_unique(
-                    &storage,
-                    &table_name,
-                    column_validation,
-                    rows.iter().map(|r| &r.1),
-                )
-                .await?;
-
-                Ok(rows)
-            });
-            let num_rows = rows.len();
-            storage
-                .update_data(rows)
-                .await
-                .map(|(storage, _)| (storage, Payload::Update(num_rows)))
-        }
+        } => update(storages[0].1, table_name, selection, assignments).await,
         Statement::Delete {
             table_name,
             selection,
         } => {
-            let keys = try_block!(storage, {
-                let table_name = get_name(&table_name)?;
-                let columns = Rc::from(fetch_columns(&storage, table_name).await?);
-                let filter = Filter::new(&storage, selection.as_ref(), None, None);
+            let table_name = get_name(&table_name)?;
+            let Schema { column_defs, .. } = storages[0]
+                .1
+                .fetch_schema(table_name)
+                .await?
+                .ok_or(ExecuteError::TableNotExists)?;
 
-                fetch(&storage, table_name, columns, filter)
-                    .await?
-                    .map_ok(|(_, key, _)| key)
-                    .try_collect::<Vec<_>>()
-                    .await
-            });
+            let columns = column_defs
+                .clone()
+                .into_iter()
+                .map(|column_def| {
+                    let ColumnDef { name, .. } = column_def;
+                    ComplexColumnName::of_name(name.value)
+                })
+                .collect();
+            let filter = selection
+                .clone()
+                .map(|selection| PlannedRecipe::new(MetaRecipe::new(selection)?, &columns))
+                .unwrap_or(Ok(PlannedRecipe::TRUE))?;
+
+            let keys = storages[0]
+                .1
+                .scan_data(table_name)
+                .await?
+                .filter_map(|row_result| {
+                    let (key, row) = match row_result {
+                        Ok(keyed_row) => keyed_row,
+                        Err(error) => return Some(Err(error)),
+                    };
+
+                    let row = row.0;
+
+                    let confirm_constraint = filter.confirm_constraint(&row.clone());
+                    match confirm_constraint {
+                        Ok(true) => Some(Ok(key)),
+                        Ok(false) => None,
+                        Err(error) => Some(Err(error)),
+                    }
+                })
+                .collect::<Result<Vec<Value>>>()?;
 
             let num_keys = keys.len();
 
-            storage
+            storages[0]
+                .1
                 .delete_data(keys)
                 .await
-                .map(|(storage, _)| (storage, Payload::Delete(num_keys)))
+                .map(|_| Payload::Delete(num_keys))
         }
-
         //- Selection
-        Statement::Query(query) => {
-            let (labels, rows) = try_into!(storage, { select(&storage, query).await });
-
-            Ok((storage, Payload::Select { labels, rows }))
+        Statement::Query(query_value) => {
+            let result = query(&storages, *query_value.clone()).await?;
+            let (labels, rows) = result;
+            let rows = rows.into_iter().map(Row).collect(); // I don't like this. TODO
+            let payload = Payload::Select { labels, rows };
+            Ok(payload)
         }
-        _ => Err((storage, ExecuteError::QueryNotSupported.into())),
+        _ => Err(ExecuteError::QueryNotSupported.into()),
     }
-}
-
-async fn select<T: 'static + Debug>(
-    storage: &dyn Store<T>,
-    query: &AstQuery,
-) -> Result<(Vec<String>, Vec<Row>)> {
-    let (labels, rows) = select_with_labels(storage, query, None, true).await?;
-    let rows = rows.try_collect::<Vec<_>>().await?;
-
-    Ok((labels, rows))
 }

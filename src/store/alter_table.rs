@@ -5,7 +5,7 @@ use thiserror::Error;
 
 use sqlparser::ast::ColumnDef;
 
-use crate::result::MutResult;
+use {super::StorageError, crate::Result};
 
 #[derive(Error, Serialize, Debug, PartialEq)]
 pub enum AlterTableError {
@@ -26,25 +26,30 @@ pub enum AlterTableError {
 }
 
 #[async_trait(?Send)]
-pub trait AlterTable
-where
-    Self: Sized,
-{
-    async fn rename_schema(self, table_name: &str, new_table_name: &str) -> MutResult<Self, ()>;
+pub trait AlterTable {
+    async fn rename_schema(&mut self, _table_name: &str, _new_table_name: &str) -> Result<()> {
+        Err(StorageError::Unimplemented.into())
+    }
 
     async fn rename_column(
-        self,
-        table_name: &str,
-        old_column_name: &str,
-        new_column_name: &str,
-    ) -> MutResult<Self, ()>;
+        &mut self,
+        _table_name: &str,
+        _old_column_name: &str,
+        _new_column_name: &str,
+    ) -> Result<()> {
+        Err(StorageError::Unimplemented.into())
+    }
 
-    async fn add_column(self, table_name: &str, column_def: &ColumnDef) -> MutResult<Self, ()>;
+    async fn add_column(&mut self, _table_name: &str, _column_def: &ColumnDef) -> Result<()> {
+        Err(StorageError::Unimplemented.into())
+    }
 
     async fn drop_column(
-        self,
-        table_name: &str,
-        column_name: &str,
-        if_exists: bool,
-    ) -> MutResult<Self, ()>;
+        &mut self,
+        _table_name: &str,
+        _column_name: &str,
+        _if_exists: bool,
+    ) -> Result<()> {
+        Err(StorageError::Unimplemented.into())
+    }
 }

@@ -19,43 +19,35 @@ test_case!(error, async move {
             "SELECT * FROM Nothing;",
         ),
         (
-            SelectError::TooManyTables.into(),
-            "SELECT * FROM TableA, TableB",
-        ),
-        (
-            TableError::TableFactorNotSupported.into(),
+            JoinError::UnimplementedTableType.into(),
             "SELECT * FROM TableA JOIN (SELECT * FROM TableB) as TableC ON 1 = 1",
         ),
-        (
+        /*(
             JoinError::UsingOnJoinNotSupported.into(),
             "SELECT * FROM TableA JOIN TableA USING (id);",
-        ),
+        ),*/
         (
-            JoinError::JoinTypeNotSupported.into(),
-            "SELECT * FROM TableA CROSS JOIN TableA as A;",
-        ),
-        (
-            EvaluateError::NestedSelectRowNotFound.into(),
+            ManualError::UnimplementedSubquery.into(),
             "SELECT * FROM TableA WHERE id = (SELECT id FROM TableA WHERE id = 2);",
         ),
         (
-            EvaluateError::ValueNotFound("noname".to_owned()).into(),
+            RecipeError::MissingColumn(vec![String::from("noname")]).into(),
             "SELECT * FROM TableA WHERE noname = 1;",
         ),
         (
-            RowError::LackOfRequiredColumn("id".to_owned()).into(),
+            ValidateError::ColumnNotFound(String::from("id2")).into(),
             "INSERT INTO TableA (id2) VALUES (1);",
         ),
         (
-            RowError::WrongNumberOfValues.into(),
+            ValidateError::ColumnNotFound(String::from("id2")).into(),
             "INSERT INTO TableA (id2, id) VALUES (100);",
         ),
         (
-            RowError::WrongNumberOfValues.into(),
+            ValidateError::WrongNumberOfValues.into(),
             "INSERT INTO TableA VALUES (100), (100, 200);",
         ),
         (
-            LiteralError::UnsupportedLiteralType(r#"X'123'"#.to_owned()).into(),
+            ValueError::UnimplementedLiteralType.into(),
             "SELECT * FROM TableA Where id = X'123';",
         ),
         #[cfg(feature = "alter-table")]

@@ -33,7 +33,7 @@ pub use tester::*;
 macro_rules! generate_alter_table_tests {
     () => {
         glue!(alter_table_rename, alter_table::rename);
-        glue!(alter_table_add_drop, alter_table::add_drop);
+        //glue!(alter_table_add_drop, alter_table::add_drop);
     };
 }
 
@@ -78,12 +78,14 @@ macro_rules! generate_tests {
         glue!(function_left_right, function::left_right::left_right);
         glue!(function_cast_literal, function::cast::cast_literal);
         glue!(function_cast_value, function::cast::cast_value);
+        glue!(function_convert, function::convert::convert);
         glue!(join, join::join);
         glue!(join_blend, join::blend);
         glue!(migrate, migrate::migrate);
-        glue!(nested_select, nested_select::nested_select);
+        //glue!(nested_select, nested_select::nested_select);
         glue!(nullable, nullable::nullable);
         glue!(nullable_text, nullable::nullable_text);
+
         glue!(ordering, ordering::ordering);
         glue!(sql_types, sql_types::sql_types);
         glue!(synthesize, synthesize::synthesize);

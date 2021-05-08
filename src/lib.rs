@@ -86,3 +86,5 @@ pub use glue::Glue;
 pub use sled;
 #[cfg(feature = "sled-storage")]
 pub use storages::*;
+
+pub(crate) use utils::macros;

@@ -1,4 +1,4 @@
-#[cfg(feature = "sled-storage")]
+/*#[cfg(feature = "sled-storage")]
 mod hello_world {
     use gluesql::{parse, Glue, Payload, SledStorage, Value};
 
@@ -64,8 +64,8 @@ mod hello_world {
         println!("Hello {}!", to_greet); // Will always output "Hello World!"
     }
 }
-
+*/
 fn main() {
-    #[cfg(feature = "sled-storage")]
-    hello_world::run();
+    /*#[cfg(feature = "sled-storage")]
+    hello_world::run();*/
 }

@@ -21,19 +21,28 @@ test_case!(migrate, async move {
 
     let error_cases = vec![
         (
-            ValueError::FailedToParseNumber.into(),
+            ValueError::IncompatibleDataType {
+                data_type: String::from("INT"),
+                value: format!("{:?}", Value::F64(1.1)),
+            }
+            .into(),
             r#"INSERT INTO Test (id, num, name) VALUES (1.1, 1, "good");"#,
         ),
         (
-            EvaluateError::UnsupportedCompoundIdentifier("Here.User.id".to_owned()).into(),
+            RecipeError::MissingColumn(vec![
+                String::from("Here"),
+                String::from("User"),
+                String::from("id"),
+            ])
+            .into(),
             "SELECT * FROM Test WHERE Here.User.id = 1",
         ),
         (
-            JoinError::NaturalOnJoinNotSupported.into(),
+            JoinError::UnimplementedJoinConstaint.into(),
             "SELECT * FROM Test NATURAL JOIN Test",
         ),
         (
-            TableError::TableFactorNotSupported.into(),
+            JoinError::UnimplementedTableType.into(),
             "SELECT * FROM (SELECT * FROM Test) as A;",
         ),
     ];

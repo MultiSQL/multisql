@@ -24,11 +24,11 @@ test_case!(aggregate, async move {
     use Value::*;
 
     let test_cases = vec![
-        ("SELECT COUNT(*) FROM Item", select!("COUNT(*)"; I64; 5)),
-        ("SELECT count(*) FROM Item", select!("count(*)"; I64; 5)),
+        ("SELECT COUNT(1) FROM Item", select!("COUNT(1)"; I64; 5)),
+        ("SELECT count(1) FROM Item", select!("count(1)"; I64; 5)),
         (
-            "SELECT COUNT(*), COUNT(*) FROM Item",
-            select!("COUNT(*)" | "COUNT(*)"; I64 | I64; 5 5),
+            "SELECT COUNT(1), COUNT(1) FROM Item",
+            select!("COUNT(1)" | "COUNT(1)"; I64 | I64; 5 5),
         ),
         (
             "SELECT SUM(quantity), MAX(quantity), MIN(quantity) FROM Item",
@@ -36,6 +36,14 @@ test_case!(aggregate, async move {
                 "SUM(quantity)" | "MAX(quantity)" | "MIN(quantity)"
                 I64             | I64             | I64;
                 47                25                0
+            ),
+        ),
+        (
+            "SELECT SUM(quantity + 1) FROM Item",
+            select!(
+                "SUM(quantity)"
+                I64;
+                52
             ),
         ),
         (
@@ -55,8 +63,13 @@ test_case!(aggregate, async move {
         ),
         (
             "SELECT COUNT(age), COUNT(quantity) FROM Item",
-            select!("COUNT(age)" | "COUNT(quantity)"; I64 | I64; 3 5),
+            select!("unnamed_0" | "unnamed_1"; I64 | I64; 3 5),
         ),
+        (
+            "SELECT AVG(quantity) FROM Item",
+            select!("unnamed_0"; I64; 9),
+        ),
+        ("SELECT SUM(1 + 2) FROM Item", select!("unnamed_0"; I64; 15)),
     ];
 
     for (sql, expected) in test_cases.into_iter() {
@@ -65,19 +78,16 @@ test_case!(aggregate, async move {
 
     let error_cases = vec![
         (
-            AggregateError::UnsupportedCompoundIdentifier("id.name.ok".to_owned()).into(),
+            RecipeError::MissingColumn(vec![
+                String::from("id"),
+                String::from("name"),
+                String::from("ok"),
+            ])
+            .into(),
             "SELECT SUM(id.name.ok) FROM Item;",
         ),
         (
-            AggregateError::UnsupportedAggregation("AVG".to_owned()).into(),
-            "SELECT AVG(*) FROM Item;",
-        ),
-        (
-            AggregateError::OnlyIdentifierAllowed.into(),
-            "SELECT SUM(1 + 2) FROM Item;",
-        ),
-        (
-            AggregateError::ValueNotFound("num".to_owned()).into(),
+            RecipeError::MissingColumn(vec![String::from("num")]).into(),
             "SELECT SUM(num) FROM Item;",
         ),
     ];
@@ -114,22 +124,22 @@ test_case!(group_by, async move {
 
     let test_cases = vec![
         (
-            "SELECT id, COUNT(*) FROM Item GROUP BY id",
-            select!(id | "COUNT(*)"; I64 | I64; 1 1; 2 1; 3 2; 4 1; 5 1),
+            "SELECT id, COUNT(1) FROM Item GROUP BY id",
+            select!(id | "COUNT(1)"; I64 | I64; 1 1; 2 1; 3 2; 4 1; 5 1),
         ),
         (
             "SELECT id FROM Item GROUP BY id",
             select!(id; I64; 1; 2; 3; 4; 5),
         ),
         (
-            "SELECT SUM(quantity), COUNT(*), city FROM Item GROUP BY city",
+            "SELECT SUM(quantity), COUNT(1), city FROM Item GROUP BY city",
             select_with_null!(
-                "SUM(quantity)" | "COUNT(*)" | city;
-                I64(21)           I64(2)       Str("Seoul".to_owned());
-                I64(0)            I64(1)       Str("Dhaka".to_owned());
+                "SUM(quantity)" | "COUNT(1)" | city;
                 Null              I64(1)       Str("Beijing".to_owned());
                 I64(30)           I64(1)       Str("Daejeon".to_owned());
-                I64(24)           I64(1)       Str("Seattle".to_owned())
+                I64(0)            I64(1)       Str("Dhaka".to_owned());
+                I64(24)           I64(1)       Str("Seattle".to_owned());
+                I64(21)           I64(2)       Str("Seoul".to_owned())
             ),
         ),
         (
@@ -137,11 +147,11 @@ test_case!(group_by, async move {
             select!(
                 id  | city
                 I64 | Str;
-                1     "Seoul".to_owned();
-                2     "Dhaka".to_owned();
                 3     "Beijing".to_owned();
                 3     "Daejeon".to_owned();
-                5     "Seattle".to_owned()
+                2     "Dhaka".to_owned();
+                5     "Seattle".to_owned();
+                1     "Seoul".to_owned()
             ),
         ),
         (
@@ -153,9 +163,9 @@ test_case!(group_by, async move {
             select!(ratio; F64; 11.1),
         ),
         (
-            "SELECT SUM(quantity), COUNT(*), city FROM Item GROUP BY city HAVING COUNT(*) > 1",
+            "SELECT SUM(quantity), COUNT(1), city FROM Item GROUP BY city HAVING COUNT(1) > 1",
             select!(
-                "SUM(quantity)" | "COUNT(*)" | city
+                "SUM(quantity)" | "COUNT(1)" | city
                 I64          | I64        | Str;
                 21             2            "Seoul".to_owned()
             ),
@@ -164,14 +174,5 @@ test_case!(group_by, async move {
 
     for (sql, expected) in test_cases.into_iter() {
         test!(Ok(expected), sql);
-    }
-
-    let error_cases = vec![(
-        ValueError::FloatCannotBeGroupedBy.into(),
-        "SELECT * FROM Item GROUP BY ratio;",
-    )];
-
-    for (error, sql) in error_cases.into_iter() {
-        test!(Err(error), sql);
     }
 });

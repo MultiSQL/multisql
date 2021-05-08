@@ -112,11 +112,7 @@ test_case!(auto_increment, async move {
         ),
         (
             r#"INSERT INTO TestUnique (name) VALUES ('test3'), ('test4')"#,
-            Err(ValidateError::DuplicateEntryOnUniqueField(
-                format!("{:?}", Value::I64(3)),
-                "id".to_owned(),
-            )
-            .into()),
+            Err(ValidateError::DuplicateEntryOnUniqueField.into()),
         ),
         (
             r#"SELECT * FROM TestUnique"#,
@@ -132,13 +128,9 @@ test_case!(auto_increment, async move {
         ),
         (
             r#"INSERT INTO TestUniqueSecond (name, id) VALUES ('test1', NULL), ('test2', 3), ('test3', NULL), ('test4', NULL)"#,
-            Err(ValidateError::DuplicateEntryOnUniqueField(
-                format!("{:?}", Value::I64(3)),
-                "id".to_owned(),
-            )
-            .into()),
+            Err(ValidateError::DuplicateEntryOnUniqueField.into()),
         ),
-        /*( Broken at the moment, see gluesql#190
+        (
             "CREATE TABLE TestInsertSelect (id INTEGER AUTO_INCREMENT NOT NULL, name TEXT)",
             Ok(Payload::Create),
         ),
@@ -158,7 +150,7 @@ test_case!(auto_increment, async move {
             5    "test5".to_owned();
             6    "test6".to_owned();
             7    "test7".to_owned())),
-        ),*/
+        ),
         (
             "CREATE TABLE TestText (id TEXT AUTO_INCREMENT NOT NULL UNIQUE, name TEXT)",
             Err(AlterError::UnsupportedDataTypeForAutoIncrementColumn(

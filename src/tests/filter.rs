@@ -54,22 +54,23 @@ test_case!(filter, async move {
             2,
             "SELECT strength, name FROM Boss WHERE name NOT BETWEEN 'Doll' AND 'Gehrman'",
         ),
-        (
+        // TODO: Subqueries, EXISTS
+        /*(
             3,
-            "SELECT name 
-             FROM Boss 
+            "SELECT name
+             FROM Boss
              WHERE EXISTS (
                 SELECT * FROM Hunter WHERE Hunter.name = Boss.name
              )",
         ),
         (
             2,
-            "SELECT name 
-             FROM Boss 
+            "SELECT name
+             FROM Boss
              WHERE NOT EXISTS (
                 SELECT * FROM Hunter WHERE Hunter.name = Boss.name
              )",
-        ),
+        ),*/
         (5, "SELECT name FROM Boss WHERE +1 = 1"),
         (3, "SELECT id FROM Hunter WHERE -1 = -1"),
         (5, "SELECT name FROM Boss WHERE -2.0 < -1.0"),
@@ -95,19 +96,21 @@ test_case!(filter, async move {
 
     let error_sqls = vec![
         (
-            LiteralError::UnaryOperationOnNonNumeric.into(),
+            ValueError::OnlySupportsNumeric(Value::Str(String::from("abcd")), "unary_plus").into(),
             "SELECT id FROM Hunter WHERE +'abcd' > 1.0",
         ),
         (
-            LiteralError::UnaryOperationOnNonNumeric.into(),
+            ValueError::OnlySupportsNumeric(Value::Str(String::from("abcd")), "unary_minus").into(),
             "SELECT id FROM Hunter WHERE -'abcd' < 1.0",
         ),
         (
-            ValueError::UnaryPlusOnNonNumeric.into(),
+            ValueError::OnlySupportsNumeric(Value::Str(String::from("Gascoigne")), "unary_plus")
+                .into(),
             "SELECT id FROM Hunter WHERE +name > 1.0",
         ),
         (
-            ValueError::UnaryMinusOnNonNumeric.into(),
+            ValueError::OnlySupportsNumeric(Value::Str(String::from("Gascoigne")), "unary_minus")
+                .into(),
             "SELECT id FROM Hunter WHERE -name < 1.0",
         ),
     ];

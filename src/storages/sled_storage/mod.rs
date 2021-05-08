@@ -3,27 +3,34 @@ mod auto_increment;
 mod error;
 mod store;
 mod store_mut;
+mod util;
 #[cfg(not(feature = "alter-table"))]
 impl crate::AlterTable for SledStorage {}
 #[cfg(not(feature = "auto-increment"))]
 impl crate::AutoIncrement for SledStorage {}
 
-use sled::{self, Config, Db};
-use std::convert::TryFrom;
-
-use crate::{Error, Result, Schema};
-use error::err_into;
+use {
+    crate::{Error, FullStorage, Result, Schema, Storage},
+    error::err_into,
+    sled::{self, Config, Db},
+    std::convert::TryFrom,
+};
 
 #[derive(Debug, Clone)]
 pub struct SledStorage {
     tree: Db,
 }
-
+impl FullStorage for SledStorage {}
 impl SledStorage {
     pub fn new(filename: &str) -> Result<Self> {
         let tree = sled::open(filename).map_err(err_into)?;
-
         Ok(Self { tree })
+    }
+}
+
+impl Storage {
+    pub fn new_sled(sled: SledStorage) -> Self {
+        Self::new(Box::new(sled))
     }
 }
 

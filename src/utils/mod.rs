@@ -1,3 +1,5 @@
+pub mod macros;
+
 mod indexmap;
 mod or_stream;
 mod vector;

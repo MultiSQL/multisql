@@ -1,29 +1,18 @@
-mod aggregate;
-mod alter;
-mod blend;
-mod column_options;
-mod context;
-mod evaluate;
+mod alter_row;
+mod alter_table;
 mod execute;
 mod fetch;
-mod filter;
-mod join;
-mod limit;
-mod select;
+mod query;
+mod recipe;
+mod types;
 mod update;
-mod validate;
 
 pub use {
-    aggregate::{AggregateError, GroupKey},
-    alter::AlterError,
-    blend::BlendError,
-    evaluate::{evaluate, EvaluateError, Evaluated},
+    alter_row::ValidateError,
+    alter_table::AlterError,
     execute::{execute, ExecuteError, Payload},
     fetch::FetchError,
-    filter::FilterError,
-    join::JoinError,
-    limit::LimitError,
-    select::SelectError,
+    query::{JoinError, ManualError, PlanError, QueryError, SelectError},
+    recipe::*,
     update::UpdateError,
-    validate::{UniqueKey, ValidateError},
 };

@@ -1,30 +1,30 @@
-use {crate::result::MutResult, async_trait::async_trait};
+use {super::StorageError, crate::Result, async_trait::async_trait};
 
 #[async_trait(?Send)]
-pub trait AutoIncrement
-where
-    Self: Sized,
-{
+pub trait AutoIncrement {
     async fn generate_increment_values(
-        self,
-        table_name: String,
-        columns: Vec<(
+        &mut self,
+        _table_name: String,
+        _columns: Vec<(
             usize,  /*index*/
             String, /*name*/
             i64,    /*row_count*/
         ) /*column*/>,
-    ) -> MutResult<
-        Self,
+    ) -> Result<
         Vec<(
-            (usize /*index*/, String /*name*/), /*column*/
-            i64,                                /*start_value*/
+            /*column*/ (usize /*index*/, String /*name*/),
+            /*start_value*/ i64,
         )>,
-    >;
+    > {
+        Err(StorageError::Unimplemented.into())
+    }
 
     async fn set_increment_value(
-        self,
-        table_name: &str,
-        column_name: &str,
-        end: i64,
-    ) -> MutResult<Self, ()>;
+        &mut self,
+        _table_name: &str,
+        _column_name: &str,
+        _end: i64,
+    ) -> Result<()> {
+        Err(StorageError::Unimplemented.into())
+    }
 }
