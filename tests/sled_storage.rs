@@ -2,7 +2,9 @@
 
 use std::{cell::RefCell, convert::TryFrom, rc::Rc};
 
-use multisql::{generate_alter_table_tests, generate_tests, sled, tests::*, SledStorage, Storage};
+use multisql::{
+	/*generate_alter_table_tests, generate_tests,*/ sled, tests::*, SledStorage, Storage,
+};
 
 struct SledTester {
 	storage: Rc<RefCell<Option<Storage>>>,
@@ -39,4 +41,4 @@ impl Tester for SledTester {
 	}
 }
 
-generate_tests!(tokio::test, SledTester);
+//generate_tests!(tokio::test, SledTester);
