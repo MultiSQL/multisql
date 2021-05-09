@@ -16,13 +16,17 @@ mod value;
 
 pub(crate) type Variables = HashMap<String, Value>;
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct Context {
 	pub variables: Variables,
+	pub tables: HashMap<String, (Vec<String>, Vec<Vec<Value>>)>,
 }
 impl Context {
 	pub fn set_variable(&mut self, name: String, value: Value) {
 		self.variables.insert(name, value);
+	}
+	pub fn set_table(&mut self, name: String, data: (Vec<String>, Vec<Vec<Value>>)) {
+		self.tables.insert(name, data);
 	}
 }
 

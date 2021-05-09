@@ -6,7 +6,7 @@ use {
 			types::{ComplexColumnName, ComplexTableName},
 			MetaRecipe,
 		},
-		JoinError, Result, StorageInner,
+		Context, JoinError, Result, StorageInner,
 	},
 	std::cmp::Ordering,
 };
@@ -41,13 +41,14 @@ impl JoinPlan {
 	pub async fn new<'a>(
 		join_manual: JoinManual,
 		storages: &Vec<(String, &mut StorageInner)>,
+		context: &Context,
 	) -> Result<Self> {
 		let JoinManual {
 			table,
 			constraint,
 			join_type,
 		} = join_manual;
-		let columns = get_columns(storages, table.clone()).await?;
+		let columns = get_columns(storages, table.clone(), context).await?;
 		let ComplexTableName {
 			database,
 			name: table,
@@ -91,25 +92,36 @@ impl JoinPlan {
 async fn get_columns(
 	storages: &Vec<(String, &mut StorageInner)>,
 	table: ComplexTableName,
+	context: &Context,
 ) -> Result<Vec<ComplexColumnName>> {
-	let storage = storages
-		.into_iter()
-		.find_map(|(name, storage)| {
-			if name == &table.database {
-				Some(&**storage)
-			} else {
-				None
-			}
-		})
-		.or(storages.get(0).map(|(_, storage)| &**storage))
-		.ok_or(JoinError::TableNotFound(table.clone()))?;
+	if let Some((context_table_labels, ..)) = context.tables.get(&table.name) {
+		Ok(context_table_labels
+			.iter()
+			.map(|name| ComplexColumnName {
+				table: table.clone(),
+				name: name.clone(),
+			})
+			.collect::<Vec<ComplexColumnName>>())
+	} else {
+		let storage = storages
+			.into_iter()
+			.find_map(|(name, storage)| {
+				if name == &table.database {
+					Some(&**storage)
+				} else {
+					None
+				}
+			})
+			.or(storages.get(0).map(|(_, storage)| &**storage))
+			.ok_or(JoinError::TableNotFound(table.clone()))?;
 
-	Ok(fetch_columns(storage, table.name.as_str())
-		.await?
-		.into_iter()
-		.map(|name| ComplexColumnName {
-			table: table.clone(),
-			name: name.value,
-		})
-		.collect::<Vec<ComplexColumnName>>())
+		Ok(fetch_columns(storage, table.name.as_str())
+			.await?
+			.into_iter()
+			.map(|name| ComplexColumnName {
+				table: table.clone(),
+				name: name.value,
+			})
+			.collect::<Vec<ComplexColumnName>>())
+	}
 }

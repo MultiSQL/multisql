@@ -51,7 +51,7 @@ impl Plan {
 		let mut joins: Vec<JoinPlan> = join_all(
 			joins
 				.into_iter()
-				.map(|join| JoinPlan::new(join, storages))
+				.map(|join| JoinPlan::new(join, storages, context))
 				.collect::<Vec<_>>(),
 		)
 		.await

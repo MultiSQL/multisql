@@ -66,7 +66,7 @@ impl PlannedRecipe {
 		}
 	}
 	pub fn confirm_join_constraint(&self, plane_row: &Row, self_row: &Row) -> Result<bool> {
-		// Very crucuial to have performant, needs *a lot* of optimisation.
+		// Very crucial to have performant, needs *a lot* of optimisation.
 		// This is currently not good enough.
 		// For a join such as:
 		/*

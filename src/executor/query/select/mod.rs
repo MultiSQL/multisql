@@ -62,7 +62,7 @@ pub async fn select(
 	let rows = stream::iter(joins)
 		.map(Ok)
 		.try_fold(vec![], |rows, join| async {
-			join.execute(storages, rows).await
+			join.execute(storages, context, rows).await
 		})
 		.await?;
 

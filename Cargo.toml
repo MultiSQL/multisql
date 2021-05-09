@@ -21,7 +21,6 @@
 		"alter-table",
 		"auto-increment",
 		# Data
-		"double_quote_strings",
 		"implicit_float_conversion",
 		# API
 		"expanded-api",
