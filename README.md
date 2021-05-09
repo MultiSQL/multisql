@@ -4,11 +4,11 @@ Diverged from [GlueSQL](https://github.com/gluesql/gluesql) as of [GlueSQLv0.5.0
 See differences core/origin differences at [#8](https://github.com/SyRis-Consulting/gluesql/pull/8).
 
 Main *TODO*s:
-- [ ] `TRUNCATE`
+- [x] `TRUNCATE`
 - [ ] `FIRST`/`LAST`
 - [ ] `EXECUTE`
 - [x] Variables
-- [ ] `WITH`
+- [x] `WITH`
 - [ ] `IN`
 - [ ] Subqueries
 - [ ] `TIMESTAMP` datatype
