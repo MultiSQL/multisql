@@ -6,6 +6,7 @@ use {
 		executor::types::{ComplexColumnName, Row},
 		Result, Value,
 	},
+	fstrings::*,
 };
 
 #[derive(Debug, Clone)]
@@ -65,7 +66,7 @@ impl PlannedRecipe {
 		}
 	}
 	pub fn confirm_join_constraint(&self, plane_row: &Row, self_row: &Row) -> Result<bool> {
-		// Very crucuial to have performant, needs *a lot* of optimisation.
+		// Very crucial to have performant, needs *a lot* of optimisation.
 		// This is currently not good enough.
 		// For a join such as:
 		/*
@@ -112,7 +113,12 @@ impl PlannedRecipe {
 					.map(|index| {
 						Ok(row
 							.get(index)
-							.ok_or(RecipeError::MissingColumn(Vec::new() /*unreachable*/))?
+							.ok_or_else(|| {
+								RecipeError::MissingColumn(vec![
+									String::from("Unreachable"),
+									f!("{row=:?} {index=:?}"),
+								])
+							})?
 							.clone())
 					})
 					.unwrap_or(Ok(Value::Null))

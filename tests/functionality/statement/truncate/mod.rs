@@ -18,14 +18,16 @@ crate::util_macros::testcase!(
 	"#,
 		)
 		.expect("INSERT basic");
+
+		crate::util_macros::assert_select!(glue, "SELECT a FROM basic" => a = I64: (1));
+
 		glue.execute(
 			r#"
-		SELECT
-			a
-		FROM
-			basic
+		TRUNCATE TABLE basic
 	"#,
 		)
-		.expect("SELECT basic");
+		.expect("TRUNCATE basic");
+
+		crate::util_macros::assert_select!(glue, "SELECT a FROM basic" => a = I64: );
 	})
 );

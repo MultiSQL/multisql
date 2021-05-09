@@ -95,7 +95,7 @@ impl Manual {
                 let mut joins = from
                     .joins
                     .into_iter()
-                    .map(|join| JoinManual::new(join))
+                    .map(|join| JoinManual::new(join, context))
                     .collect::<Result<Vec<JoinManual>>>()?;
                 joins.push(main);
                 Ok(joins)

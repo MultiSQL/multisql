@@ -2,7 +2,7 @@ use {
 	super::{JoinError, JoinType},
 	crate::{
 		executor::{types::ComplexTableName, MetaRecipe},
-		Result,
+		Context, Result,
 	},
 	sqlparser::ast::{Join as AstJoin, JoinConstraint, JoinOperator, TableFactor},
 };
@@ -15,10 +15,10 @@ pub struct JoinManual {
 }
 
 impl JoinManual {
-	pub fn new(join: AstJoin) -> Result<Self> {
+	pub fn new(join: AstJoin, context: &Context) -> Result<Self> {
 		let table = Self::table_identity(join.relation)?;
 		let (join_type, constraint) = Self::convert_join(join.join_operator)?;
-		// println!("(join/manual.rs) Constraint: {:?}", constraint);
+		let constraint = constraint.simplify_by_context(context)?;
 		Ok(Self {
 			table,
 			join_type,

@@ -9,19 +9,24 @@ use {
 	sqlparser::ast::{
 		Expr, Ident, ObjectName, Query as AstQuery, SetExpr, Statement, Value as AstValue, Values,
 	},
-	std::collections::HashMap,
+	std::{collections::HashMap, fmt::Debug},
 };
 
 mod value;
 
 pub(crate) type Variables = HashMap<String, Value>;
-#[derive(Default)]
+
+#[derive(Default, Debug, Clone)]
 pub struct Context {
 	pub variables: Variables,
+	pub tables: HashMap<String, (Vec<String>, Vec<Vec<Value>>)>,
 }
 impl Context {
 	pub fn set_variable(&mut self, name: String, value: Value) {
 		self.variables.insert(name, value);
+	}
+	pub fn set_table(&mut self, name: String, data: (Vec<String>, Vec<Vec<Value>>)) {
+		self.tables.insert(name, data);
 	}
 }
 
@@ -30,6 +35,7 @@ pub struct Glue {
 	context: Option<Context>,
 }
 
+// New
 impl Glue {
 	pub fn new_multi(storages: Vec<(String, Storage)>) -> Self {
 		let context = Some(Context::default());
@@ -47,7 +53,25 @@ impl Glue {
 	pub fn new(name: String, storage: Storage) -> Self {
 		Self::new_multi(vec![(name, storage)])
 	}
+}
 
+// Modify
+impl Glue {
+	pub fn take_context(&mut self) -> Context {
+		self.context
+			.take()
+			.expect("Unreachable: Context wasn't replaced!")
+	}
+	pub fn replace_context(&mut self, context: Context) {
+		self.context.replace(context);
+	}
+	pub fn set_context(&mut self, context: Context) {
+		self.context = Some(context);
+	}
+}
+
+// Execute
+impl Glue {
 	pub fn execute_parsed(&mut self, query: Query) -> Result<Payload> {
 		let mut storages: Vec<(String, Box<StorageInner>)> = self
 			.storages
@@ -59,10 +83,7 @@ impl Glue {
 			.map(|(name, storage)| (name.clone(), &mut **storage))
 			.collect();
 
-		let mut context = self
-			.context
-			.take()
-			.expect("Unreachable: Context wasn't replaced!");
+		let mut context = self.take_context();
 
 		let result = block_on(execute(give_storages, &mut context, &query));
 
@@ -71,7 +92,7 @@ impl Glue {
 			.zip(storages)
 			.for_each(|((_name, storage), (_name_2, taken))| storage.replace(taken));
 
-		self.context.replace(context);
+		self.replace_context(context);
 
 		result
 	}

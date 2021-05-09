@@ -2,7 +2,8 @@ use {
 	super::{JoinError, JoinMethod, JoinPlan, JoinType},
 	crate::{
 		executor::types::{ComplexColumnName, Row},
-		Ingredient, MetaRecipe, Method, PlannedRecipe, Recipe, Result, StorageInner, Value,
+		Context, Ingredient, MetaRecipe, Method, PlannedRecipe, Recipe, Result, StorageInner,
+		Value,
 	},
 };
 
@@ -12,6 +13,7 @@ pub struct JoinExecute {
 	pub table: String,
 	pub method: JoinMethod,
 	pub join_type: JoinType,
+	pub widths: (usize, usize),
 }
 
 impl JoinExecute {
@@ -24,12 +26,14 @@ impl JoinExecute {
 			columns,
 			..
 		} = plan;
+		let widths = (plane_columns.len(), columns.len());
 		let method = decide_method(constraint, columns, plane_columns)?;
 		Ok(Self {
 			database,
 			table,
 			method,
 			join_type,
+			widths,
 		})
 	}
 	pub fn set_first_table(&mut self) {
@@ -45,22 +49,33 @@ impl JoinExecute {
 	pub async fn execute<'a>(
 		self,
 		storages: &Vec<(String, &mut StorageInner)>,
+		context: &Context,
 		plane_rows: Vec<Row>,
 	) -> Result<Vec<Row>> {
-		let storage = storages
-			.into_iter()
-			.find_map(|(name, storage)| {
-				if name == &self.database {
-					Some(&**storage)
-				} else {
-					None
-				}
-			})
-			.or(storages.get(0).map(|(_, storage)| &**storage))
-			.ok_or(JoinError::Unreachable)?;
+		let rows = if let Some((.., context_table_rows)) = context.tables.get(&self.table) {
+			Ok(context_table_rows.clone())
+		} else {
+			let storage = storages
+				.into_iter()
+				.find_map(|(name, storage)| {
+					if name == &self.database {
+						Some(&**storage)
+					} else {
+						None
+					}
+				})
+				.or(storages.get(0).map(|(_, storage)| &**storage))
+				.ok_or(JoinError::Unreachable)?;
 
-		let rows = self.get_rows(storage).await?;
-		self.method.run(&self.join_type, plane_rows, rows)
+			self.get_rows(storage).await
+		}?;
+		self.method.run(
+			&self.join_type,
+			self.widths.0,
+			self.widths.1,
+			plane_rows,
+			rows,
+		)
 	}
 }
 

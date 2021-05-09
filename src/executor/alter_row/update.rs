@@ -3,7 +3,7 @@ use {
 	crate::{
 		data::{get_name, Schema},
 		executor::types::{ComplexColumnName, Row as VecRow},
-		ExecuteError, MetaRecipe, Payload, PlannedRecipe, RecipeUtilities, Result, Row,
+		Context, ExecuteError, MetaRecipe, Payload, PlannedRecipe, RecipeUtilities, Result, Row,
 		StorageInner, Value,
 	},
 	sqlparser::ast::{Assignment, ColumnDef, Expr, ObjectName},
@@ -11,6 +11,7 @@ use {
 
 pub async fn update(
 	storage: &mut StorageInner,
+	context: &Context,
 	table_name: &ObjectName,
 	selection: &Option<Expr>,
 	assignments: &Vec<Assignment>,
@@ -32,7 +33,12 @@ pub async fn update(
 
 	let filter = selection
 		.clone()
-		.map(|selection| PlannedRecipe::new(MetaRecipe::new(selection)?, &columns))
+		.map(|selection| {
+			PlannedRecipe::new(
+				MetaRecipe::new(selection)?.simplify_by_context(context)?,
+				&columns,
+			)
+		})
 		.unwrap_or(Ok(PlannedRecipe::TRUE))?;
 
 	let assignments = assignments
@@ -45,7 +51,10 @@ pub async fn update(
 				.iter()
 				.position(|column| column == &column_compare)
 				.ok_or(ExecuteError::ColumnNotFound)?;
-			let recipe = PlannedRecipe::new(MetaRecipe::new(value.clone())?, &columns)?;
+			let recipe = PlannedRecipe::new(
+				MetaRecipe::new(value.clone())?.simplify_by_context(context)?,
+				&columns,
+			)?;
 			Ok((index, recipe))
 		})
 		.collect::<Result<Vec<(usize, PlannedRecipe)>>>()?;
