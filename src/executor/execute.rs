@@ -96,7 +96,7 @@ pub async fn execute(
 			columns,
 			source,
 			..
-		} => insert(storages, &context, table_name, columns, source).await,
+		} => insert(&mut storages, context, table_name, columns, source, false).await,
 		Statement::Update {
 			table_name,
 			selection,
@@ -163,7 +163,7 @@ pub async fn execute(
 
 		//- Selection
 		Statement::Query(query_value) => {
-			let result = query(&storages, &context, *query_value.clone()).await?;
+			let result = query(&mut storages, context, *query_value.clone()).await?;
 			let (labels, rows) = result;
 			let rows = rows.into_iter().map(Row).collect(); // I don't like this. TODO
 			let payload = Payload::Select { labels, rows };

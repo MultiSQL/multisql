@@ -113,10 +113,12 @@ impl PlannedRecipe {
 					.map(|index| {
 						Ok(row
 							.get(index)
-							.ok_or(RecipeError::MissingColumn(vec![
-								String::from("Unreachable"),
-								f!("{row=:?} {index=:?}"),
-							]))?
+							.ok_or_else(|| {
+								RecipeError::MissingColumn(vec![
+									String::from("Unreachable"),
+									f!("{row=:?} {index=:?}"),
+								])
+							})?
 							.clone())
 					})
 					.unwrap_or(Ok(Value::Null))

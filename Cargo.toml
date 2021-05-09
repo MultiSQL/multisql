@@ -61,6 +61,7 @@
 	fstrings = "0.2.3"
 	regex = "1"
 	chrono = { version = "0.4.19", features = ["serde", "unstable-locales"] }
+	concat-idents = "1.1.2"
 
 	# OPTIONAL DEPENDENCIES
 		# Multiple

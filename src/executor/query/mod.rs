@@ -4,13 +4,15 @@ pub use select::{join::*, ManualError, PlanError, SelectError};
 
 use {
 	crate::{
-		executor::types::LabelsAndRows, macros::warning, result::Result, Cast, Context, MetaRecipe,
-		RecipeUtilities, StorageInner, Value,
+		executor::{alter_row::insert, types::LabelsAndRows},
+		macros::warning,
+		result::Result,
+		Cast, Context, MetaRecipe, Payload, RecipeUtilities, StorageInner, Value,
 	},
 	async_recursion::async_recursion,
 	select::select,
 	serde::Serialize,
-	sqlparser::ast::{Cte, Query, SetExpr, TableAlias},
+	sqlparser::ast::{Cte, Query, SetExpr, Statement, TableAlias, With},
 	thiserror::Error as ThisError,
 };
 
@@ -32,8 +34,8 @@ pub enum QueryError {
 
 #[async_recursion(?Send)]
 pub async fn query(
-	storages: &Vec<(String, &mut StorageInner)>,
-	context: &Context,
+	storages: &mut Vec<(String, &mut StorageInner)>,
+	context: &mut Context,
 	query: Query,
 ) -> Result<LabelsAndRows> {
 	let Query {
@@ -63,8 +65,13 @@ pub async fn query(
 		.transpose()?;
 
 	let mut context = context.clone();
+	let context = &mut context; // We don't actually want to pass on any changes from here
 	if let Some(with) = with {
-		for cte in with.cte_tables.into_iter() {
+		let With {
+			recursive: _, // Recursive not currently supported
+			cte_tables,
+		} = with;
+		for cte in cte_tables.into_iter() {
 			let Cte {
 				alias,
 				query,
@@ -75,15 +82,14 @@ pub async fn query(
 				columns: _, // TODO: Columns - Check that number is same and then rename labels
 			} = alias;
 			let name = name.value;
-			let data = self::query(storages, &context, query).await?;
+			let data = self::query(storages, context, query).await?;
 			context.set_table(name, data);
 		}
 	}
-	let context = &context;
 
 	let (mut labels, mut rows) = match body {
 		SetExpr::Select(query) => {
-			let (labels, rows) = select(storages, context, *query, order_by).await?;
+			let (labels, rows) = select(&storages, &context, *query, order_by).await?;
 			Ok((labels, rows))
 		}
 		SetExpr::Values(values) => {
@@ -112,6 +118,19 @@ pub async fn query(
 						values,
 					)
 				})
+		}
+		SetExpr::Insert(Statement::Insert {
+			table_name,
+			columns,
+			source,
+			..
+		}) => {
+			let inserted = insert(storages, context, &table_name, &columns, &source, true).await?;
+			if let Payload::Select { labels, rows } = inserted {
+				Ok((labels, rows.into_iter().map(|row| row.0).collect()))
+			} else {
+				unreachable!(); // TODO: Handle
+			}
 		}
 		_ => Err(QueryError::QueryNotSupported.into()), // TODO: Other queries
 	}?;

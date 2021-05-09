@@ -4,15 +4,52 @@ macro_rules! make_all {
 	($($path_part: ident)::*, [$($test: ident),*]) => {
 		$(pub(crate) mod $test;)*
 		macro_rules! all {
-			($storage: ident) => {
+			($storage: ident, $name: tt) => {
 				use crate::$($path_part)::*::{$($test),*};
-				$($test::all!($storage);)*
+				$($test::all!($storage, ($name, $test));)*
 			};
 		}
 		pub(crate) use all;
 	}
 }
 pub(crate) use make_all;
+
+macro_rules! testcase {
+	($test: expr) => {
+		macro_rules! all {
+			($storage: ident, $name: tt) => {
+				crate::util_macros::make_test!($test, $storage, $name);
+			};
+		}
+		pub(crate) use all;
+	};
+}
+pub(crate) use testcase;
+
+macro_rules! make_test {
+	($test: expr, $storage: ident, ($($path_part: ident)::*)) => {
+		concat_idents::concat_idents!(name = ""$(, $path_part,)"_"* {
+			#[test]
+			fn name() {
+				$test($storage(concat!(""$(, stringify!($path_part),)"_"*)));
+			}
+		});
+	};
+	($test: expr, $storage: ident, (($($path_part: ident)::*), $($path_part_extension: ident)::+)) => {
+		crate::util_macros::make_test!($test, $storage, ($($path_part)::*::$($path_part_extension)::*));
+	};
+	($test: expr, $storage: ident, (($more: tt, $extension: ident), $($path_part_extension: ident)::+)) => {
+		crate::util_macros::make_test!($test, $storage, ($more, $extension::$($path_part_extension)::+));
+	};
+}
+pub(crate) use make_test;
+
+macro_rules! run {
+	($storage: ident, $($path_part: ident)::*) => {
+		crate::$($path_part)::*::all!($storage, ($($path_part)::*));
+	};
+}
+pub(crate) use run;
 
 macro_rules! make_basic_table {
 	($glue: expr) => {
