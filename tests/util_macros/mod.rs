@@ -60,7 +60,7 @@ macro_rules! make_basic_table {
 					a INTEGER
 				)
 			"#,
-			)
+				)
 			.expect("CREATE TABLE basic");
 		$glue
 			.execute(
@@ -71,7 +71,7 @@ macro_rules! make_basic_table {
 					1
 				)
 			"#,
-			)
+				)
 			.expect("INSERT basic");
 	};
 }
@@ -104,7 +104,7 @@ macro_rules! select {
 	($($label: tt = $type: ident),* : $(($($value: expr),*)),*) => ({
 		multisql::Payload::Select {
 			labels: vec![$( stringify!($label).to_owned().replace("\"", "")),+],
-			rows: crate::util_macros::rows!(($($type),*) : $(($($value),*)),*)
+			rows: crate::util_macros::rows!(($($type),*) : $(($($value.into()),*)),*)
 		}
 	});
 }
