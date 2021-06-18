@@ -11,7 +11,6 @@ use {
 		parse_sql::Query,
 		MetaRecipe, PlannedRecipe, Result, Row, StorageInner, Value,
 	},
-	fstrings::*,
 	serde::Serialize,
 	sqlparser::ast::{ColumnDef, SetVariableValue, Statement},
 	std::convert::TryInto,
@@ -174,7 +173,6 @@ pub async fn execute(
 		Statement::SetVariable {
 			variable, value, ..
 		} => {
-			println_f!("{variable=:?} {value=:?}");
 			let first_value = value.get(0).unwrap(); // Why might one want anything else?
 			let value: Value = match first_value {
 				SetVariableValue::Ident(..) => unimplemented!(),

@@ -187,7 +187,7 @@ impl CastWithRules<NaiveDateTime> for Value {
 		}
 		const TRY_RULES_TIMESTAMP: [i64; 1] = [000];
 		const TRY_RULES_DATETIME: [i64; 7] = [010, 011, 020, 021, 030, 031, 060];
-		const TRY_RULES_DATE: [i64; 4] = [022, 032, 033, 061];
+		const TRY_RULES_DATE: [i64; 4] = [022, 033, 032, 061]; // 033 should go before 032
 		const TRY_RULES_TIME: [i64; 2] = [100, 101];
 
 		match rule {
