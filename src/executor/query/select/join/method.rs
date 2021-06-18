@@ -116,7 +116,7 @@ impl JoinMethod {
 				self_trust_ordered,
 			} => {
 				if !plane_trust_ordered {
-					plane_rows.sort_unstable_by(|row_l, row_r| {
+					plane_rows.par_sort_unstable_by(|row_l, row_r| {
 						row_l
 							.get(plane_index)
 							.map(|row_l| row_r.get(plane_index).map(|row_r| row_l.null_cmp(&row_r)))
@@ -149,7 +149,7 @@ impl JoinMethod {
 					.peekable();
 
 				if !self_trust_ordered {
-					self_rows.sort_unstable_by(|row_l, row_r| {
+					self_rows.par_sort_unstable_by(|row_l, row_r| {
 						row_l
 							.get(self_index)
 							.map(|row_l| row_r.get(self_index).map(|row_r| row_l.null_cmp(&row_r)))

@@ -116,7 +116,7 @@ impl PlannedRecipe {
 							.ok_or_else(|| {
 								RecipeError::MissingColumn(vec![
 									String::from("Unreachable"),
-									f!("{row=:?} {index=:?}"),
+									f!("{row_len=:?} {index=:?}", row_len = row.len()),
 								])
 							})?
 							.clone())

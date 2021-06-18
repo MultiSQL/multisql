@@ -1,17 +1,36 @@
 #![cfg(feature = "sled-storage")]
 use {
 	crate::{
-		execute, parse, parse_single, Cast, ExecuteError, Payload, Query, Result, Row, Storage,
-		StorageInner, Value, WIPError,
+		execute,
+		parse,
+		parse_single,
+		Payload,
+		Query,
+		Result,
+		Row,
+		Storage,
+		StorageInner,
+		Value,
+		WIPError,
 	},
 	futures::executor::block_on,
-	serde_json::{json, value::Value as JSONValue},
 	sqlparser::ast::{
-		Expr, Ident, ObjectName, Query as AstQuery, SetExpr, Statement, Value as AstValue, Values,
+		Expr,
+		Ident,
+		ObjectName,
+		Query as AstQuery,
+		SetExpr,
+		Statement,
+		Value as AstValue,
+		Values,
 	},
-	std::{collections::HashMap, fmt::Debug},
+	std::{
+		collections::HashMap,
+		fmt::Debug,
+	},
 };
 
+mod select;
 mod value;
 
 pub(crate) type Variables = HashMap<String, Value>;
@@ -114,87 +133,6 @@ impl Glue {
 		parse(query).map_err(|error| WIPError::Debug(format!("{:?}", error)).into())
 	}
 
-	#[cfg(feature = "expanded-api")]
-	pub fn select_as_string(&mut self, query: &str) -> Result<Vec<Vec<String>>> {
-		// TODO: Make this more efficient and not affect database
-		if let Payload::Select { labels, rows } = self.execute(query)? {
-			Ok(vec![labels]
-				.into_iter()
-				.chain(
-					rows.into_iter()
-						.map(|row| {
-							row.0
-								.into_iter()
-								.map(|value| value.cast())
-								.collect::<Result<Vec<String>>>()
-						})
-						.collect::<Result<Vec<Vec<String>>>>()?,
-				)
-				.collect())
-		} else {
-			Err(ExecuteError::QueryNotSupported.into())
-		}
-	}
-
-	#[cfg(feature = "expanded-api")]
-	pub fn select_as_json(&mut self, query: &str) -> Result<String> {
-		// TODO: Make this more efficient and not affect database if not select by converting earlier
-		if let Payload::Select { labels, rows } = self.execute(query)? {
-			let array = JSONValue::Array(
-				rows.into_iter()
-					.map(|row| {
-						JSONValue::Object(
-							row.0
-								.into_iter()
-								.enumerate()
-								.map(|(index, cell)| (labels[index].clone(), cell.into()))
-								.collect::<serde_json::map::Map<String, JSONValue>>(),
-						)
-					})
-					.collect(),
-			);
-			Ok(array.to_string())
-		} else {
-			Err(ExecuteError::QueryNotSupported.into())
-		}
-	}
-	#[cfg(feature = "expanded-api")]
-	pub fn select_as_json_with_headers(&mut self, query: &str) -> String {
-		// TODO: Make this more efficient and not affect database if not select by converting earlier
-		let mut result = || -> Result<_> {
-			if let Payload::Select { labels, rows } = self.execute(query)? {
-				let array = JSONValue::Array(
-					rows.into_iter()
-						.map(|row| {
-							JSONValue::Object(
-								row.0
-									.into_iter()
-									.enumerate()
-									.map(|(index, cell)| (labels[index].clone(), cell.into()))
-									.collect::<serde_json::map::Map<String, JSONValue>>(),
-							)
-						})
-						.collect(),
-				);
-				Ok(json!({
-					"labels": JSONValue::from(labels),
-					"data": array
-				}))
-			} else {
-				Err(ExecuteError::QueryNotSupported.into())
-			}
-		};
-		match result() {
-			Ok(result) => result,
-			Err(error) => {
-				println!("{:?}", error);
-				json!({"error": error.to_string()})
-			}
-		}
-		.to_string()
-	}
-
-	#[cfg(feature = "expanded-api")]
 	pub fn insert_vec(
 		&mut self,
 		table_name: String,
