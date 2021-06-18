@@ -37,6 +37,8 @@ pub enum ValueError {
 	ParseError(Value, &'static str),
 	#[error("something went wrong with date math")]
 	DateError, // Should avoid throwing
+	#[error("timestamp error: {0}")]
+	SpecifiedTimestampError(String), // Should avoid throwing
 
 	#[error("cannot convert {0:?} into {1}")]
 	CannotConvert(Value, &'static str),

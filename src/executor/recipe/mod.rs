@@ -117,7 +117,6 @@ impl RecipeUtilities for Recipe {
 		if let Recipe::Ingredient(Ingredient::Value(value)) = self {
 			Some(value.clone())
 		} else {
-			//println!("Remaining recipe: {:?}", self);
 			None
 		}
 	}

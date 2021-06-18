@@ -80,39 +80,6 @@ impl Value {
 			.replace(arguments.remove(0), arguments.remove(0))
 	}
 
-	pub fn function_now(arguments: Vec<Self>) -> Result<Self> {
-		expect_arguments!(arguments, 0);
-		Value::now()
-	}
-	pub fn function_year(mut arguments: Vec<Self>) -> Result<Self> {
-		expect_arguments!(arguments, 1);
-		arguments.remove(0).year()
-	}
-	pub fn function_month(mut arguments: Vec<Self>) -> Result<Self> {
-		expect_arguments!(arguments, 1);
-		arguments.remove(0).month()
-	}
-	pub fn function_day(mut arguments: Vec<Self>) -> Result<Self> {
-		expect_arguments!(arguments, 1);
-		arguments.remove(0).day()
-	}
-	pub fn function_hour(mut arguments: Vec<Self>) -> Result<Self> {
-		expect_arguments!(arguments, 1);
-		arguments.remove(0).hour()
-	}
-	pub fn function_date_add(mut arguments: Vec<Self>) -> Result<Self> {
-		expect_arguments!(arguments, 3);
-		arguments
-			.remove(0)
-			.date_add(arguments.remove(0), arguments.remove(0))
-	}
-	pub fn function_date_from_parts(mut arguments: Vec<Self>) -> Result<Self> {
-		expect_arguments!(arguments, 3);
-		arguments
-			.remove(0)
-			.date_from_parts(arguments.remove(0), arguments.remove(0))
-	}
-
 	pub fn function_round(mut arguments: Vec<Self>) -> Result<Self> {
 		optional_expect_arguments!(arguments, 1, 2);
 		let value = arguments.remove(0);
