@@ -1,4 +1,4 @@
 crate::util_macros::make_all!(
 	functionality::statement,
-	[create, insert, select, truncate, set]
+	[create, insert, data_query, truncate, set]
 );

@@ -1,18 +1,33 @@
 mod select;
+mod set_expr;
 
-pub use select::{join::*, ManualError, PlanError, SelectError};
+pub use select::{
+	join::*,
+	ManualError,
+	PlanError,
+	SelectError,
+};
 
 use {
 	crate::{
-		executor::{alter_row::insert, types::LabelsAndRows},
-		macros::warning,
+		executor::types::LabelsAndRows,
 		result::Result,
-		Cast, Context, MetaRecipe, Payload, RecipeUtilities, StorageInner, Value,
+		Cast,
+		Context,
+		MetaRecipe,
+		RecipeUtilities,
+		StorageInner,
+		Value,
 	},
 	async_recursion::async_recursion,
-	select::select,
 	serde::Serialize,
-	sqlparser::ast::{Cte, Query, SetExpr, Statement, TableAlias, With},
+	set_expr::from_body,
+	sqlparser::ast::{
+		Cte,
+		Query,
+		TableAlias,
+		With,
+	},
 	thiserror::Error as ThisError,
 };
 
@@ -30,6 +45,10 @@ pub enum QueryError {
 	MissingComponentsForOffset,
 	#[error("expected values but found none")]
 	NoValues,
+	#[error(
+		"UNION/EXCEPT/INTERSECT columns misaligned, sides should have an equal number of columns"
+	)]
+	OperationColumnsMisaligned,
 }
 
 #[async_recursion(?Send)]
@@ -87,53 +106,7 @@ pub async fn query(
 		}
 	}
 
-	let (mut labels, mut rows) = match body {
-		SetExpr::Select(query) => {
-			let (labels, rows) = select(&storages, &context, *query, order_by).await?;
-			Ok((labels, rows))
-		}
-		SetExpr::Values(values) => {
-			if !order_by.is_empty() {
-				warning!("VALUES does not currently support ordering");
-			}
-			let values = values.0;
-			values
-				.into_iter()
-				.map(|values_row| {
-					values_row
-						.into_iter()
-						.map(|cell| {
-							MetaRecipe::new(cell)?
-								.simplify_by_context(context)?
-								.confirm_or_err(QueryError::MissingComponentsForValues.into())
-						})
-						.collect::<Result<Vec<Value>>>()
-				})
-				.collect::<Result<Vec<Vec<Value>>>>()
-				.map(|values| {
-					(
-						(0..values.get(0).map(|first_row| first_row.len()).unwrap_or(0))
-							.map(|index| format!("unnamed_{}", index))
-							.collect(),
-						values,
-					)
-				})
-		}
-		SetExpr::Insert(Statement::Insert {
-			table_name,
-			columns,
-			source,
-			..
-		}) => {
-			let inserted = insert(storages, context, &table_name, &columns, &source, true).await?;
-			if let Payload::Select { labels, rows } = inserted {
-				Ok((labels, rows.into_iter().map(|row| row.0).collect()))
-			} else {
-				unreachable!(); // TODO: Handle
-			}
-		}
-		_ => Err(QueryError::QueryNotSupported.into()), // TODO: Other queries
-	}?;
+	let (mut labels, mut rows) = from_body(storages, context, body, order_by).await?;
 
 	offset.map(|offset| rows.drain(0..offset));
 	limit.map(|limit| rows.truncate(limit));
