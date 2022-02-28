@@ -16,7 +16,7 @@ macro_rules! unwrap_or_break {
 			None => {
 				break;
 			}
-		};
+		}
 	};
 }
 
