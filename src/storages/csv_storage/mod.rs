@@ -33,6 +33,7 @@ pub struct CSVStorage {
 	path: String,
 	pub csv_settings: CSVSettings,
 }
+#[derive(Clone)]
 pub struct CSVSettings {
 	delimiter: u8,
 }
