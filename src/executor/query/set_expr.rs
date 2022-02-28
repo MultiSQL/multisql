@@ -1,29 +1,13 @@
 use {
-	super::{
-		select::select,
-		QueryError,
-	},
+	super::{select::select, QueryError},
 	crate::{
-		executor::{
-			alter_row::insert,
-			types::LabelsAndRows,
-		},
+		executor::{alter_row::insert, types::LabelsAndRows},
 		macros::warning,
 		result::Result,
-		Context,
-		MetaRecipe,
-		Payload,
-		RecipeUtilities,
-		StorageInner,
-		Value,
+		Context, MetaRecipe, Payload, RecipeUtilities, StorageInner, Value,
 	},
 	async_recursion::async_recursion,
-	sqlparser::ast::{
-		OrderByExpr,
-		SetExpr,
-		SetOperator,
-		Statement,
-	},
+	sqlparser::ast::{OrderByExpr, SetExpr, SetOperator, Statement},
 };
 
 #[async_recursion(?Send)]

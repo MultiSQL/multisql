@@ -1,14 +1,7 @@
 use {
 	super::AlterError,
-	crate::{
-		data::schema::ColumnOptionExt,
-		result::Result,
-	},
-	sqlparser::ast::{
-		ColumnDef,
-		ColumnOptionDef,
-		DataType,
-	},
+	crate::{data::schema::ColumnOptionExt, result::Result},
+	sqlparser::ast::{ColumnDef, ColumnOptionDef, DataType},
 };
 
 pub fn validate(column_def: &ColumnDef) -> Result<()> {

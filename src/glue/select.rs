@@ -1,15 +1,7 @@
 use {
 	super::Glue,
-	crate::{
-		Cast,
-		ExecuteError,
-		Payload,
-		Result,
-	},
-	serde_json::{
-		json,
-		value::Value as JSONValue,
-	},
+	crate::{Cast, ExecuteError, Payload, Result},
+	serde_json::{json, value::Value as JSONValue},
 };
 
 impl Glue {

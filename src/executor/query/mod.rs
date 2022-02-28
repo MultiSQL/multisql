@@ -1,33 +1,17 @@
 mod select;
 mod set_expr;
 
-pub use select::{
-	join::*,
-	ManualError,
-	PlanError,
-	SelectError,
-};
+pub use select::{join::*, ManualError, PlanError, SelectError};
 
 use {
 	crate::{
-		executor::types::LabelsAndRows,
-		result::Result,
-		Cast,
-		Context,
-		MetaRecipe,
-		RecipeUtilities,
-		StorageInner,
-		Value,
+		executor::types::LabelsAndRows, result::Result, Cast, Context, MetaRecipe, RecipeUtilities,
+		StorageInner, Value,
 	},
 	async_recursion::async_recursion,
 	serde::Serialize,
 	set_expr::from_body,
-	sqlparser::ast::{
-		Cte,
-		Query,
-		TableAlias,
-		With,
-	},
+	sqlparser::ast::{Cte, Query, TableAlias, With},
 	thiserror::Error as ThisError,
 };
 

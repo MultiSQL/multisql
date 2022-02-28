@@ -1,33 +1,14 @@
 #![cfg(feature = "sled-storage")]
 use {
 	crate::{
-		execute,
-		parse,
-		parse_single,
-		Payload,
-		Query,
-		Result,
-		Row,
-		Storage,
-		StorageInner,
-		Value,
+		execute, parse, parse_single, Payload, Query, Result, Row, Storage, StorageInner, Value,
 		WIPError,
 	},
 	futures::executor::block_on,
 	sqlparser::ast::{
-		Expr,
-		Ident,
-		ObjectName,
-		Query as AstQuery,
-		SetExpr,
-		Statement,
-		Value as AstValue,
-		Values,
+		Expr, Ident, ObjectName, Query as AstQuery, SetExpr, Statement, Value as AstValue, Values,
 	},
-	std::{
-		collections::HashMap,
-		fmt::Debug,
-	},
+	std::{collections::HashMap, fmt::Debug},
 };
 
 mod select;

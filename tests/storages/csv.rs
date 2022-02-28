@@ -1,8 +1,5 @@
 pub fn csv_storage(name: &str) -> multisql::Glue {
-	use {
-		fstrings::*,
-		multisql::*,
-	};
+	use {fstrings::*, multisql::*};
 
 	let path = f!("data/csv_{name}.csv");
 

@@ -1,8 +1,8 @@
 use {
+	super::utils::csv_reader,
 	super::CSVStorage,
 	crate::{Result, Row, RowIter, Schema, Store, Value, WIPError},
 	async_trait::async_trait,
-	csv::Reader,
 };
 
 #[async_trait(?Send)]
@@ -12,8 +12,7 @@ impl Store for CSVStorage {
 	}
 
 	async fn scan_data(&self, _table_name: &str) -> Result<RowIter> {
-		let mut reader = Reader::from_path(self.path.as_str())
-			.map_err(|error| WIPError::Debug(format!("{:?}", error)))?;
+		let mut reader = csv_reader(&self)?;
 
 		let keyed_rows: Vec<Result<(Value, Row)>> = reader
 			.records()

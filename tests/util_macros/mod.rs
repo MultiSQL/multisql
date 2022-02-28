@@ -60,7 +60,7 @@ macro_rules! make_basic_table {
 					a INTEGER
 				)
 			"#,
-				)
+			)
 			.expect("CREATE TABLE basic");
 		$glue
 			.execute(
@@ -71,7 +71,7 @@ macro_rules! make_basic_table {
 					1
 				)
 			"#,
-				)
+			)
 			.expect("INSERT basic");
 	};
 }
