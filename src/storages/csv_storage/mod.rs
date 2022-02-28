@@ -35,7 +35,7 @@ pub struct CSVStorage {
 }
 #[derive(Clone)]
 pub struct CSVSettings {
-	delimiter: u8,
+	pub delimiter: u8,
 }
 impl Default for CSVSettings {
 	fn default() -> Self {
