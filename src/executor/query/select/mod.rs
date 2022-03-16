@@ -114,40 +114,21 @@ pub async fn select(
 					.collect::<Result<Vec<Value>>>());
 				Some(Ok((group_constraint, groupers, selected_row)))
 			})
-			.collect::<Result<Vec<(Option<PlannedRecipe>, Vec<Value>, Vec<PlannedRecipe>)>>>()?;
-
-		ungrouped_groupers.sort_unstable_by(|groupers_a, groupers_b| {
-			groupers_a
-				.1
-				.iter()
-				.zip(&groupers_b.1)
-				.find_map(|(grouper_a, grouper_b)| {
-					match grouper_a.null_cmp(grouper_b).unwrap_or(Ordering::Equal) {
-						Ordering::Equal => None,
-						other => Some(other),
-					}
-				})
-				.unwrap_or(Ordering::Equal)
-		});
-		let groups = ungrouped_groupers.into_iter().fold(
+			.fold(
 			vec![],
 			|mut groups: Vec<(Vec<Value>, Vec<(Option<PlannedRecipe>, Vec<PlannedRecipe>)>)>,
-			 grouper: (Option<PlannedRecipe>, Vec<Value>, Vec<PlannedRecipe>)| {
-				let value = &grouper.1;
-				if let Some(last) = groups.last_mut() {
-					if &last.0 == value {
-						last.1.push((grouper.0, grouper.2));
-					} else {
-						groups.push((value.clone(), vec![(grouper.0, grouper.2)]));
-					}
-					groups
-				} else {
-					vec![(value.clone(), vec![(grouper.0, grouper.2)])]
-				}
-			},
-		);
-		let groups: Vec<Vec<(Option<PlannedRecipe>, Vec<PlannedRecipe>)>> =
-			groups.into_iter().map(|(_, group)| group).collect();
+		 	row: (Option<PlannedRecipe>, Vec<Value>, Vec<PlannedRecipe>)| {
+		 		let (group_constraint, grouper, values) = row;
+		 		let group_index = groups.iter().position(|(group, _)| group == grouper);
+		 		if group_index.is_none() {
+		 			groups.push((grouper, vec![(group_constraint, values)]));
+		 		} else {
+		 			groups[group_index].1.push((group_constraint, values));
+		 		}
+		 		groups
+			 });
+
+			//.collect::<Result<Vec<(Option<PlannedRecipe>, Vec<Value>, Vec<PlannedRecipe>)>>>()?;
 
 		groups
 			.into_par_iter()
