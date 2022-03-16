@@ -93,7 +93,7 @@ pub async fn select(
 		} else {
 			groups
 		};
-		let mut ungrouped_groupers = selected_rows
+		selected_rows
 			.into_par_iter()
 			.filter_map(|(selected_row, row)| {
 				let group_constraint = try_option!(group_constraint.clone().simplify_by_row(&row));
@@ -114,21 +114,23 @@ pub async fn select(
 					.collect::<Result<Vec<Value>>>());
 				Some(Ok((group_constraint, groupers, selected_row)))
 			})
-			.fold(
+			.try_fold_with(
 			vec![],
-			|mut groups: Vec<(Vec<Value>, Vec<(Option<PlannedRecipe>, Vec<PlannedRecipe>)>)>,
+			|mut groups: Vec<(Vec<Value>, Option<PlannedRecipe>, Vec<PlannedRecipe>)>,
 		 	row: (Option<PlannedRecipe>, Vec<Value>, Vec<PlannedRecipe>)| {
-		 		let (group_constraint, grouper, values) = row;
-		 		let group_index = groups.iter().position(|(group, _)| group == grouper);
-		 		if group_index.is_none() {
-		 			groups.push((grouper, vec![(group_constraint, values)]));
+		 		let (group_constraint, grouper, vals) = row;
+		 		let group_index = groups.iter().position(|(group, _, _)| group == &grouper);
+		 		if let Some(group_index) = group_index {
+		 			groups[group_index].1.map(|constraint| match group_constraint {Some(group_constraint) => constraint.accumulate(group_constraint), None => constraint });
+		 			let cols = groups[group_index].2;
+		 			groups[group_index].2 = cols.into_iter().zip(vals.into_iter()).map(|(col, val)| col.accumulate(val)).collect()?;
 		 		} else {
-		 			groups[group_index].0.0.accumulate(values);
+		 			groups.push((grouper, group_constraint, vals));
 		 		}
-		 		groups
-			 });
+		 		Ok(groups)
+			 }).try_reduce_with(||)?.into_iter().map(|(grouper, group_constraint, vals)| vals.into_iter().map(|val| val.confirm_or_err(RecipeError::UnreachableAggregatationFailed.into())))
 
-			//.collect::<Result<Vec<(Option<PlannedRecipe>, Vec<Value>, Vec<PlannedRecipe>)>>>()?;
+			/*//.collect::<Result<Vec<(Option<PlannedRecipe>, Vec<Value>, Vec<PlannedRecipe>)>>>()?;
 
 		groups
 			.into_par_iter()
@@ -176,7 +178,7 @@ pub async fn select(
 					.collect::<Result<Row>>();
 				Some(result)
 			})
-			.collect::<Result<Vec<Row>>>()?
+			.collect::<Result<Vec<Row>>>()?*/
 	} else {
 		selected_rows
 			.into_iter()

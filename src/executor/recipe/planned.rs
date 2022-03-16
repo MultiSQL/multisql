@@ -165,6 +165,40 @@ impl PlannedRecipe {
 			})
 			.collect::<Result<Vec<Value>>>()
 	}
+	pub fn accumulate(&mut self, other: Self) -> Result<()> {
+		self.aggregates = self.aggregates
+			.into_iter()
+			.zip(other.aggregates)
+			.map(|(self_agg, other_agg)| {
+				let (operator, self_val) = if let Recipe::Method(self_agg) = self_agg {
+					if let Method::Aggregate(operator, recipe) = *self_agg {
+						let value = recipe
+							.confirm_or_err(RecipeError::UnreachableAggregatationFailed.into())?;
+						(operator, value)
+					} else {
+						return Err(RecipeError::UnreachableNotAggregate(format!("{:?}", self_agg)).into())
+					}
+				} else {
+					return Err(RecipeError::UnreachableNotMethod(format!("{:?}", self_agg)).into())
+				};
+
+				let other_val = if let Recipe::Method(other_agg) = other_agg {
+					if let Method::Aggregate(_, recipe) = *other_agg {
+						let value = recipe
+							.confirm_or_err(RecipeError::UnreachableAggregatationFailed.into())?;
+						value
+					} else {
+						return Err(RecipeError::UnreachableNotAggregate(format!("{:?}", other_agg)).into())
+					}
+				} else {
+					return Err(RecipeError::UnreachableNotMethod(format!("{:?}", other_agg)).into())
+				};
+				let value = Recipe::Ingredient(Ingredient::Value(operator(self_val, other_val)?));
+				Ok(Recipe::Method(Box::new(Method::Aggregate(operator, value))))
+			})
+			.collect::<Result<Vec<Recipe>>>()?;
+			Ok(())
+	}
 	pub fn solve_by_aggregate(self, accumulated: Vec<Value>) -> Result<Value> {
 		self.recipe
 			.simplify(SimplifyBy::CompletedAggregate(accumulated))?
