@@ -123,7 +123,7 @@ pub async fn select(
 		 		if group_index.is_none() {
 		 			groups.push((grouper, vec![(group_constraint, values)]));
 		 		} else {
-		 			groups[group_index].1.push((group_constraint, values));
+		 			groups[group_index].0.0.accumulate(values);
 		 		}
 		 		groups
 			 });
