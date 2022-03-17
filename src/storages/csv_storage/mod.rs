@@ -40,7 +40,10 @@ pub struct CSVSettings {
 }
 impl Default for CSVSettings {
 	fn default() -> Self {
-		Self { delimiter: b',', quoting: true }
+		Self {
+			delimiter: b',',
+			quoting: true,
+		}
 	}
 }
 

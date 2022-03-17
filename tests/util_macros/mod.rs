@@ -121,7 +121,7 @@ macro_rules! assert_select {
 		) {
 			use fstrings::*;
 			assert_eq!(labels, expect_labels);
-			expect_rows.iter().for_each(|expect_row| {rows.remove(rows.iter().position(|row| expect_row == row).expect(&f!("Row missing: {expect_row:?}")));});
+			expect_rows.iter().for_each(|expect_row| {rows.remove(rows.iter().position(|row| expect_row == row).expect(&f!("\nRow missing: {expect_row:?}.\nQuery: {query}", query=$query)));});
 			assert!(rows.is_empty(), "Unexpected rows: {rows:?}", rows = rows);
 		} else {
 			assert!(false);

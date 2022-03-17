@@ -19,6 +19,9 @@ pub enum ManualError {
 	UnimplementedSubquery,
 
 	#[error("this should be impossible, please report")]
+	UncaughtASTError(String),
+
+	#[error("this should be impossible, please report")]
 	Unreachable,
 }
 
@@ -79,7 +82,7 @@ impl Manual {
 				all_subqueries.extend(subqueries);
 				all_subqueries
 			})
-			.ok_or(ManualError::Unreachable)?;
+			.ok_or(ManualError::UncaughtASTError(String::from("Supposedly subqueries yet none found")))?;
 		// Subqueries TODO
 		// Issues:
 		// - Current method can expand plane on multiple match
@@ -106,7 +109,7 @@ impl Manual {
                 all_joins.extend(joins);
                 all_joins
             })
-            .ok_or(ManualError::Unreachable)?;
+            .ok_or(ManualError::UncaughtASTError(String::from("No tables")))?;
 		//joins.extend(subqueries);
 		//let joins = joins;
 

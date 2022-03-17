@@ -6,4 +6,4 @@ pub use sled_storage::SledStorage;
 #[cfg(feature = "csv-storage")]
 mod csv_storage;
 #[cfg(feature = "csv-storage")]
-pub use csv_storage::{CSVStorage, CSVSettings, CSVStorageError};
+pub use csv_storage::{CSVSettings, CSVStorage, CSVStorageError};

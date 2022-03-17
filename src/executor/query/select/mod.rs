@@ -16,13 +16,12 @@ use {
 			PlannedRecipe,
 		},
 		macros::try_option,
-		Context, NullOrd, RecipeUtilities, Result, StorageInner, Value,
+		Context, RecipeUtilities, Result, StorageInner, Value,
 	},
 	futures::stream::{self, StreamExt, TryStreamExt},
 	rayon::prelude::*,
 	serde::Serialize,
 	sqlparser::ast::{OrderByExpr, Select},
-	std::cmp::Ordering,
 	thiserror::Error as ThisError,
 };
 
@@ -93,92 +92,48 @@ pub async fn select(
 		} else {
 			groups
 		};
-		selected_rows
+
+		let identified: Vec<(Vec<Value>, Option<PlannedRecipe>, Vec<PlannedRecipe>)> =
+			selected_rows
+				.into_par_iter()
+				.filter_map(|(selected_row, row)| {
+					let group_constraint =
+						try_option!(group_constraint.clone().simplify_by_row(&row));
+					let group_constraint = match group_constraint.as_solution() {
+						Some(Value::Bool(true)) => None,
+						Some(Value::Bool(false)) => return None,
+						Some(_) => unreachable!(), // TODO: Handle
+						None => Some(group_constraint),
+					};
+					let groupers = try_option!(groups
+						.iter()
+						.map(|group| {
+							group
+								.clone()
+								.simplify_by_row(&row)?
+								.confirm_or_err(SelectError::GrouperMayNotContainAggregate.into())
+						})
+						.collect::<Result<Vec<Value>>>());
+					Some(Ok((groupers, group_constraint, selected_row)))
+				})
+				.collect::<Result<Vec<(Vec<Value>, Option<PlannedRecipe>, Vec<PlannedRecipe>)>>>()?; // TODO: Handle, Don't collect
+
+		let accumulations: Result<Vec<(Vec<Value>, Option<PlannedRecipe>, Vec<PlannedRecipe>)>> =
+			identified
+				.into_par_iter()
+				.map::<_, Result<_>>(|acc| Ok(vec![acc]))
+				.try_reduce_with(accumulate)
+				.unwrap_or(Ok(vec![(vec![], None, vec![PlannedRecipe::default()])])); // TODO: Improve
+
+		accumulations?
 			.into_par_iter()
-			.filter_map(|(selected_row, row)| {
-				let group_constraint = try_option!(group_constraint.clone().simplify_by_row(&row));
-				let group_constraint = match group_constraint.as_solution() {
-					Some(Value::Bool(true)) => None,
-					Some(Value::Bool(false)) => return None,
-					Some(_) => unreachable!(), // TODO: Handle
-					None => Some(group_constraint),
-				};
-				let groupers = try_option!(groups
-					.iter()
-					.map(|group| {
-						group
-							.clone()
-							.simplify_by_row(&row)?
-							.confirm_or_err(SelectError::GrouperMayNotContainAggregate.into())
-					})
-					.collect::<Result<Vec<Value>>>());
-				Some(Ok((group_constraint, groupers, selected_row)))
+			.map(|(_grouper, _group_constraint, vals)| {
+				vals.into_iter()
+					.map(|val| val.finalise_accumulation())
+					.collect::<Result<Vec<Value>>>()
 			})
-			.try_fold_with(
-			vec![],
-			|mut groups: Vec<(Vec<Value>, Option<PlannedRecipe>, Vec<PlannedRecipe>)>,
-		 	row: (Option<PlannedRecipe>, Vec<Value>, Vec<PlannedRecipe>)| {
-		 		let (group_constraint, grouper, vals) = row;
-		 		let group_index = groups.iter().position(|(group, _, _)| group == &grouper);
-		 		if let Some(group_index) = group_index {
-		 			groups[group_index].1.map(|constraint| match group_constraint {Some(group_constraint) => constraint.accumulate(group_constraint), None => constraint });
-		 			let cols = groups[group_index].2;
-		 			groups[group_index].2 = cols.into_iter().zip(vals.into_iter()).map(|(col, val)| col.accumulate(val)).collect()?;
-		 		} else {
-		 			groups.push((grouper, group_constraint, vals));
-		 		}
-		 		Ok(groups)
-			 }).try_reduce_with(||)?.into_iter().map(|(grouper, group_constraint, vals)| vals.into_iter().map(|val| val.confirm_or_err(RecipeError::UnreachableAggregatationFailed.into())))
-
-			/*//.collect::<Result<Vec<(Option<PlannedRecipe>, Vec<Value>, Vec<PlannedRecipe>)>>>()?;
-
-		groups
-			.into_par_iter()
-			.filter_map(|group: Vec<(Option<PlannedRecipe>, Vec<PlannedRecipe>)>| {
-				// TODO: Improve
-				let first_row =
-					try_option!(group.get(0).ok_or(SelectError::Unreachable.into())).clone();
-				let group_constraint = first_row.0;
-				if group_constraint.is_some() {
-					let group_constraint_accumulated = try_option!(group
-						.clone()
-						.into_iter()
-						.try_fold(vec![], |accumulators, (group_constraint, _)| {
-							group_constraint.unwrap().aggregate(accumulators)
-						}));
-					if matches!(
-						try_option!(group_constraint
-							.unwrap()
-							.solve_by_aggregate(group_constraint_accumulated)),
-						Value::Bool(false)
-					) {
-						return None;
-					}
-				}
-
-				let selections = first_row.1;
-				let accumulator_size = selections.len();
-				let initial_accumulator = vec![vec![]; accumulator_size];
-				let accumulated = try_option!(group.into_iter().try_fold(
-					initial_accumulator,
-					|accumulators, selection| {
-						selection
-							.1
-							.into_iter()
-							.zip(accumulators)
-							.map(|(recipe, accumulators)| recipe.aggregate(accumulators))
-							.collect::<Result<Vec<Row>>>()
-					},
-				));
-				let result = selections
-					.clone()
-					.into_iter()
-					.zip(accumulated)
-					.map(|(selection, accumulated)| selection.solve_by_aggregate(accumulated))
-					.collect::<Result<Row>>();
-				Some(result)
-			})
-			.collect::<Result<Vec<Row>>>()?*/
+			.collect::<Result<Vec<Vec<Value>>>>()?
+			// TODO: Manage grouper and constraint
 	} else {
 		selected_rows
 			.into_iter()
@@ -192,4 +147,38 @@ pub async fn select(
 	};
 
 	Ok((labels, final_rows))
+}
+
+fn accumulate(
+	mut rows_l: Vec<(Vec<Value>, Option<PlannedRecipe>, Vec<PlannedRecipe>)>,
+	rows_r: Vec<(Vec<Value>, Option<PlannedRecipe>, Vec<PlannedRecipe>)>,
+) -> Result<Vec<(Vec<Value>, Option<PlannedRecipe>, Vec<PlannedRecipe>)>> {
+	rows_r
+		.into_iter()
+		.try_for_each::<_, Result<_>>(|row_r| {
+			let (grouper, group_constraint, vals) = row_r;
+			let group_index = rows_l.iter().position(|(group, _, _)| group == &grouper);
+			if let Some(group_index) = group_index {
+				/*rows_l[group_index].1.map(|constraint| {
+					if let Some(group_constraint) = group_constraint {
+						constraint.accumulate(group_constraint).unwrap() // TODO: Handle
+					};
+				});*/
+				rows_l[group_index].2 = rows_l[group_index]
+					.2
+					.clone() // TODO: Don't clone
+					.into_iter()
+					.zip(vals.into_iter())
+					.map(|(mut col, val)| {
+						col.accumulate(val)?;
+						Ok(col)
+					})
+					.collect::<Result<_>>()?;
+			} else {
+				rows_l.push((grouper, group_constraint, vals));
+			}
+			Ok(())
+		})?;
+
+	Ok(rows_l)
 }

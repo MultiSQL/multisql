@@ -1,5 +1,5 @@
 use {
-	crate::{Convert, Result, Value},
+	crate::{Result, Value},
 	std::cmp::Ordering,
 };
 

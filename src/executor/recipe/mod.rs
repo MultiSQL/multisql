@@ -65,6 +65,12 @@ pub enum Recipe {
 	Method(Box<Method>),
 }
 
+impl Default for Recipe {
+	fn default() -> Self {
+		Self::NULL
+	}
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Ingredient {
 	Value(Value),
