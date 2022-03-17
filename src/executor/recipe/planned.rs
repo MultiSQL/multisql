@@ -167,7 +167,8 @@ impl PlannedRecipe {
 	}
 	pub fn accumulate(&mut self, other: Self) -> Result<()> {
 		self.aggregates = self
-			.aggregates.clone() // TODO: Don't clone
+			.aggregates
+			.clone() // TODO: Don't clone
 			.into_iter()
 			.zip(other.aggregates)
 			.map(|(self_agg, other_agg)| {
@@ -211,14 +212,20 @@ impl PlannedRecipe {
 		Ok(())
 	}
 	pub fn finalise_accumulation(self) -> Result<Value> {
-		let accumulated = self.aggregates.into_iter().map(|agg| {
-			if let Recipe::Method(method) = agg {
-				if let Method::Aggregate(_, Recipe::Ingredient(Ingredient::Value(value))) = *method {
-					return Ok(value)
+		let accumulated = self
+			.aggregates
+			.into_iter()
+			.map(|agg| {
+				if let Recipe::Method(method) = agg {
+					if let Method::Aggregate(_, Recipe::Ingredient(Ingredient::Value(value))) =
+						*method
+					{
+						return Ok(value);
+					}
 				}
-			}
-			Err(RecipeError::UnreachableAggregateFailed.into())
-		}).collect::<Result<_>>()?;
+				Err(RecipeError::UnreachableAggregateFailed.into())
+			})
+			.collect::<Result<_>>()?;
 		self.recipe
 			.simplify(SimplifyBy::CompletedAggregate(accumulated))?
 			.confirm_or_err(RecipeError::UnreachableAggregateFailed.into())
