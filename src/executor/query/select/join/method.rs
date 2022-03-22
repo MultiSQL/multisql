@@ -217,18 +217,20 @@ impl JoinMethod {
 				right_results.extend(right_partitions);
 
 				let left_rows = left_results
-					.into_iter()
+					.into_par_iter()
 					.map(|(_, left_rows)| {
 						left_rows
 							.into_iter()
 							.map(|left| join_parts(left, vec![Value::Null; right_width]))
 							.collect::<Vec<Row>>()
 					})
-					.reduce(|mut all, set| {
-						all.extend(set);
-						all
-					})
-					.unwrap_or(vec![]);
+					.reduce(
+						|| vec![],
+						|mut all, set| {
+							all.extend(set);
+							all
+						},
+					);
 
 				let mut inner_rows = inner_results
 					.into_par_iter()
@@ -257,18 +259,20 @@ impl JoinMethod {
 					);
 
 				let right_rows = right_results
-					.into_iter()
+					.into_par_iter()
 					.map(|(_, right_rows)| {
 						right_rows
 							.into_iter()
 							.map(|right| join_parts(vec![Value::Null; left_width], right))
 							.collect::<Vec<Row>>()
 					})
-					.reduce(|mut all, set| {
-						all.extend(set);
-						all
-					})
-					.unwrap_or(vec![]);
+					.reduce(
+						|| vec![],
+						|mut all, set| {
+							all.extend(set);
+							all
+						},
+					);
 
 				if join.includes_left() {
 					inner_rows.extend(left_rows)

@@ -68,12 +68,12 @@ pub async fn select(
 	let rows = order_by.execute(rows)?; // TODO: This should be done after filtering
 
 	let selected_rows = rows
-		.iter()
-		.filter_map(|row| match constraint.confirm_constraint(row) {
+		.into_par_iter()
+		.filter_map(|row| match constraint.confirm_constraint(&row) {
 			Ok(true) => Some(
 				select_items
 					.iter()
-					.map(|selection| selection.clone().simplify_by_row(row))
+					.map(|selection| selection.clone().simplify_by_row(&row))
 					.collect::<Result<Vec<PlannedRecipe>>>()
 					.map(|selection| (selection, row.clone())),
 			),
@@ -93,7 +93,7 @@ pub async fn select(
 			groups
 		};
 
-		let identified: Vec<(Vec<Value>, Option<PlannedRecipe>, Vec<PlannedRecipe>)> =
+		let accumulations: Result<Vec<(Vec<Value>, Option<PlannedRecipe>, Vec<PlannedRecipe>)>> =
 			selected_rows
 				.into_par_iter()
 				.filter_map(|(selected_row, row)| {
@@ -116,13 +116,7 @@ pub async fn select(
 						.collect::<Result<Vec<Value>>>());
 					Some(Ok((groupers, group_constraint, selected_row)))
 				})
-				.collect::<Result<Vec<(Vec<Value>, Option<PlannedRecipe>, Vec<PlannedRecipe>)>>>(
-				)?; // TODO: Handle, Don't collect
-
-		let accumulations: Result<Vec<(Vec<Value>, Option<PlannedRecipe>, Vec<PlannedRecipe>)>> =
-			identified
-				.into_par_iter()
-				.map::<_, Result<_>>(|acc| Ok(vec![acc]))
+				.map::<_, Result<_>>(|acc| acc.map(|acc| vec![acc]))
 				.try_reduce_with(accumulate)
 				.unwrap_or(Ok(vec![(vec![], None, vec![PlannedRecipe::default()])])); // TODO: Improve
 
@@ -137,7 +131,7 @@ pub async fn select(
 	// TODO: Manage grouper and constraint
 	} else {
 		selected_rows
-			.into_iter()
+			.into_par_iter()
 			.map(|(selection, _)| {
 				selection
 					.into_iter()
@@ -157,15 +151,16 @@ fn accumulate(
 	rows_r.into_iter().try_for_each::<_, Result<_>>(|row_r| {
 		let (grouper, group_constraint, vals) = row_r;
 		let group_index = rows_l.iter().position(|(group, _, _)| group == &grouper);
-		if let Some(group_index) = group_index {
+		let new_group = if let Some(group_index) = group_index {
+			let (group_grouper, group_group_constraint, group_vals) =
+				rows_l.swap_remove(group_index);
 			/*rows_l[group_index].1.map(|constraint| {
 				if let Some(group_constraint) = group_constraint {
 					constraint.accumulate(group_constraint).unwrap() // TODO: Handle
 				};
-			});*/
-			rows_l[group_index].2 = rows_l[group_index]
-				.2
-				.clone() // TODO: Don't clone
+			});*/ // TODO
+			
+			let group_vals = group_vals
 				.into_iter()
 				.zip(vals.into_iter())
 				.map(|(mut col, val)| {
@@ -173,9 +168,11 @@ fn accumulate(
 					Ok(col)
 				})
 				.collect::<Result<_>>()?;
+			(group_grouper, group_group_constraint, group_vals)
 		} else {
-			rows_l.push((grouper, group_constraint, vals));
-		}
+			(grouper, group_constraint, vals)
+		};
+		rows_l.push(new_group);
 		Ok(())
 	})?;
 
