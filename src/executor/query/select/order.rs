@@ -5,6 +5,7 @@ use {
 	},
 	sqlparser::ast::OrderByExpr,
 	std::cmp::Ordering,
+	rayon::prelude::*
 };
 
 pub struct Order(Vec<PlannedOrderItem>);
@@ -16,7 +17,11 @@ impl Order {
 			.collect::<Result<Vec<PlannedOrderItem>>>()?;
 		Ok(Order(order_items))
 	}
-	pub fn execute(self, rows: Vec<Row>) -> Result<Vec<Row>> {
+	pub fn execute(self, rows: Vec<Row>) -> Result<Vec<Row>> { // TODO: Optimise
+		if self.0.is_empty() {
+			return Ok(rows);
+		}
+		
 		let (order_terms, order_item_recipes): (Vec<OrderTerm>, Vec<PlannedRecipe>) = self
 			.0
 			.into_iter()
@@ -28,7 +33,7 @@ impl Order {
 		let order_terms = OrderTerms(order_terms);
 
 		let mut order_rows = rows
-			.into_iter()
+			.into_par_iter()
 			.map(|row| {
 				let order_row = order_item_recipes
 					.clone()
@@ -39,7 +44,7 @@ impl Order {
 			})
 			.collect::<Result<Vec<(Row, Vec<Value>)>>>()?;
 
-		order_rows.sort_unstable_by(|(_, order_row_a), (_, order_row_b)| {
+		order_rows.par_sort_unstable_by(|(_, order_row_a), (_, order_row_b)| {
 			order_terms.sort(order_row_a, order_row_b)
 		});
 		Ok(order_rows.into_iter().map(|(row, _)| row).collect())

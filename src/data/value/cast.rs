@@ -55,7 +55,7 @@ impl Cast<i64> for Value {
 			}
 			Value::I64(value) => value,
 			Value::F64(value) => value.trunc() as i64,
-			Value::Str(value) => value.parse().map_err(|_| ValueError::ImpossibleCast)?,
+			Value::Str(value) => lexical::parse(value).map_err(|_| ValueError::ImpossibleCast)?,
 			Value::Null => return Err(ValueError::ImpossibleCast.into()),
 			_ => unimplemented!(),
 		}))
@@ -74,7 +74,7 @@ impl Cast<f64> for Value {
 			}
 			Value::I64(value) => (value as f64).trunc(),
 			Value::F64(value) => value,
-			Value::Str(value) => value.parse().map_err(|_| ValueError::ImpossibleCast)?,
+			Value::Str(value) => fast_float::parse(value).map_err(|_| ValueError::ImpossibleCast)?,
 			Value::Null => return Err(ValueError::ImpossibleCast.into()),
 			_ => unimplemented!(),
 		}))
@@ -84,8 +84,8 @@ impl Cast<String> for Value {
 	fn cast(self) -> Result<String> {
 		self.clone().convert().or(Ok(match self {
 			Value::Bool(value) => (if value { "TRUE" } else { "FALSE" }).to_string(),
-			Value::I64(value) => value.to_string(),
-			Value::F64(value) => value.to_string(),
+			Value::I64(value) => lexical::to_string(value),
+			Value::F64(value) => lexical::to_string(value),
 			Value::Str(value) => value,
 			Value::Null => String::from("NULL"),
 			_ => unimplemented!(),

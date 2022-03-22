@@ -58,7 +58,7 @@ impl JoinMethod {
 					result_rows
 				}),
 			JoinMethod::General(recipe) => {
-				let unfolded_rows: Vec<Result<(Vec<usize>, Vec<Row>)>> = plane_rows
+				let unfolded_rows = plane_rows
 					.into_par_iter()
 					.map(|left_row| {
 						let inner_rows = self_rows
@@ -85,10 +85,8 @@ impl JoinMethod {
 							inner_rows.into_iter().unzip()
 						})
 					})
-					.collect::<Vec<Result<(Vec<usize>, Vec<Row>)>>>();
+					.collect::<Result<Vec<(Vec<usize>, Vec<Row>)>>>()?;
 				let (mut used_right_indexes, mut rows): (Vec<usize>, Vec<Row>) = unfolded_rows
-					.into_iter()
-					.collect::<Result<Vec<(Vec<usize>, Vec<Row>)>>>()?
 					.into_iter()
 					.reduce(
 						|mut all: (Vec<usize>, Vec<Row>), set: (Vec<usize>, Vec<Row>)| {
@@ -98,7 +96,7 @@ impl JoinMethod {
 						},
 					)
 					.unwrap_or((vec![], vec![]));
-				used_right_indexes.sort_unstable();
+				used_right_indexes.par_sort_unstable();
 				used_right_indexes.dedup();
 				self_rows.iter().enumerate().for_each(|(index, row)| {
 					if !used_right_indexes.iter().any(|used| used == &index)
@@ -119,9 +117,7 @@ impl JoinMethod {
 					plane_rows.par_sort_unstable_by(|row_l, row_r| {
 						row_l
 							.get(plane_index)
-							.map(|row_l| row_r.get(plane_index).map(|row_r| row_l.null_cmp(&row_r)))
-							.flatten()
-							.flatten()
+							.and_then(|row_l| row_r.get(plane_index).and_then(|row_r| row_l.null_cmp(&row_r)))
 							.unwrap_or(Ordering::Equal)
 					});
 				}
@@ -152,9 +148,7 @@ impl JoinMethod {
 					self_rows.par_sort_unstable_by(|row_l, row_r| {
 						row_l
 							.get(self_index)
-							.map(|row_l| row_r.get(self_index).map(|row_r| row_l.null_cmp(&row_r)))
-							.flatten()
-							.flatten()
+							.and_then(|row_l| row_r.get(self_index).and_then(|row_r| row_l.null_cmp(&row_r)))
 							.unwrap_or(Ordering::Equal)
 					});
 				}
@@ -185,7 +179,7 @@ impl JoinMethod {
 				let mut inner_results = vec![];
 				let mut right_results = vec![];
 
-				loop {
+				loop { // TODO: There's probably a better way to do this
 					match unwrap_or_break!(left_partitions.peek())
 						.0
 						.null_cmp(&unwrap_or_break!(right_partitions.peek()).0)

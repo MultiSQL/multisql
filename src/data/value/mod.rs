@@ -337,7 +337,7 @@ mod tests {
 		cast!(Bool(true)    => Text, Str("TRUE".to_owned()));
 		cast!(Bool(false)   => Text, Str("FALSE".to_owned()));
 		cast!(I64(11)       => Text, Str("11".to_owned()));
-		cast!(F64(1.0)      => Text, Str("1".to_owned()));
+		cast!(F64(1.0)      => Text, Str("1.0".to_owned()));
 		cast!(Null          => Text, Null);
 	}
 }
