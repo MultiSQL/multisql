@@ -67,20 +67,20 @@ pub async fn select(
 
 	let rows = order_by.execute(rows)?; // TODO: This should be done after filtering
 
-	let selected_rows = rows
-		.into_par_iter()
-		.filter_map(|row| match constraint.confirm_constraint(&row) {
-			Ok(true) => Some(
-				select_items
-					.iter()
-					.map(|selection| selection.clone().simplify_by_row(&row))
-					.collect::<Result<Vec<PlannedRecipe>>>()
-					.map(|selection| (selection, row.clone())),
-			),
-			Ok(false) => None,
-			Err(error) => Some(Err(error)),
-		})
-		.collect::<Result<Vec<(Vec<PlannedRecipe>, Row)>>>()?;
+	let selected_rows =
+		rows.into_par_iter()
+			.filter_map(|row| match constraint.confirm_constraint(&row) {
+				Ok(true) => Some(
+					select_items
+						.clone()
+						.into_iter()
+						.map(|selection| selection.simplify_by_row(&row))
+						.collect::<Result<Vec<PlannedRecipe>>>()
+						.map(|selection| (selection, row)),
+				),
+				Ok(false) => None,
+				Err(error) => Some(Err(error)),
+			});
 	let do_group = !groups.is_empty()
 		|| select_items
 			.iter()
@@ -95,25 +95,24 @@ pub async fn select(
 
 		let accumulations: Result<Vec<(Vec<Value>, Option<PlannedRecipe>, Vec<PlannedRecipe>)>> =
 			selected_rows
-				.into_par_iter()
-				.filter_map(|(selected_row, row)| {
-					let group_constraint =
-						try_option!(group_constraint.clone().simplify_by_row(&row));
-					let group_constraint = match group_constraint.as_solution() {
-						Some(Value::Bool(true)) => None,
-						Some(Value::Bool(false)) => return None,
-						Some(_) => unreachable!(), // TODO: Handle
-						None => Some(group_constraint),
-					};
-					let groupers = try_option!(groups
-						.iter()
-						.map(|group| {
-							group
-								.clone()
-								.simplify_by_row(&row)?
-								.confirm_or_err(SelectError::GrouperMayNotContainAggregate.into())
-						})
-						.collect::<Result<Vec<Value>>>());
+				.filter_map(|selection| {
+					let (selected_row, row) = try_option!(selection);
+						let group_constraint =
+							try_option!(group_constraint.clone().simplify_by_row(&row));
+						let group_constraint = match group_constraint.as_solution() {
+							Some(Value::Bool(true)) => None,
+							Some(Value::Bool(false)) => return None,
+							Some(_) => unreachable!(), // TODO: Handle
+							None => Some(group_constraint),
+						};
+						let groupers = try_option!(groups
+							.iter()
+							.map(|group| {
+								group.clone().simplify_by_row(&row)?.confirm_or_err(
+									SelectError::GrouperMayNotContainAggregate.into(),
+								)
+							})
+							.collect::<Result<Vec<Value>>>());
 					Some(Ok((groupers, group_constraint, selected_row)))
 				})
 				.map::<_, Result<_>>(|acc| acc.map(|acc| vec![acc]))
@@ -131,12 +130,13 @@ pub async fn select(
 	// TODO: Manage grouper and constraint
 	} else {
 		selected_rows
-			.into_par_iter()
-			.map(|(selection, _)| {
-				selection
-					.into_iter()
-					.map(|selected| selected.confirm())
-					.collect::<Result<Row>>()
+			.map(|selection| {
+				selection.and_then(|(selection, _)| {
+					selection
+						.into_iter()
+						.map(|selected| selected.confirm())
+						.collect::<Result<Row>>()
+				})
 			})
 			.collect::<Result<Vec<Row>>>()?
 	};
@@ -158,8 +158,9 @@ fn accumulate(
 				if let Some(group_constraint) = group_constraint {
 					constraint.accumulate(group_constraint).unwrap() // TODO: Handle
 				};
-			});*/ // TODO
-			
+			});*/
+			// TODO
+
 			let group_vals = group_vals
 				.into_iter()
 				.zip(vals.into_iter())
