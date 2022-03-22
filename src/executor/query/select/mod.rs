@@ -93,7 +93,7 @@ pub async fn select(
 			groups
 		};
 
-		let accumulations: Result<Vec<(Vec<Value>, Option<PlannedRecipe>, Vec<PlannedRecipe>)>> =
+		let accumulations: Vec<(Vec<Value>, Option<PlannedRecipe>, Vec<PlannedRecipe>)> =
 			selected_rows
 				.filter_map(|selection| {
 					let (selected_row, row) = try_option!(selection);
@@ -117,9 +117,9 @@ pub async fn select(
 				})
 				.map::<_, Result<_>>(|acc| acc.map(|acc| vec![acc]))
 				.try_reduce_with(accumulate)
-				.unwrap_or(Ok(vec![(vec![], None, vec![PlannedRecipe::default()])])); // TODO: Improve
+				.unwrap_or(Ok(vec![(vec![], None, vec![PlannedRecipe::default()])]))?; // TODO: Improve
 
-		accumulations?
+		accumulations
 			.into_par_iter()
 			.map(|(_grouper, _group_constraint, vals)| {
 				vals.into_iter()
