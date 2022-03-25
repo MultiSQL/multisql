@@ -97,22 +97,23 @@ pub async fn select(
 			selected_rows
 				.filter_map(|selection| {
 					let (selected_row, row) = try_option!(selection);
-						let group_constraint =
-							try_option!(group_constraint.clone().simplify_by_row(&row));
-						let group_constraint = match group_constraint.as_solution() {
-							Some(Value::Bool(true)) => None,
-							Some(Value::Bool(false)) => return None,
-							Some(_) => unreachable!(), // TODO: Handle
-							None => Some(group_constraint),
-						};
-						let groupers = try_option!(groups
-							.iter()
-							.map(|group| {
-								group.clone().simplify_by_row(&row)?.confirm_or_err(
-									SelectError::GrouperMayNotContainAggregate.into(),
-								)
-							})
-							.collect::<Result<Vec<Value>>>());
+					let group_constraint =
+						try_option!(group_constraint.clone().simplify_by_row(&row));
+					let group_constraint = match group_constraint.as_solution() {
+						Some(Value::Bool(true)) => None,
+						Some(Value::Bool(false)) => return None,
+						Some(_) => unreachable!(), // TODO: Handle
+						None => Some(group_constraint),
+					};
+					let groupers = try_option!(groups
+						.iter()
+						.map(|group| {
+							group
+								.clone()
+								.simplify_by_row(&row)?
+								.confirm_or_err(SelectError::GrouperMayNotContainAggregate.into())
+						})
+						.collect::<Result<Vec<Value>>>());
 					Some(Ok((groupers, group_constraint, selected_row)))
 				})
 				.map::<_, Result<_>>(|acc| acc.map(|acc| vec![acc]))

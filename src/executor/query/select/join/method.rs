@@ -117,7 +117,11 @@ impl JoinMethod {
 					plane_rows.par_sort_unstable_by(|row_l, row_r| {
 						row_l
 							.get(plane_index)
-							.and_then(|row_l| row_r.get(plane_index).and_then(|row_r| row_l.null_cmp(&row_r)))
+							.and_then(|row_l| {
+								row_r
+									.get(plane_index)
+									.and_then(|row_r| row_l.null_cmp(&row_r))
+							})
 							.unwrap_or(Ordering::Equal)
 					});
 				}
@@ -148,7 +152,11 @@ impl JoinMethod {
 					self_rows.par_sort_unstable_by(|row_l, row_r| {
 						row_l
 							.get(self_index)
-							.and_then(|row_l| row_r.get(self_index).and_then(|row_r| row_l.null_cmp(&row_r)))
+							.and_then(|row_l| {
+								row_r
+									.get(self_index)
+									.and_then(|row_r| row_l.null_cmp(&row_r))
+							})
 							.unwrap_or(Ordering::Equal)
 					});
 				}
@@ -179,7 +187,8 @@ impl JoinMethod {
 				let mut inner_results = vec![];
 				let mut right_results = vec![];
 
-				loop { // TODO: There's probably a better way to do this
+				loop {
+					// TODO: There's probably a better way to do this
 					match unwrap_or_break!(left_partitions.peek())
 						.0
 						.null_cmp(&unwrap_or_break!(right_partitions.peek()).0)

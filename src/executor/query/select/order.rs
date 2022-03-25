@@ -3,9 +3,9 @@ use {
 		executor::types::{ComplexColumnName, Row},
 		MetaRecipe, PlannedRecipe, RecipeUtilities, Result, Value,
 	},
+	rayon::prelude::*,
 	sqlparser::ast::OrderByExpr,
 	std::cmp::Ordering,
-	rayon::prelude::*
 };
 
 pub struct Order(Vec<PlannedOrderItem>);
@@ -17,11 +17,12 @@ impl Order {
 			.collect::<Result<Vec<PlannedOrderItem>>>()?;
 		Ok(Order(order_items))
 	}
-	pub fn execute(self, rows: Vec<Row>) -> Result<Vec<Row>> { // TODO: Optimise
+	pub fn execute(self, rows: Vec<Row>) -> Result<Vec<Row>> {
+		// TODO: Optimise
 		if self.0.is_empty() {
 			return Ok(rows);
 		}
-		
+
 		let (order_terms, order_item_recipes): (Vec<OrderTerm>, Vec<PlannedRecipe>) = self
 			.0
 			.into_iter()

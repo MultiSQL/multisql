@@ -74,7 +74,9 @@ impl Cast<f64> for Value {
 			}
 			Value::I64(value) => (value as f64).trunc(),
 			Value::F64(value) => value,
-			Value::Str(value) => fast_float::parse(value).map_err(|_| ValueError::ImpossibleCast)?,
+			Value::Str(value) => {
+				fast_float::parse(value).map_err(|_| ValueError::ImpossibleCast)?
+			}
 			Value::Null => return Err(ValueError::ImpossibleCast.into()),
 			_ => unimplemented!(),
 		}))

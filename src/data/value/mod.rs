@@ -81,7 +81,7 @@ impl PartialOrd for Value {
 			(Value::Str(l), Value::Str(r)) => Some(l.cmp(r)),
 			(Value::Bytes(l), Value::Bytes(r)) => Some(l.cmp(r)),
 			(Value::Timestamp(l), Value::Timestamp(r)) => Some(l.cmp(r)),
-			
+
 			(Value::Internal(l), Value::Internal(r)) => Some(l.cmp(r)),
 
 			#[cfg(feature = "implicit_float_conversion")]

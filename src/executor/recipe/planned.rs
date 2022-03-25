@@ -195,9 +195,11 @@ impl PlannedRecipe {
 					if let Method::Aggregate(_, Recipe::Ingredient(Ingredient::Value(value))) =
 						*method
 					{
-						return Ok(if let Value::Internal(value) =  value {
+						return Ok(if let Value::Internal(value) = value {
 							Value::I64(value)
-						} else {value});
+						} else {
+							value
+						});
 					}
 				}
 				Err(RecipeError::UnreachableAggregateFailed.into())
