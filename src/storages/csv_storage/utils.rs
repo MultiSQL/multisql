@@ -8,6 +8,8 @@ use {
 pub(crate) fn csv_reader(store: &CSVStorage) -> Result<Reader<File>> {
 	let reader = ReaderBuilder::new()
 		.delimiter(store.csv_settings.delimiter)
+		.quoting(store.csv_settings.quoting)
+		.buffer_capacity(8 * 500 * 1_000_000) // 500MB
 		.from_path(store.path.as_str())
 		.map_err(|error| WIPError::Debug(format!("{:?}", error)))?;
 	Ok(reader)
