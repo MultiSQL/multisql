@@ -17,7 +17,8 @@ Main *TODO*s:
 - [ ] Fix unreachable error areas
 - [ ] More error information/context
 	- (without the cost of perf somehow?)
-- [ ] More optimisations
+- [x] More optimisations
+	- [ ] Even more optimisations
 - [ ] Clean up bad code (`clone`s and grossness)
 - [ ] Optional multithreading
 - [ ] Memory storage
