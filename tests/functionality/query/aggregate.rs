@@ -93,5 +93,14 @@ crate::util_macros::testcase!(
 			FROM
 				basic
 		"# => sum = I64, min = I64, max = I64: (6, 1, 3));
+
+		crate::util_macros::assert_select!(glue, r#"
+			SELECT
+				a
+			FROM
+				basic
+			GROUP BY
+				a
+		"# => a = I64: (1),(2),(3));
 	})
 );

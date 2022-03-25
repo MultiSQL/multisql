@@ -118,7 +118,7 @@ pub async fn select(
 				})
 				.map::<_, Result<_>>(|acc| acc.map(|acc| vec![acc]))
 				.try_reduce_with(accumulate)
-				.unwrap_or(Ok(vec![(vec![], None, vec![PlannedRecipe::default()])]))?; // TODO: Improve
+				.unwrap_or(Ok(vec![]))?; // TODO: Improve
 
 		accumulations
 			.into_par_iter()
