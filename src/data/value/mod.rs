@@ -26,6 +26,8 @@ pub enum Value {
 	F64(f64),
 	Str(String),
 	Null,
+	Timestamp(i64),
+	Internal(i64),
 }
 
 impl From<bool> for Value {
@@ -57,6 +59,9 @@ impl PartialEq for Value {
 			(Value::F64(l), Value::F64(r)) => l == r,
 			(Value::Str(l), Value::Str(r)) => l == r,
 			(Value::Bytes(l), Value::Bytes(r)) => l == r,
+			(Value::Timestamp(l), Value::Timestamp(r)) => l == r,
+
+			(Value::Internal(l), Value::Internal(r)) => l == r,
 
 			#[cfg(feature = "implicit_float_conversion")]
 			(Value::I64(l), Value::F64(r)) => (*l as f64) == *r,
@@ -75,6 +80,9 @@ impl PartialOrd for Value {
 			(Value::F64(l), Value::F64(r)) => l.partial_cmp(r),
 			(Value::Str(l), Value::Str(r)) => Some(l.cmp(r)),
 			(Value::Bytes(l), Value::Bytes(r)) => Some(l.cmp(r)),
+			(Value::Timestamp(l), Value::Timestamp(r)) => Some(l.cmp(r)),
+			
+			(Value::Internal(l), Value::Internal(r)) => Some(l.cmp(r)),
 
 			#[cfg(feature = "implicit_float_conversion")]
 			(Value::I64(l), Value::F64(r)) => (*l as f64).partial_cmp(r),

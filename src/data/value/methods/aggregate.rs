@@ -9,13 +9,15 @@ use {
 // MIN and MAX will just give whatever the MIN/MAX of the first type (partial_cmp would evaulate to None which gives accumulator)
 // SUM will, for now, use generic_add which will throw if non-artithmatic.
 
+// Values returned as Value::Internal; need to be popped into Value::I64
+
 impl Value {
 	pub fn aggregate_count(self, other: Value) -> Result<Value> {
-		Ok(Value::I64(match (self, other) {
+		Ok(Value::Internal(match (self, other) {
 			(Value::Null, Value::Null) => 0,
-			(Value::I64(self_val), Value::I64(other_val)) => self_val + other_val, // WILL CAUSE ISSUES IF VALUE IS NULL! TODO: Do this another way
-			(Value::I64(val), Value::Null) | (Value::Null, Value::I64(val)) => val,
-			(Value::I64(val), _) | (_, Value::I64(val)) => val + 1,
+			(Value::Internal(self_val), Value::Internal(other_val)) => self_val + other_val,
+			(Value::Internal(val), Value::Null) | (Value::Null, Value::I64(val)) => val,
+			(Value::Internal(val), _) | (_, Value::Internal(val)) => val + 1,
 			(_, _) => 2,
 		}))
 	}

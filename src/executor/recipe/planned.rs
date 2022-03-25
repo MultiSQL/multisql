@@ -140,31 +140,6 @@ impl PlannedRecipe {
 			needed_column_indexes,
 		})
 	}
-	pub fn aggregate(&self, accumulated: Vec<Value>) -> Result<Vec<Value>> {
-		let accumulated = if accumulated.is_empty() {
-			vec![Value::Null; self.aggregates.len()]
-		} else {
-			accumulated
-		};
-		self.aggregates
-			.clone()
-			.into_iter()
-			.zip(accumulated)
-			.map(|(aggregate, accumulated)| {
-				if let Recipe::Method(aggregate) = aggregate {
-					if let Method::Aggregate(operator, recipe) = *aggregate {
-						let value = recipe
-							.confirm_or_err(RecipeError::UnreachableAggregatationFailed.into())?;
-						operator(value, accumulated)
-					} else {
-						Err(RecipeError::UnreachableNotAggregate(format!("{:?}", aggregate)).into())
-					}
-				} else {
-					Err(RecipeError::UnreachableNotMethod(format!("{:?}", aggregate)).into())
-				}
-			})
-			.collect::<Result<Vec<Value>>>()
-	}
 	pub fn accumulate(&mut self, other: Self) -> Result<()> {
 		self.aggregates = self
 			.aggregates
@@ -220,17 +195,14 @@ impl PlannedRecipe {
 					if let Method::Aggregate(_, Recipe::Ingredient(Ingredient::Value(value))) =
 						*method
 					{
-						return Ok(value);
+						return Ok(if let Value::Internal(value) =  value {
+							Value::I64(value)
+						} else {value});
 					}
 				}
 				Err(RecipeError::UnreachableAggregateFailed.into())
 			})
 			.collect::<Result<_>>()?;
-		self.recipe
-			.simplify(SimplifyBy::CompletedAggregate(accumulated))?
-			.confirm_or_err(RecipeError::UnreachableAggregateFailed.into())
-	}
-	pub fn solve_by_aggregate(self, accumulated: Vec<Value>) -> Result<Value> {
 		self.recipe
 			.simplify(SimplifyBy::CompletedAggregate(accumulated))?
 			.confirm_or_err(RecipeError::UnreachableAggregateFailed.into())

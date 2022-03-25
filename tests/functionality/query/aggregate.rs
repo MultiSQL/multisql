@@ -78,12 +78,12 @@ crate::util_macros::testcase!(
 				basic
 		"# => agg = I64: (3));
 
-		/*crate::util_macros::assert_select!(glue, r#"
+		crate::util_macros::assert_select!(glue, r#"
 			SELECT
 				COUNT(a) AS agg
 			FROM
 				basic
-		"# => agg = I64: (3)); TODO: Fix*/
+		"# => agg = I64: (3));
 
 		crate::util_macros::assert_select!(glue, r#"
 			SELECT
