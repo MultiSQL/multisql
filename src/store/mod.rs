@@ -96,4 +96,8 @@ pub trait StoreMut {
 	async fn delete_data(&mut self, _keys: Vec<Value>) -> Result<()> {
 		Err(StorageError::Unimplemented.into())
 	}
+
+	async fn update_index(&mut self, _index_name: &str, _table_name: &str, _keys: Vec<Value>) -> Result<()> {
+		Err(StorageError::Unimplemented.into())
+	}
 }

@@ -6,6 +6,9 @@ pub enum AlterError {
 	#[error("table already exists: {0}")]
 	TableAlreadyExists(String),
 
+	#[error("already exists: {0}")]
+	AlreadyExists(String),
+
 	// ALTER TABLE
 	#[cfg(feature = "alter-table")]
 	#[error("unsupported alter table operation: {0}")]

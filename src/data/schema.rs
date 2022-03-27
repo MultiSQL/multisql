@@ -9,10 +9,13 @@ use sqlparser::{
 	tokenizer::{Token, Word},
 };
 
+use crate::Index;
+
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Schema {
 	pub table_name: String,
 	pub column_defs: Vec<ColumnDef>,
+	pub indexes: Vec<Index>
 }
 
 pub trait ColumnDefExt {

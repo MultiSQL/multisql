@@ -2,6 +2,7 @@ use async_trait::async_trait;
 use serde::Serialize;
 use std::fmt::Debug;
 use thiserror::Error;
+use crate::Schema;
 
 use sqlparser::ast::ColumnDef;
 
@@ -49,6 +50,13 @@ pub trait AlterTable {
 		_table_name: &str,
 		_column_name: &str,
 		_if_exists: bool,
+	) -> Result<()> {
+		Err(StorageError::Unimplemented.into())
+	}
+	async fn replace_schema(
+		&mut self,
+		_table_name: &str,
+		_schema: Schema,
 	) -> Result<()> {
 		Err(StorageError::Unimplemented.into())
 	}
