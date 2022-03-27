@@ -16,16 +16,11 @@ pub async fn update(
 	selection: &Option<Expr>,
 	assignments: &Vec<Assignment>,
 ) -> Result<Payload> {
-	// TODO: Handle tables properly
-	// TEMP: Just grab first table
-	let table = table
-		.joins
-		.get(0)
-		.ok_or(ExecuteError::QueryNotSupported.into())
-		.and_then(|table| match &table.relation {
-			TableFactor::Table { name, .. } => get_name(&name).map(|name| name.clone()),
-			_ => Err(ExecuteError::QueryNotSupported.into()),
-		})?;
+	// TODO: Complex updates (joins)
+	let table = match &table.relation {
+		TableFactor::Table { name, .. } => get_name(&name).map(|name| name.clone()),
+		_ => Err(ExecuteError::QueryNotSupported.into()),
+	}?;
 	let Schema { column_defs, .. } = storage
 		.fetch_schema(&table)
 		.await?
