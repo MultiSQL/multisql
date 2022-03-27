@@ -101,4 +101,46 @@ impl StoreMut for SledStorage {
 			});
 		self.tree.apply_batch(batch).map_err(err_into)
 	}
+
+	async fn update_index(
+		&mut self,
+		table_name: &str,
+		index_name: &str,
+		keys: Vec<Value>,
+	) -> Result<()> {
+		let prefix = index_prefix(table_name, index_name);
+
+		let remove_keys = self
+			.tree
+			.scan_prefix(prefix.as_bytes())
+			.par_bridge()
+			.map(|result| result.map(|(key, _)| key).map_err(err_into))
+			.collect::<Result<Vec<_>>>()?;
+
+		let batch = remove_keys
+			.into_iter()
+			.fold(sled::Batch::default(), |mut batch, key| {
+				batch.remove(key);
+				batch
+			});
+		let batch = keys
+			.into_iter()
+			.enumerate()
+			.fold(batch, |mut batch, (index, row_key)| {
+				let key = indexed_key(&prefix, index);
+				let row_key = IVec::from(&row_key);
+				batch.insert(key, row_key);
+				batch
+			});
+
+		self.tree.apply_batch(batch).map_err(err_into)
+	}
+}
+
+fn index_prefix(table_name: &str, index_name: &str) -> String {
+	format!("index/{}/{}/", table_name, index_name)
+}
+
+fn indexed_key(prefix: &str, index: usize) -> IVec {
+	[prefix.as_bytes(), &index.to_be_bytes()].concat().into()
 }

@@ -1,13 +1,6 @@
-use crate::ExecuteError;
-
 use {
-	super::{validate, AlterError},
-	crate::{
-		Index,
-		data::get_name,
-		Result, StorageInner,
-	},
-	sqlparser::ast::{OrderByExpr, ObjectName},
+	crate::{data::get_name, AlterError, ExecuteError, Index, Result, StorageInner},
+	sqlparser::ast::{ObjectName, OrderByExpr},
 };
 
 pub async fn create_index(
@@ -18,11 +11,19 @@ pub async fn create_index(
 	unique: bool,
 	if_not_exists: bool,
 ) -> Result<()> {
-	let name = name.0.last().ok_or(Err(ExecuteError::QueryNotSupported))?.value.clone();
+	let name = name
+		.0
+		.last()
+		.ok_or(ExecuteError::QueryNotSupported)?
+		.value
+		.clone();
 
 	let table_name = get_name(table)?;
 
-	let schema = storage.fetch_schema(&table_name).await?.ok_or(Err(ExecuteError::TableNotExists))?;
+	let schema = storage
+		.fetch_schema(&table_name)
+		.await?
+		.ok_or(ExecuteError::TableNotExists)?;
 
 	if let Some(_) = schema.indexes.iter().find(|index| index.name == name) {
 		if !if_not_exists {
@@ -31,9 +32,11 @@ pub async fn create_index(
 			Ok(())
 		}
 	} else {
-		let schema = schema.clone();
+		let mut schema = schema.clone();
 		let index = Index::new(name, columns, unique)?;
-		index.reset(storage, &table_name, &schema.column_defs).await;
+		index
+			.reset(storage, &table_name, &schema.column_defs)
+			.await?;
 		schema.indexes.push(index);
 		storage.replace_schema(&table_name, schema).await
 	}

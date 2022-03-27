@@ -1,13 +1,13 @@
+mod index;
 mod row;
 pub mod schema;
 mod table;
-mod index;
 pub mod value;
 
 pub use {
+	index::Index,
 	row::{Row, RowError},
 	schema::Schema,
 	table::{get_name, Table, TableError},
-	index::{Index},
 	value::*,
 };

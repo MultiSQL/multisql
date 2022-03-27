@@ -15,7 +15,7 @@ use crate::Index;
 pub struct Schema {
 	pub table_name: String,
 	pub column_defs: Vec<ColumnDef>,
-	pub indexes: Vec<Index>
+	pub indexes: Vec<Index>,
 }
 
 pub trait ColumnDefExt {

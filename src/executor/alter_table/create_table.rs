@@ -16,6 +16,7 @@ pub async fn create_table(
 	let schema = Schema {
 		table_name: get_name(name)?.to_string(),
 		column_defs: column_defs.to_vec(),
+		indexes: vec![],
 	};
 
 	for column_def in &schema.column_defs {

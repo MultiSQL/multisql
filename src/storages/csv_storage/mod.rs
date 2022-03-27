@@ -101,6 +101,7 @@ fn discern_schema(file: File, csv_settings: &CSVSettings) -> Result<Option<Schem
 		Ok(Some(Schema {
 			table_name: String::new(),
 			column_defs,
+			indexes: vec![],
 		}))
 	}
 }

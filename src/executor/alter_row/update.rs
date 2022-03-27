@@ -6,7 +6,7 @@ use {
 		Context, ExecuteError, MetaRecipe, Payload, PlannedRecipe, RecipeUtilities, Result, Row,
 		StorageInner, Value,
 	},
-	sqlparser::ast::{Assignment, ColumnDef, Expr, TableWithJoins, TableFactor},
+	sqlparser::ast::{Assignment, ColumnDef, Expr, TableFactor, TableWithJoins},
 };
 
 pub async fn update(
@@ -18,10 +18,14 @@ pub async fn update(
 ) -> Result<Payload> {
 	// TODO: Handle tables properly
 	// TEMP: Just grab first table
-	let table = table.joins.get(0).ok_or(ExecuteError::QueryNotSupported.into()).and_then(|table| match &table.relation {
-		TableFactor::Table {name, ..} => get_name(&name).map(|name| name.clone()),
-		_ => Err(ExecuteError::QueryNotSupported.into()),
-	})?;
+	let table = table
+		.joins
+		.get(0)
+		.ok_or(ExecuteError::QueryNotSupported.into())
+		.and_then(|table| match &table.relation {
+			TableFactor::Table { name, .. } => get_name(&name).map(|name| name.clone()),
+			_ => Err(ExecuteError::QueryNotSupported.into()),
+		})?;
 	let Schema { column_defs, .. } = storage
 		.fetch_schema(&table)
 		.await?
@@ -50,7 +54,11 @@ pub async fn update(
 		.into_iter()
 		.map(|assignment| {
 			let Assignment { id, value } = assignment;
-			let column_compare = id.clone().into_iter().map(|component| component.value).collect();
+			let column_compare = id
+				.clone()
+				.into_iter()
+				.map(|component| component.value)
+				.collect();
 			let index = columns
 				.iter()
 				.position(|column| column == &column_compare)

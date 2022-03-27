@@ -322,12 +322,10 @@ impl Recipe {
 	}
 	fn from_argument(argument: FunctionArg, meta: &mut RecipeMeta) -> Result<Recipe> {
 		match argument {
-			FunctionArg::Named { arg, .. } | FunctionArg::Unnamed(arg) => {
-				match arg {
-					FunctionArgExpr::Expr(arg) => Self::with_meta(arg, meta),
-					_ => Err(RecipeError::Unimplemented.into()),
-				}
-			}
+			FunctionArg::Named { arg, .. } | FunctionArg::Unnamed(arg) => match arg {
+				FunctionArgExpr::Expr(arg) => Self::with_meta(arg, meta),
+				_ => Err(RecipeError::Unimplemented.into()),
+			},
 		}
 	}
 	fn from_column(column: ObjectName, meta: &mut RecipeMeta) -> Recipe {

@@ -1,7 +1,7 @@
 use {
 	super::{
 		alter_row::{insert, update},
-		alter_table::{create_table, create_index, drop, truncate},
+		alter_table::{create_index, create_table, drop, truncate},
 		query::query,
 		types::ComplexColumnName,
 	},
@@ -94,9 +94,16 @@ pub async fn execute(
 			columns,
 			unique,
 			if_not_exists,
-		} => create_index(storages[0].1, table_name, name, columns, *unique, *if_not_exists)
-			.await
-			.map(|_| Payload::Create),
+		} => create_index(
+			storages[0].1,
+			table_name,
+			name,
+			columns,
+			*unique,
+			*if_not_exists,
+		)
+		.await
+		.map(|_| Payload::Create),
 
 		//-- Rows
 		Statement::Insert {
