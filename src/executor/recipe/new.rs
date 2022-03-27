@@ -1,3 +1,5 @@
+use sqlparser::ast::FunctionArgExpr;
+
 use {
 	super::{Ingredient, Method, Recipe, RecipeError, TryIntoMethod},
 	crate::{
@@ -321,7 +323,10 @@ impl Recipe {
 	fn from_argument(argument: FunctionArg, meta: &mut RecipeMeta) -> Result<Recipe> {
 		match argument {
 			FunctionArg::Named { arg, .. } | FunctionArg::Unnamed(arg) => {
-				Self::with_meta(arg, meta)
+				match arg {
+					FunctionArgExpr::Expr(arg) => Self::with_meta(arg, meta),
+					_ => Err(RecipeError::Unimplemented.into()),
+				}
 			}
 		}
 	}

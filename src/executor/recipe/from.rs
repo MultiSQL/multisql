@@ -86,7 +86,7 @@ impl TryIntoMethod<BinaryOperator> for AstBinaryOperator {
 			AstBinaryOperator::Minus => Ok(Value::generic_subtract),
 			AstBinaryOperator::Multiply => Ok(Value::generic_multiply),
 			AstBinaryOperator::Divide => Ok(Value::generic_divide),
-			AstBinaryOperator::Modulus => Ok(Value::generic_modulus),
+			AstBinaryOperator::Modulo => Ok(Value::generic_modulus),
 
 			AstBinaryOperator::And => Ok(Value::and),
 			AstBinaryOperator::Or => Ok(Value::or),

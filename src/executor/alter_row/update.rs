@@ -6,19 +6,24 @@ use {
 		Context, ExecuteError, MetaRecipe, Payload, PlannedRecipe, RecipeUtilities, Result, Row,
 		StorageInner, Value,
 	},
-	sqlparser::ast::{Assignment, ColumnDef, Expr, ObjectName},
+	sqlparser::ast::{Assignment, ColumnDef, Expr, TableWithJoins, TableFactor},
 };
 
 pub async fn update(
 	storage: &mut StorageInner,
 	context: &Context,
-	table_name: &ObjectName,
+	table: &TableWithJoins,
 	selection: &Option<Expr>,
 	assignments: &Vec<Assignment>,
 ) -> Result<Payload> {
-	let table_name = get_name(table_name)?;
+	// TODO: Handle tables properly
+	// TEMP: Just grab first table
+	let table = table.joins.get(0).ok_or(ExecuteError::QueryNotSupported.into()).and_then(|table| match &table.relation {
+		TableFactor::Table {name, ..} => get_name(&name).map(|name| name.clone()),
+		_ => Err(ExecuteError::QueryNotSupported.into()),
+	})?;
 	let Schema { column_defs, .. } = storage
-		.fetch_schema(table_name)
+		.fetch_schema(&table)
 		.await?
 		.ok_or(ExecuteError::TableNotExists)?;
 
@@ -45,8 +50,7 @@ pub async fn update(
 		.into_iter()
 		.map(|assignment| {
 			let Assignment { id, value } = assignment;
-			let column_name = id.value.clone();
-			let column_compare = vec![column_name.clone()];
+			let column_compare = id.clone().into_iter().map(|component| component.value).collect();
 			let index = columns
 				.iter()
 				.position(|column| column == &column_compare)
@@ -60,7 +64,7 @@ pub async fn update(
 		.collect::<Result<Vec<(usize, PlannedRecipe)>>>()?;
 
 	let keyed_rows = storage
-		.scan_data(table_name)
+		.scan_data(&table)
 		.await?
 		.into_iter()
 		.filter_map(|row_result| {
@@ -98,10 +102,10 @@ pub async fn update(
 	let (keys, rows): (Vec<Value>, Vec<VecRow>) = keyed_rows.into_iter().unzip();
 	let rows = validate(&column_defs, &column_positions, rows)?;
 
-	let table_name = table_name.as_str();
+	let table = table.as_str();
 	#[cfg(feature = "auto-increment")]
-	let rows = auto_increment(&mut *storage, table_name, &column_defs, rows).await?;
-	validate_unique(&*storage, table_name, &column_defs, &rows, Some(&keys)).await?;
+	let rows = auto_increment(&mut *storage, table, &column_defs, rows).await?;
+	validate_unique(&*storage, table, &column_defs, &rows, Some(&keys)).await?;
 	let keyed_rows: Vec<(Value, Row)> = keys.into_iter().zip(rows.into_iter().map(Row)).collect();
 	let num_rows = keyed_rows.len();
 	storage

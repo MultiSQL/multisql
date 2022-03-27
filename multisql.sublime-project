@@ -8,7 +8,7 @@
 	"folders": [
 		{
 			"path": "./",
-			"folder_exclude_patterns": ["target", "data", ".github"]
+			"folder_exclude_patterns": ["target", "/data", ".github"]
 		}
 	]
 }

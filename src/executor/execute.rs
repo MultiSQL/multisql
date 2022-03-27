@@ -97,10 +97,10 @@ pub async fn execute(
 			..
 		} => insert(&mut storages, context, table_name, columns, source, false).await,
 		Statement::Update {
-			table_name,
+			table,
 			selection,
 			assignments,
-		} => update(storages[0].1, &context, table_name, selection, assignments).await,
+		} => update(storages[0].1, &context, table, selection, assignments).await,
 		Statement::Delete {
 			table_name,
 			selection,

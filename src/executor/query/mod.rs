@@ -49,6 +49,7 @@ pub async fn query(
 		with,
 		// TODO (below)
 		fetch: _,
+		lock: _,
 	} = query;
 	let limit: Option<usize> = limit
 		.map(|expression| {

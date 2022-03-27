@@ -142,11 +142,11 @@ impl Value {
 		matches!(
 			(data_type, self),
 			(DataType::Boolean, Value::Bool(_))
-				| (DataType::Int, Value::I64(_))
+				| (DataType::Int(_), Value::I64(_))
 				| (DataType::Float(_), Value::F64(_))
 				| (DataType::Text, Value::Str(_))
 				| (DataType::Boolean, Value::Null)
-				| (DataType::Int, Value::Null)
+				| (DataType::Int(_), Value::Null)
 				| (DataType::Float(_), Value::Null)
 				| (DataType::Text, Value::Null)
 		)
@@ -163,13 +163,13 @@ impl Value {
 	pub fn cast_datatype(&self, data_type: &DataType) -> Result<Self> {
 		match (data_type, self) {
 			(DataType::Boolean, Value::Bool(_))
-			| (DataType::Int, Value::I64(_))
+			| (DataType::Int(_), Value::I64(_))
 			| (DataType::Float(_), Value::F64(_))
 			| (DataType::Text, Value::Str(_)) => Ok(self.clone()),
 			(_, Value::Null) => Ok(Value::Null),
 
 			(DataType::Boolean, value) => value.clone().cast().map(Value::Bool),
-			(DataType::Int, value) => value.clone().cast().map(Value::I64),
+			(DataType::Int(_), value) => value.clone().cast().map(Value::I64),
 			(DataType::Float(_), value) => value.clone().cast().map(Value::F64),
 			(DataType::Text, value) => value.clone().cast().map(Value::Str),
 
@@ -221,54 +221,6 @@ impl Value {
 		}
 	}
 
-	/*pub fn convert_datatype(&self, data_type: &DataType) -> Result<Self> {
-		match (data_type, self) {
-			(DataType::Time, Value::Str(value)) => {
-				let regex =
-					Regex::new(r"^(\d|[0-1]\d|2[0-3]):([0-5]\d)(:([0-5]\d))? ?([AaPp][Mm])?$");
-				if let Ok(regex) = regex {
-					if let Some(captures) = regex.captures(value) {
-						let modifier: bool = captures
-							.iter()
-							.last()
-							.map(|capture| {
-								capture
-									.map(|capture| {
-										Regex::new(r"^[Pp][Mm]$")
-											.ok()
-											.map(|regex| regex.is_match(capture.into()))
-									})
-									.flatten()
-							})
-							.flatten()
-							.unwrap_or(false);
-						let mut items: Vec<i64> = captures
-							.iter()
-							.skip(1)
-							.filter_map(|capture| {
-								capture
-									.map(|capture| {
-										let capture: &str = capture.into();
-										capture.parse::<i64>().ok()
-									})
-									.flatten()
-							})
-							.collect();
-						items.resize(3, 0);
-						let seconds = items.iter().fold(0, |acc, item| (acc * 60) + item)
-							+ if modifier { 12 * 60 * 60 } else { 0 };
-						Ok(Value::I64(seconds))
-					} else {
-						Err(())
-					}
-				} else {
-					Err(())
-				}
-				.map_err(|_| ValueError::ImpossibleCast.into())
-			}
-		}
-	}*/
-
 	pub fn is_some(&self) -> bool {
 		use Value::*;
 
@@ -276,7 +228,7 @@ impl Value {
 	}
 }
 
-#[cfg(test)]
+#[cfg(test)] // TODO: Get rid of this whole thing
 mod tests {
 	use super::Value::*;
 
@@ -309,7 +261,7 @@ mod tests {
 		// Same as
 		cast!(Bool(true)            => Boolean      , Bool(true));
 		cast!(Str("a".to_owned())   => Text         , Str("a".to_owned()));
-		cast!(I64(1)                => Int          , I64(1));
+		cast!(I64(1)                => Int(None)    , I64(1));
 		cast!(F64(1.0)              => Float(None)  , F64(1.0));
 
 		// Boolean
@@ -322,13 +274,13 @@ mod tests {
 		cast!(Null                      => Boolean, Null);
 
 		// Integer
-		cast!(Bool(true)            => Int, I64(1));
-		cast!(Bool(false)           => Int, I64(0));
-		cast!(F64(1.1)              => Int, I64(1));
-		cast!(Str("11".to_owned())  => Int, I64(11));
-		cast!(Null                  => Int, Null);
+		cast!(Bool(true)            => Int(None), I64(1));
+		cast!(Bool(false)           => Int(None), I64(0));
+		cast!(F64(1.1)              => Int(None), I64(1));
+		cast!(Str("11".to_owned())  => Int(None), I64(11));
+		cast!(Null                  => Int(None), Null);
 
-		/*// Time
+		/*// Time // TODO
 		cast!(Str("11:00".to_owned())  => Time, I64(11*60*60));
 		cast!(Str("1:00PM".to_owned())  => Time, I64((12+1)*60*60));
 		cast!(Str("23:35".to_owned())  => Time, I64((23*60*60) + 35*60));
