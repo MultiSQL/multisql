@@ -9,6 +9,8 @@ pub trait AlterTable {}
 mod auto_increment;
 #[cfg(feature = "auto-increment")]
 pub use auto_increment::AutoIncrement;
+
+use crate::IndexFilter;
 #[cfg(not(feature = "auto-increment"))]
 pub trait AutoIncrement {}
 
@@ -71,6 +73,10 @@ pub trait Store {
 	async fn scan_data(&self, _table_name: &str) -> Result<RowIter> {
 		Err(StorageError::Unimplemented.into())
 	}
+	
+	async fn scan_data_indexed(&self, _table_name: &str, _index_filters: &[IndexFilter]) -> Result<RowIter> {
+		Err(StorageError::Unimplemented.into())
+	}
 }
 
 /// `StoreMut` takes role of mutation, related to `INSERT`, `CREATE`, `DELETE`, `DROP` and
@@ -101,7 +107,7 @@ pub trait StoreMut {
 		&mut self,
 		_index_name: &str,
 		_table_name: &str,
-		_keys: Vec<Value>,
+		_keys: Vec<(Vec<Value>, Value)>,
 	) -> Result<()> {
 		Err(StorageError::Unimplemented.into())
 	}

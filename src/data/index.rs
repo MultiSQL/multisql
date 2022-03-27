@@ -12,6 +12,11 @@ pub struct Index {
 	pub is_unique: bool,
 }
 
+#[derive(Clone)]
+pub enum IndexFilter {
+	Between(String, Vec<Value>, Vec<Value>) // Index, Min, Max
+}
+
 impl Index {
 	pub fn new(name: String, columns: &[OrderByExpr], is_unique: bool) -> Result<Self> {
 		let columns = columns
@@ -76,7 +81,12 @@ impl Index {
 				})
 				.unwrap_or(Ordering::Equal)
 		});
-		let keys = rows.into_iter().map(|(key, _values)| key).collect();
+		let keys = rows.into_iter().enumerate().map(|(pos, (key, values))| { // TODO: This feels unoptimal
+			let mut index_key: Vec<Value> = column_indexes
+				.iter().map(|(index, _)| values[*index].clone()).collect(); // TODO: Shouldn't need to clone
+			index_key.push(Value::I64(pos as i64));
+			(index_key, key)
+		}).collect();
 
 		storage.update_index(&table, &self.name, keys).await
 	}

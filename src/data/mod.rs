@@ -5,7 +5,7 @@ mod table;
 pub mod value;
 
 pub use {
-	index::Index,
+	index::{Index, IndexFilter},
 	row::{Row, RowError},
 	schema::Schema,
 	table::{get_name, Table, TableError},

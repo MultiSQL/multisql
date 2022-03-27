@@ -1,5 +1,7 @@
+use crate::{IndexFilter, Row, Value};
+
 use {
-	super::{err_into, fetch_schema, SledStorage},
+	super::{err_into, fetch_schema, SledStorage, store_mut::{index_prefix, indexed_key}},
 	crate::{Result, RowIter, Schema, Store},
 	async_trait::async_trait,
 	std::convert::Into,
@@ -14,7 +16,7 @@ impl Store for SledStorage {
 	async fn scan_data(&self, table_name: &str) -> Result<RowIter> {
 		let prefix = format!("data/{}/", table_name);
 
-		let result_set = self.tree.scan_prefix(prefix.as_bytes()).map(move |item| {
+		let result_set = self.tree.scan_prefix(prefix.as_bytes()).map(|item| {
 			let (key, value) = item.map_err(err_into)?;
 			let value = bincode::deserialize(&value).map_err(err_into)?;
 
@@ -22,5 +24,33 @@ impl Store for SledStorage {
 		});
 
 		Ok(Box::new(result_set))
+	}
+
+	async fn scan_data_indexed(&self, table_name: &str, index_filters: &[IndexFilter]) -> Result<RowIter> {
+		if index_filters.is_empty() {
+			self.scan_data(table_name).await
+		} else {
+			// Only do first filter for now. TODO: More
+			match index_filters[0].clone() {
+				IndexFilter::Between(index_name, min, max) => {
+					let prefix = index_prefix(table_name, &index_name);
+					let min_key = indexed_key(&prefix, &min)?;
+					let max_key = indexed_key(&prefix, &max)?;
+
+					let index_results = self.tree.range(min_key..max_key);
+					let row_results = index_results.map(|result| {
+						result.and_then(|(_index_key, row_key)| self.tree.get(&row_key).map(|row| (row_key, row.unwrap()/*TODO: Handle!*/)))
+					});
+					let result_set = row_results.map(|item| {
+						let (key, value) = item.map_err(err_into)?;
+						let value = bincode::deserialize(&value).map_err(err_into)?;
+
+						Ok(((&key).into(), value))
+					}).collect::<Vec<Result<(Value, Row)>>>().into_iter(); // Need to collect because of usage of self
+
+					Ok(Box::new(result_set))
+				}
+			}
+		}
 	}
 }
