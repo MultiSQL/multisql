@@ -16,7 +16,7 @@ impl Value {
 		Ok(Value::Internal(match (self, other) {
 			(Value::Null, Value::Null) => 0,
 			(Value::Internal(self_val), Value::Internal(other_val)) => self_val + other_val,
-			(Value::Internal(val), Value::Null) | (Value::Null, Value::I64(val)) => val,
+			(Value::Internal(val), Value::Null) | (Value::Null, Value::Internal(val)) => val,
 			(Value::Internal(val), _) | (_, Value::Internal(val)) => val + 1,
 			(_, _) => 2,
 		}))
