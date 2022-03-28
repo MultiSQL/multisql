@@ -32,6 +32,7 @@ Main *TODO*s:
 	- (without the cost of perf somehow?)
 - [ ] Fix unreachable error areas
 - [ ] Testing
+- [ ] Clippy
 
 Eventually:
 - [ ] Config
