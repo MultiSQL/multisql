@@ -2,7 +2,7 @@
 	name = "multisql"
 	version = "0.0.0"
 	authors = ["Kyran Gostelow <kyran@gostelow.me>", "Taehoon Moon <taehoon.moon@outlook.com>"]
-	edition = "2018"
+	edition = "2021"
 	description = "MultiSQL"
 	license = "Apache-2.0"
 	repository = "https://github.com/SyRis-Consulting/multisql"
