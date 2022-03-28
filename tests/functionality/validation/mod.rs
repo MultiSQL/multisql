@@ -1,1 +1,1 @@
-crate::util_macros::make_all!(functionality::validation, [unique]);
+crate::util_macros::make_all!(functionality::validation, [unique, types]);
