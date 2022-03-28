@@ -21,12 +21,18 @@ pub enum AlterError {
 	#[error("table does not exist: {0}")]
 	TableNotFound(String),
 
+	#[error("column {1} does not exist on table {0}")]
+	ColumnNotFound(String, String),
+
 	// validate column def
 	#[error("unsupported data type: {0}")]
 	UnsupportedDataType(String),
 
 	#[error("unsupported column option: {0}")]
 	UnsupportedColumnOption(String),
+
+	#[error("unsupported number of index columns for new index '{0}'")]
+	UnsupportedNumberOfIndexColumns(String),
 
 	#[error("column '{0}' of data type '{1}' is unsupported for unique constraint")]
 	UnsupportedDataTypeForUniqueColumn(String, String),

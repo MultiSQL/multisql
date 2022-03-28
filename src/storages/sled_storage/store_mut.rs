@@ -106,7 +106,7 @@ impl StoreMut for SledStorage {
 		&mut self,
 		table_name: &str,
 		index_name: &str,
-		keys: Vec<(Vec<Value>, Value)>,
+		keys: Vec<(Value, Value)>,
 	) -> Result<()> {
 		let prefix = index_prefix(table_name, index_name);
 
@@ -144,6 +144,6 @@ pub fn index_prefix(table_name: &str, index_name: &str) -> String {
 	format!("index/{}/{}/", table_name, index_name)
 }
 
-pub fn indexed_key(prefix: &str, index: &[Value]) -> Result<IVec> {
+pub fn indexed_key(prefix: &str, index: &Value) -> Result<IVec> {
 	Ok([prefix.as_bytes(), &bincode::serialize(index).map_err(err_into)?].concat().into())
 }

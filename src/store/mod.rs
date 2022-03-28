@@ -77,6 +77,9 @@ pub trait Store {
 	async fn scan_data_indexed(&self, _table_name: &str, _index_filters: &[IndexFilter]) -> Result<RowIter> {
 		Err(StorageError::Unimplemented.into())
 	}
+	async fn scan_index(&self, _table_name: &str, _index_filter: IndexFilter) -> Result<Box<dyn Iterator<Item = (Value, Value)>>> {
+		Err(StorageError::Unimplemented.into())
+	}
 }
 
 /// `StoreMut` takes role of mutation, related to `INSERT`, `CREATE`, `DELETE`, `DROP` and
@@ -107,7 +110,7 @@ pub trait StoreMut {
 		&mut self,
 		_index_name: &str,
 		_table_name: &str,
-		_keys: Vec<(Vec<Value>, Value)>,
+		_keys: Vec<(Value, Value)>,
 	) -> Result<()> {
 		Err(StorageError::Unimplemented.into())
 	}

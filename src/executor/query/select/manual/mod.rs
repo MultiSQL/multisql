@@ -67,14 +67,14 @@ impl Manual {
 			.map(|expression| MetaRecipe::new(expression)?.simplify_by_context(context))
 			.collect::<Result<Vec<MetaRecipe>>>()?;
 
-		let (select_items, mut subqueries): (Vec<SelectItem>, Vec<Vec<JoinManual>>) = projection
+		let (select_items, _subqueries): (Vec<SelectItem>, Vec<Vec<JoinManual>>) = projection
 			.into_iter()
 			.map(|select_item| convert_select_item(select_item, context))
 			.collect::<Result<Vec<(SelectItem, Vec<JoinManual>)>>>()?
 			.into_iter()
 			.unzip();
 
-		subqueries.push(constraint.meta.subqueries.clone());
+		/*subqueries.push(constraint.meta.subqueries.clone());
 
 		let subqueries = subqueries
 			.into_iter()
@@ -91,7 +91,7 @@ impl Manual {
 		// - No plane isolation (ambiguous columns because subquery columns and plane columns are treated the same)
 		if !subqueries.is_empty() {
 			return Err(ManualError::UnimplementedSubquery.into());
-		}
+		}*/
 
 		let /*mut*/ joins = from
             .into_iter()
