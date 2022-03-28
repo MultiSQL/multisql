@@ -21,7 +21,11 @@ pub async fn update(
 		TableFactor::Table { name, .. } => get_name(&name).map(|name| name.clone()),
 		_ => Err(ExecuteError::QueryNotSupported.into()),
 	}?;
-	let Schema { column_defs, indexes, .. } = storage
+	let Schema {
+		column_defs,
+		indexes,
+		..
+	} = storage
 		.fetch_schema(&table)
 		.await?
 		.ok_or(ExecuteError::TableNotExists)?;

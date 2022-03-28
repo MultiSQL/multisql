@@ -17,7 +17,11 @@ pub async fn insert(
 	expect_data: bool,
 ) -> Result<Payload> {
 	let table_name = get_name(table_name)?;
-	let Schema { column_defs, .. } = storages[0]
+	let Schema {
+		column_defs,
+		indexes,
+		..
+	} = storages[0]
 		.1
 		.fetch_schema(table_name)
 		.await?
@@ -37,11 +41,20 @@ pub async fn insert(
 
 	let result = storages[0].1.insert_data(table_name, rows.clone()).await;
 
-	result.map(|_| {
+	let result = result.map(|_| {
 		if expect_data {
 			Payload::Select { labels, rows }
 		} else {
 			Payload::Insert(num_rows)
 		}
-	})
+	})?;
+
+	for index in indexes.iter() {
+		// TODO: Should definitely be just inserting an index record
+		index
+			.reset(storages[0].1, &table_name, &column_defs)
+			.await?; // TODO: Not this; optimise
+	}
+
+	Ok(result)
 }

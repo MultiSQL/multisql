@@ -181,6 +181,44 @@ crate::util_macros::testcase!(
 			WHERE
 				a > 2
 		"# => a = I64: (3),(3),(4),(10),(100));
+		crate::util_macros::assert_select!(glue, r#"
+			SELECT
+				a
+			FROM
+				indexed
+			WHERE
+				a < 2
+		"# => a = I64: (1),(1));
+
+		assert!(
+			matches!(
+				glue.execute(r#"
+					INSERT INTO indexed (
+						a
+					) VALUES (
+						-5
+					)
+				"#),
+				Ok(_)
+			)
+		);
+
+		crate::util_macros::assert_select!(glue, r#"
+			SELECT
+				a
+			FROM
+				indexed
+			WHERE
+				a > 2
+		"# => a = I64: (3),(3),(4),(10),(100));
+		crate::util_macros::assert_select!(glue, r#"
+			SELECT
+				a
+			FROM
+				indexed
+			WHERE
+				a < 2
+		"# => a = I64: (-5),(1),(1));
 
 		assert!(
 			matches!(

@@ -1,13 +1,10 @@
 use {
 	super::{
-		alter_row::{insert, update, delete},
+		alter_row::{delete, insert, update},
 		alter_table::{create_index, create_table, drop, truncate},
 		query::query,
 	},
-	crate::{
-		glue::Context,
-		parse_sql::Query, Result, Row, StorageInner, Value,
-	},
+	crate::{glue::Context, parse_sql::Query, Result, Row, StorageInner, Value},
 	serde::Serialize,
 	sqlparser::ast::{SetVariableValue, Statement},
 	std::convert::TryInto,
