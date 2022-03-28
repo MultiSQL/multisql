@@ -1,4 +1,6 @@
 # MultiSQL
+[![codecov](https://codecov.io/gh/KyGost/multisql/branch/main/graph/badge.svg?token=RX0OCX7AJ6)](https://codecov.io/gh/KyGost/multisql)
+
 Diverged from [GlueSQL](https://github.com/gluesql/gluesql) as of [GlueSQLv0.5.0](https://github.com/gluesql/gluesql/releases/tag/v0.5.0).
 
 See origin differences at [#8](https://github.com/SyRis-Consulting/gluesql/pull/8).
