@@ -1,6 +1,6 @@
 use {
 	crate::{
-		executor::types::{ComplexColumnName, Row},
+		executor::types::{ColumnInfo, Row},
 		MetaRecipe, PlannedRecipe, RecipeUtilities, Result, Value,
 	},
 	rayon::prelude::*,
@@ -10,7 +10,7 @@ use {
 
 pub struct Order(Vec<PlannedOrderItem>);
 impl Order {
-	pub fn new(order_by: Vec<OrderByExpr>, columns: &Vec<ComplexColumnName>) -> Result<Self> {
+	pub fn new(order_by: Vec<OrderByExpr>, columns: &Vec<ColumnInfo>) -> Result<Self> {
 		let order_items = order_by
 			.into_iter()
 			.map(|order_by_item| PlannedOrderItem::new(order_by_item, columns))
@@ -54,7 +54,7 @@ impl Order {
 
 struct PlannedOrderItem(OrderTerm, PlannedRecipe);
 impl PlannedOrderItem {
-	pub fn new(order_by_item: OrderByExpr, columns: &Vec<ComplexColumnName>) -> Result<Self> {
+	pub fn new(order_by_item: OrderByExpr, columns: &Vec<ColumnInfo>) -> Result<Self> {
 		let OrderByExpr {
 			expr,
 			asc,

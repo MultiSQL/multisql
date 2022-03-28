@@ -4,7 +4,7 @@ use {
 		Manual, Order, SelectItem,
 	},
 	crate::{
-		executor::{types::ComplexColumnName, PlannedRecipe},
+		executor::{types::ColumnInfo, PlannedRecipe},
 		Context, Result, StorageInner,
 	},
 	futures::future::join_all,
@@ -114,9 +114,14 @@ impl Plan {
 				columns
 			});
 
+		let (constraint, mut index_filters) = PlannedRecipe::new_constraint(constraint, &columns)?;
+
 		let mut joins = requested_joins
 			.into_iter()
-			.map(|(_, join)| JoinExecute::new(join, &columns))
+			.map(|(_, join)| {
+				let index_filter = index_filters.remove(&join.table);
+				JoinExecute::new(join, &columns, index_filter)
+			})
 			.collect::<Result<Vec<JoinExecute>>>()?;
 
 		if let Some(first) = joins.first_mut() {
@@ -139,7 +144,7 @@ impl Plan {
 						let specified_table = specifier
 							.map(|specifier| specifier.get(0).map(|result| result.clone()))
 							.flatten();
-						let matches_table = |column: &ComplexColumnName| {
+						let matches_table = |column: &ColumnInfo| {
 							specified_table
 								.clone()
 								.map(|specified_table| {
@@ -184,7 +189,6 @@ impl Plan {
 
 		let (select_items, labels) = select_items.into_iter().unzip();
 
-		let constraint = PlannedRecipe::new(constraint, &columns)?;
 		let group_constraint = PlannedRecipe::new(group_constraint, &columns)?;
 		let groups = groups
 			.into_iter()
@@ -196,8 +200,8 @@ impl Plan {
 			joins,
 			select_items,
 			constraint,
-			group_constraint,
 			groups,
+			group_constraint,
 			order_by,
 			labels,
 		})

@@ -1,18 +1,12 @@
 use {
 	super::{
-		alter_row::{insert, update},
-		alter_table::{create_table, drop, truncate},
+		alter_row::{delete, insert, update},
+		alter_table::{create_index, create_table, drop, truncate},
 		query::query,
-		types::ComplexColumnName,
 	},
-	crate::{
-		data::{get_name, Schema},
-		glue::Context,
-		parse_sql::Query,
-		MetaRecipe, PlannedRecipe, Result, Row, StorageInner, Value,
-	},
+	crate::{glue::Context, parse_sql::Query, Result, Row, StorageInner, Value},
 	serde::Serialize,
-	sqlparser::ast::{ColumnDef, SetVariableValue, Statement},
+	sqlparser::ast::{SetVariableValue, Statement},
 	std::convert::TryInto,
 	thiserror::Error as ThisError,
 };
@@ -88,6 +82,22 @@ pub async fn execute(
 		Statement::Truncate { table_name, .. } => truncate(storages[0].1, table_name)
 			.await
 			.map(|_| Payload::TruncateTable),
+		Statement::CreateIndex {
+			name,
+			table_name,
+			columns,
+			unique,
+			if_not_exists,
+		} => create_index(
+			storages[0].1,
+			table_name,
+			name,
+			columns,
+			*unique,
+			*if_not_exists,
+		)
+		.await
+		.map(|_| Payload::Create),
 
 		//-- Rows
 		Statement::Insert {
@@ -97,68 +107,14 @@ pub async fn execute(
 			..
 		} => insert(&mut storages, context, table_name, columns, source, false).await,
 		Statement::Update {
-			table_name,
+			table,
 			selection,
 			assignments,
-		} => update(storages[0].1, &context, table_name, selection, assignments).await,
+		} => update(storages[0].1, &context, table, selection, assignments).await,
 		Statement::Delete {
 			table_name,
 			selection,
-		} => {
-			let table_name = get_name(&table_name)?;
-			let Schema { column_defs, .. } = storages[0]
-				.1
-				.fetch_schema(table_name)
-				.await?
-				.ok_or(ExecuteError::TableNotExists)?;
-
-			let columns = column_defs
-				.clone()
-				.into_iter()
-				.map(|column_def| {
-					let ColumnDef { name, .. } = column_def;
-					ComplexColumnName::of_name(name.value)
-				})
-				.collect();
-			let filter = selection
-				.clone()
-				.map(|selection| {
-					PlannedRecipe::new(
-						MetaRecipe::new(selection)?.simplify_by_context(context)?,
-						&columns,
-					)
-				})
-				.unwrap_or(Ok(PlannedRecipe::TRUE))?;
-
-			let keys = storages[0]
-				.1
-				.scan_data(table_name)
-				.await?
-				.filter_map(|row_result| {
-					let (key, row) = match row_result {
-						Ok(keyed_row) => keyed_row,
-						Err(error) => return Some(Err(error)),
-					};
-
-					let row = row.0;
-
-					let confirm_constraint = filter.confirm_constraint(&row.clone());
-					match confirm_constraint {
-						Ok(true) => Some(Ok(key)),
-						Ok(false) => None,
-						Err(error) => Some(Err(error)),
-					}
-				})
-				.collect::<Result<Vec<Value>>>()?;
-
-			let num_keys = keys.len();
-
-			storages[0]
-				.1
-				.delete_data(keys)
-				.await
-				.map(|_| Payload::Delete(num_keys))
-		}
+		} => delete(&mut storages, context, table_name, selection).await,
 
 		//- Selection
 		Statement::Query(query_value) => {

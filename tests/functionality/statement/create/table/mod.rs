@@ -1,12 +1,3 @@
-crate::util_macros::testcase!(
-	(|mut glue: multisql::Glue| {
-		glue.execute(
-			r#"
-		CREATE TABLE basic (
-			a INTEGER
-		)
-	"#,
-		)
-		.expect("CREATE TABLE basic");
-	})
-);
+crate::util_macros::make_all!(functionality::statement::create::table, [table_basic]);
+
+// TODO: table_indexed

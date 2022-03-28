@@ -1,9 +1,13 @@
+use std::collections::HashMap;
+
+use crate::IndexFilter;
+
 use {
 	super::{
 		Ingredient, MetaRecipe, Method, Recipe, RecipeError, RecipeUtilities, Resolve, SimplifyBy,
 	},
 	crate::{
-		executor::types::{ComplexColumnName, Row},
+		executor::types::{ColumnInfo, Row},
 		Result, Value,
 	},
 	fstrings::*,
@@ -22,7 +26,7 @@ impl PlannedRecipe {
 		needed_column_indexes: vec![],
 		aggregates: vec![],
 	};
-	pub fn new(meta_recipe: MetaRecipe, columns: &Vec<ComplexColumnName>) -> Result<Self> {
+	pub fn new(meta_recipe: MetaRecipe, columns: &Vec<ColumnInfo>) -> Result<Self> {
 		let MetaRecipe { recipe, meta } = meta_recipe;
 		let aggregates = meta.aggregates;
 		let needed_column_indexes = meta
@@ -57,6 +61,47 @@ impl PlannedRecipe {
 			needed_column_indexes,
 			aggregates,
 		})
+	}
+	pub fn new_constraint(
+		meta_recipe: MetaRecipe,
+		columns: &Vec<ColumnInfo>,
+	) -> Result<(Self, HashMap<String, IndexFilter>)> {
+		let mut new = Self::new(meta_recipe, columns)?;
+		let indexed_table_columns = columns.clone().into_iter().enumerate().fold(
+			HashMap::new(),
+			|mut tables: HashMap<String, Vec<(usize, String)>>, (index, column)| {
+				if let Some(index_name) = new
+					.needed_column_indexes
+					.iter()
+					.find(|need_index| need_index == &&Some(index))
+					.and_then(|_| column.index.clone())
+				{
+					let col_table = column.table.name;
+					if let Some(table) = tables.get_mut(&col_table) {
+						table.push((index, index_name));
+					} else {
+						tables.insert(col_table, vec![(index, index_name)]);
+					}
+				}
+				tables
+			},
+		);
+
+		let indexed_column_tables = indexed_table_columns.into_iter().fold(
+			HashMap::new(),
+			|mut indexed_columns, (table, columns)| {
+				columns.into_iter().for_each(|(column, index_name)| {
+					indexed_columns.insert(column, (table.clone(), index_name));
+				});
+				indexed_columns
+			},
+		);
+
+		let result = new.recipe.reduce_by_index_filter(indexed_column_tables);
+		new.recipe = result.0;
+		let index_filters = result.1.unwrap_or(HashMap::new());
+
+		Ok((new, index_filters))
 	}
 	pub fn of_index(index: usize) -> Self {
 		Self {
@@ -213,7 +258,7 @@ impl PlannedRecipe {
 		&self,
 		selection_index: usize,
 		include_table: bool,
-		columns: &Vec<ComplexColumnName>,
+		columns: &Vec<ColumnInfo>,
 	) -> String {
 		if let Recipe::Ingredient(Ingredient::Column(_)) = self.recipe {
 			self.needed_column_indexes

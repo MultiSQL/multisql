@@ -7,9 +7,10 @@ pub type LabelsAndRows = (Vec<Label>, Vec<Row>);
 pub type ObjectName = Vec<String>;
 
 #[derive(Debug, Clone)]
-pub struct ComplexColumnName {
+pub struct ColumnInfo {
 	pub table: ComplexTableName,
 	pub name: String,
+	pub index: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -18,20 +19,21 @@ pub struct ComplexTableName {
 	pub alias: Alias,
 	pub name: String,
 }
-impl ComplexColumnName {
+impl ColumnInfo {
 	pub fn of_name(name: String) -> Self {
-		ComplexColumnName {
+		ColumnInfo {
 			table: ComplexTableName {
 				database: String::new(),
 				name: String::new(),
 				alias: None,
 			},
 			name,
+			index: None,
 		}
 	}
 }
 
-impl PartialEq<ObjectName> for ComplexColumnName {
+impl PartialEq<ObjectName> for ColumnInfo {
 	fn eq(&self, other: &ObjectName) -> bool {
 		let mut other = other.clone();
 		other.reverse();

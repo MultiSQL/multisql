@@ -160,12 +160,14 @@ impl Glue {
 				limit: None,
 				offset: None,
 				fetch: None,
+				lock: None,
 			}),
 			after_columns: vec![],
 			table: false,
 			overwrite: false,
 			or: None,
 			partitioned: None,
+			on: None,
 		});
 		self.execute_parsed(query)
 	}

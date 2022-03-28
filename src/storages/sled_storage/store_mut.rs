@@ -1,6 +1,6 @@
 use {
 	super::{err_into, SledStorage},
-	crate::{Result, Row, Schema, StoreMut, Value},
+	crate::{BigEndian, Result, Row, Schema, StoreMut, Value},
 	async_trait::async_trait,
 	rayon::prelude::*,
 	sled::IVec,
@@ -101,4 +101,64 @@ impl StoreMut for SledStorage {
 			});
 		self.tree.apply_batch(batch).map_err(err_into)
 	}
+
+	async fn update_index(
+		&mut self,
+		table_name: &str,
+		index_name: &str,
+		keys: Vec<(Value, Value)>,
+	) -> Result<()> {
+		let prefix = index_prefix(table_name, index_name);
+
+		let remove_keys = self
+			.tree
+			.scan_prefix(prefix.as_bytes())
+			.par_bridge()
+			.map(|result| result.map(|(key, _)| key).map_err(err_into))
+			.collect::<Result<Vec<_>>>()?;
+
+		let keys: Vec<(IVec, IVec)> = keys
+			.into_iter()
+			.enumerate()
+			.map(|(idx, (index_key, row_key))| {
+				// TODO: Don't use idx where unique
+				let index_key = unique_indexed_key(&prefix, &index_key, idx)?;
+				let row_key = IVec::from(&row_key);
+				Ok((index_key, row_key))
+			})
+			.collect::<Result<Vec<(IVec, IVec)>>>()?;
+
+		let batch = remove_keys
+			.into_iter()
+			.fold(sled::Batch::default(), |mut batch, key| {
+				batch.remove(key);
+				batch
+			});
+		let batch = keys
+			.into_iter()
+			.fold(batch, |mut batch, (index_key, row_key)| {
+				batch.insert(index_key, row_key);
+				batch
+			});
+
+		self.tree.apply_batch(batch).map_err(err_into)
+	}
+}
+
+pub fn index_prefix(table_name: &str, index_name: &str) -> String {
+	format!("index/{}/{}/", table_name, index_name)
+}
+
+pub fn indexed_key(prefix: &str, index: &Value) -> Result<IVec> {
+	Ok([prefix.as_bytes(), &index.to_be_bytes()].concat().into())
+}
+pub fn unique_indexed_key(prefix: &str, index: &Value, idx: usize) -> Result<IVec> {
+	Ok([
+		prefix.as_bytes(),
+		&index.to_be_bytes(),
+		&[0x00],
+		&idx.to_be_bytes(),
+	]
+	.concat()
+	.into())
 }

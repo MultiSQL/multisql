@@ -41,6 +41,8 @@ pub enum RecipeError {
 	UnimplementedMethod(String),
 	#[error("{0} is unimplemented")]
 	UnimplementedExpression(Expr),
+	#[error("something is unimplemented")]
+	Unimplemented,
 
 	#[error("other failure occurred: {0}")]
 	Failed(String),

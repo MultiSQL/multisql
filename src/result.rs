@@ -68,8 +68,8 @@ pub enum Error {
 	CSVStorage(#[from] CSVStorageError),
 }
 
-unsafe impl Send for Error {} // !!!! UNSAFE CODE WHICH I DON'T UNDERSTAND FULLY
-unsafe impl Sync for Error {} // !!!! UNSAFE CODE WHICH I DON'T UNDERSTAND FULLY
+unsafe impl Send for Error {}
+unsafe impl Sync for Error {}
 
 pub type Result<T> = std::result::Result<T, Error>;
 pub type MutResult<T, U> = std::result::Result<(T, U), (T, Error)>;
