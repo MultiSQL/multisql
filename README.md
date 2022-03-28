@@ -38,3 +38,6 @@ Eventually:
 - [ ] Config
 	- [ ] Permissions
 - [ ] Pre plan (allows choice and analysis of specific optimisations and such)
+- [ ] Transaction log
+- [ ] Transaction store
+- [ ] Query undo
