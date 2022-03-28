@@ -27,7 +27,6 @@ Main *TODO*s:
 - [ ] XML+ZIP (Excel and such) storage
 - [ ] Primary Key
 - [ ] Foreign Key
-- [ ] Optional multithreading
 - [ ] Clean up bad code (`clone`s and grossness)
 - [ ] More error information/context
 	- (without the cost of perf somehow?)
