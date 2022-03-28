@@ -128,7 +128,10 @@ impl Recipe {
 						if let Some((table, index)) = indexed_columns.get(&column) {
 							let mut filters = HashMap::new();
 							let max_val = value.type_max();
-							filters.insert(table.clone(), Between(index.clone(), value.inc(), max_val));
+							filters.insert(
+								table.clone(),
+								Between(index.clone(), value.inc(), max_val),
+							);
 							return (Recipe::TRUE, Some(filters));
 						}
 					}
@@ -160,7 +163,10 @@ impl Recipe {
 						if let Some((table, index)) = indexed_columns.get(&column) {
 							let mut filters = HashMap::new();
 							let min_val = value.type_min();
-							filters.insert(table.clone(), Between(index.clone(), min_val, value.inc()));
+							filters.insert(
+								table.clone(),
+								Between(index.clone(), min_val, value.inc()),
+							);
 							return (Recipe::TRUE, Some(filters));
 						}
 					}

@@ -157,5 +157,50 @@ crate::util_macros::testcase!(
 				a < 4
 				AND a > 1
 		"# => a = I64: (2),(3),(3));
+
+		assert!(
+			matches!(
+				glue.execute(r#"
+					INSERT INTO indexed (
+						a
+					) VALUES (
+						1
+					), (
+						10
+					)
+				"#),
+				Ok(_)
+			)
+		);
+
+		crate::util_macros::assert_select!(glue, r#"
+			SELECT
+				a
+			FROM
+				indexed
+			WHERE
+				a > 2
+		"# => a = I64: (3),(3),(4),(10),(100));
+
+		assert!(
+			matches!(
+				glue.execute(r#"
+					DELETE FROM indexed
+					WHERE
+						a = 2
+						OR a = 4
+				"#),
+				Ok(_)
+			)
+		);
+
+		crate::util_macros::assert_select!(glue, r#"
+			SELECT
+				a
+			FROM
+				indexed
+			WHERE
+				a > 2
+		"# => a = I64: (3),(3),(10),(100));
 	})
 );
