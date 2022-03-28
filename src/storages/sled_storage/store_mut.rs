@@ -119,8 +119,10 @@ impl StoreMut for SledStorage {
 
 		let keys: Vec<(IVec, IVec)> = keys
 			.into_iter()
-			.map(|(index_key, row_key)| {
-				let index_key = indexed_key(&prefix, &index_key)?;
+			.enumerate()
+			.map(|(idx, (index_key, row_key))| {
+				// TODO: Don't use idx where unique
+				let index_key = unique_indexed_key(&prefix, &index_key, idx)?;
 				let row_key = IVec::from(&row_key);
 				Ok((index_key, row_key))
 			})
@@ -151,6 +153,15 @@ pub fn indexed_key(prefix: &str, index: &Value) -> Result<IVec> {
 	Ok([
 		prefix.as_bytes(),
 		&bincode::serialize(index).map_err(err_into)?,
+	]
+	.concat()
+	.into())
+}
+pub fn unique_indexed_key(prefix: &str, index: &Value, idx: usize) -> Result<IVec> {
+	Ok([
+		prefix.as_bytes(),
+		&bincode::serialize(index).map_err(err_into)?,
+		&idx.to_be_bytes(),
 	]
 	.concat()
 	.into())

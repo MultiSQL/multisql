@@ -102,7 +102,7 @@ impl Recipe {
 					);
 				}
 				Method::BinaryOperation(operator, left, right)
-					if operator as usize == Value::gt as usize =>
+					if operator as usize == Value::gt_eq as usize =>
 				{
 					if let (
 						Recipe::Ingredient(Ingredient::Column(column)),
