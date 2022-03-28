@@ -6,6 +6,7 @@ use {
 	std::{cmp::Ordering, fmt::Debug},
 };
 
+mod big_endian;
 mod cast;
 mod convert;
 mod error;
@@ -13,6 +14,7 @@ mod literal;
 mod methods;
 
 pub use {
+	big_endian::BigEndian,
 	cast::{Cast, CastWithRules},
 	convert::{Convert, ConvertFrom},
 	error::ValueError,

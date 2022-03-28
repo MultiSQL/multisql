@@ -14,7 +14,8 @@ pub struct Index {
 
 #[derive(Clone, Debug)]
 pub enum IndexFilter {
-	Between(String, Value, Value), // Index, Min, Max
+	LessThan(String, Value), // Index, Min, Max
+	MoreThan(String, Value), // Index, Min, Max
 	Inner(Box<IndexFilter>, Box<IndexFilter>),
 	Outer(Box<IndexFilter>, Box<IndexFilter>),
 }
@@ -111,8 +112,7 @@ impl Recipe {
 					{
 						if let Some((table, index)) = indexed_columns.get(&column) {
 							let mut filters = HashMap::new();
-							let max_val = value.type_max();
-							filters.insert(table.clone(), Between(index.clone(), value, max_val));
+							filters.insert(table.clone(), MoreThan(index.clone(), value));
 							return (Recipe::TRUE, Some(filters));
 						}
 					}
@@ -127,11 +127,7 @@ impl Recipe {
 					{
 						if let Some((table, index)) = indexed_columns.get(&column) {
 							let mut filters = HashMap::new();
-							let max_val = value.type_max();
-							filters.insert(
-								table.clone(),
-								Between(index.clone(), value.inc(), max_val),
-							);
+							filters.insert(table.clone(), MoreThan(index.clone(), value.inc()));
 							return (Recipe::TRUE, Some(filters));
 						}
 					}
@@ -146,8 +142,7 @@ impl Recipe {
 					{
 						if let Some((table, index)) = indexed_columns.get(&column) {
 							let mut filters = HashMap::new();
-							let min_val = value.type_min();
-							filters.insert(table.clone(), Between(index.clone(), min_val, value));
+							filters.insert(table.clone(), LessThan(index.clone(), value));
 							return (Recipe::TRUE, Some(filters));
 						}
 					}
@@ -162,11 +157,7 @@ impl Recipe {
 					{
 						if let Some((table, index)) = indexed_columns.get(&column) {
 							let mut filters = HashMap::new();
-							let min_val = value.type_min();
-							filters.insert(
-								table.clone(),
-								Between(index.clone(), min_val, value.inc()),
-							);
+							filters.insert(table.clone(), LessThan(index.clone(), value.inc()));
 							return (Recipe::TRUE, Some(filters));
 						}
 					}

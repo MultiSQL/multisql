@@ -1,6 +1,6 @@
 use {
 	super::{err_into, SledStorage},
-	crate::{Result, Row, Schema, StoreMut, Value},
+	crate::{BigEndian, Result, Row, Schema, StoreMut, Value},
 	async_trait::async_trait,
 	rayon::prelude::*,
 	sled::IVec,
@@ -150,17 +150,13 @@ pub fn index_prefix(table_name: &str, index_name: &str) -> String {
 }
 
 pub fn indexed_key(prefix: &str, index: &Value) -> Result<IVec> {
-	Ok([
-		prefix.as_bytes(),
-		&bincode::serialize(index).map_err(err_into)?,
-	]
-	.concat()
-	.into())
+	Ok([prefix.as_bytes(), &index.to_be_bytes()].concat().into())
 }
 pub fn unique_indexed_key(prefix: &str, index: &Value, idx: usize) -> Result<IVec> {
 	Ok([
 		prefix.as_bytes(),
-		&bincode::serialize(index).map_err(err_into)?,
+		&index.to_be_bytes(),
+		&[0x00],
 		&idx.to_be_bytes(),
 	]
 	.concat()

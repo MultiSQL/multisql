@@ -1,6 +1,7 @@
 use std::cmp::Ordering;
 
 use rayon::slice::ParallelSliceMut;
+use sled::IVec;
 
 use crate::{join_iters, IndexFilter, JoinType, NullOrd, Row, Value};
 
@@ -64,14 +65,18 @@ impl Store for SledStorage {
 
 	async fn scan_index(&self, table_name: &str, index_filter: IndexFilter) -> Result<Vec<Value>> {
 		use IndexFilter::*;
-		match index_filter {
-			Between(index_name, min, max) => {
+		match index_filter.clone() {
+			LessThan(index_name, ..) | MoreThan(index_name, ..) => {
 				// TODO: Genericise and optimise
 				let prefix = index_prefix(table_name, &index_name);
-				let min_key = indexed_key(&prefix, &min)?;
-				let max_key = indexed_key(&prefix, &max)?;
+				let abs_min = IVec::from(prefix.as_bytes());
+				let abs_max = IVec::from([prefix.as_bytes(), &[0xFF]].concat());
 
-				let index_results = self.tree.range(min_key..max_key);
+				let index_results = match index_filter {
+					LessThan(_, max) => self.tree.range(abs_min..indexed_key(&prefix, &max)?),
+					MoreThan(_, min) => self.tree.range(indexed_key(&prefix, &min)?..abs_max),
+					_ => unreachable!(),
+				};
 				let mut index_results = index_results
 					.map(|item| {
 						let (_, pk) = item.map_err(err_into)?;
