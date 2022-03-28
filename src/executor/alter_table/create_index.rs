@@ -27,7 +27,12 @@ pub async fn create_index(
 		.await?
 		.ok_or(ExecuteError::TableNotExists)?;
 
-	if schema.indexes.iter().find(|index| index.name == name).is_some() {
+	if schema
+		.indexes
+		.iter()
+		.find(|index| index.name == name)
+		.is_some()
+	{
 		if !if_not_exists {
 			Err(AlterError::AlreadyExists(name).into())
 		} else {
@@ -35,16 +40,27 @@ pub async fn create_index(
 		}
 	} else {
 		let mut columns = columns.into_iter();
-		let column = columns.next().and_then(|column| {
-			match column.expr.clone() {
-				Expr::Identifier(ident) => Some(ident.value),
-				_ => None
-			}
+		let column = columns.next().and_then(|column| match column.expr.clone() {
+			Expr::Identifier(ident) => Some(ident.value),
+			_ => None,
 		});
 		if columns.next().is_some() {
 			Err(AlterError::UnsupportedNumberOfIndexColumns(name).into())
-		} else if column.as_ref().and_then(|column| schema.column_defs.iter().find(|column_def| &column_def.name.value == column)).is_none() {
-			Err(AlterError::ColumnNotFound(table_name.clone(), column.unwrap_or(String::from("NILL"))).into())
+		} else if column
+			.as_ref()
+			.and_then(|column| {
+				schema
+					.column_defs
+					.iter()
+					.find(|column_def| &column_def.name.value == column)
+			})
+			.is_none()
+		{
+			Err(AlterError::ColumnNotFound(
+				table_name.clone(),
+				column.unwrap_or(String::from("NILL")),
+			)
+			.into())
 		} else if let Some(column) = column {
 			let mut schema = schema.clone();
 			let index = Index::new(name, column, unique);

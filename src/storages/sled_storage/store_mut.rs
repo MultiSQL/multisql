@@ -117,11 +117,14 @@ impl StoreMut for SledStorage {
 			.map(|result| result.map(|(key, _)| key).map_err(err_into))
 			.collect::<Result<Vec<_>>>()?;
 
-		let keys: Vec<(IVec, IVec)> = keys.into_iter().map(|(index_key, row_key)| {
-			let index_key = indexed_key(&prefix, &index_key)?;
-			let row_key = IVec::from(&row_key);
-			Ok((index_key, row_key))
-		}).collect::<Result<Vec<(IVec, IVec)>>>()?;
+		let keys: Vec<(IVec, IVec)> = keys
+			.into_iter()
+			.map(|(index_key, row_key)| {
+				let index_key = indexed_key(&prefix, &index_key)?;
+				let row_key = IVec::from(&row_key);
+				Ok((index_key, row_key))
+			})
+			.collect::<Result<Vec<(IVec, IVec)>>>()?;
 
 		let batch = remove_keys
 			.into_iter()
@@ -145,5 +148,10 @@ pub fn index_prefix(table_name: &str, index_name: &str) -> String {
 }
 
 pub fn indexed_key(prefix: &str, index: &Value) -> Result<IVec> {
-	Ok([prefix.as_bytes(), &bincode::serialize(index).map_err(err_into)?].concat().into())
+	Ok([
+		prefix.as_bytes(),
+		&bincode::serialize(index).map_err(err_into)?,
+	]
+	.concat()
+	.into())
 }

@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 use crate::{result::Result, Row, StorageInner, Value};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
-use sqlparser::ast::{ColumnDef};
+use sqlparser::ast::ColumnDef;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Index {
@@ -37,18 +37,23 @@ impl Index {
 			.scan_data(table)
 			.await?
 			.collect::<Result<Vec<(Value, Row)>>>()?;
-		let column_index: usize = column_defs.iter().enumerate()
-						.find_map(|(index, def)| (def.name.value == self.column).then(||index))
-						.unwrap(); // TODO: Handle
+		let column_index: usize = column_defs
+			.iter()
+			.enumerate()
+			.find_map(|(index, def)| (def.name.value == self.column).then(|| index))
+			.unwrap(); // TODO: Handle
 
 		let mut rows: Vec<(Value, Vec<Value>)> =
 			rows.into_iter().map(|(key, row)| (key, row.0)).collect();
 		rows.par_sort_unstable_by(|(_, a_values), (_, b_values)| {
-			a_values[column_index].partial_cmp(&b_values[column_index]).unwrap_or(Ordering::Equal)
+			a_values[column_index]
+				.partial_cmp(&b_values[column_index])
+				.unwrap_or(Ordering::Equal)
 		});
-		let keys = rows.into_iter().map(|(key, mut values)| {
-			(values.swap_remove(column_index), key)
-		}).collect();
+		let keys = rows
+			.into_iter()
+			.map(|(key, mut values)| (values.swap_remove(column_index), key))
+			.collect();
 
 		storage.update_index(&table, &self.name, keys).await
 	}

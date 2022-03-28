@@ -1,15 +1,15 @@
 mod index;
+mod join;
 mod row;
 pub mod schema;
 mod table;
 pub mod value;
-mod join;
 
 pub use {
 	index::{Index, IndexFilter},
+	join::{join_iters, JoinType},
 	row::{Row, RowError},
 	schema::Schema,
 	table::{get_name, Table, TableError},
 	value::*,
-	join::{JoinType, join_iters},
 };

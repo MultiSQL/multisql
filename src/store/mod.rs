@@ -73,11 +73,19 @@ pub trait Store {
 	async fn scan_data(&self, _table_name: &str) -> Result<RowIter> {
 		Err(StorageError::Unimplemented.into())
 	}
-	
-	async fn scan_data_indexed(&self, _table_name: &str, _index_filters: &[IndexFilter]) -> Result<RowIter> {
+
+	async fn scan_data_indexed(
+		&self,
+		_table_name: &str,
+		_index_filters: IndexFilter,
+	) -> Result<RowIter> {
 		Err(StorageError::Unimplemented.into())
 	}
-	async fn scan_index(&self, _table_name: &str, _index_filter: IndexFilter) -> Result<Box<dyn Iterator<Item = (Value, Value)>>> {
+	async fn scan_index(
+		&self,
+		_table_name: &str,
+		_index_filter: IndexFilter,
+	) -> Result<Vec<Value>> {
 		Err(StorageError::Unimplemented.into())
 	}
 }
