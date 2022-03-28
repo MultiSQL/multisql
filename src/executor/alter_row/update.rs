@@ -2,7 +2,7 @@ use {
 	super::{auto_increment, columns_to_positions, validate, validate_unique},
 	crate::{
 		data::{get_name, Schema},
-		executor::types::{ComplexColumnName, Row as VecRow},
+		executor::types::{ColumnInfo, Row as VecRow},
 		Context, ExecuteError, MetaRecipe, Payload, PlannedRecipe, RecipeUtilities, Result, Row,
 		StorageInner, Value,
 	},
@@ -31,7 +31,7 @@ pub async fn update(
 		.into_iter()
 		.map(|column_def| {
 			let ColumnDef { name, .. } = column_def;
-			ComplexColumnName::of_name(name.value)
+			ColumnInfo::of_name(name.value)
 		})
 		.collect();
 

@@ -226,6 +226,23 @@ impl Value {
 
 		!matches!(self, Null)
 	}
+
+	pub fn type_max(&self) -> Self {
+		match self {
+			Value::Bool(_) => Value::Bool(true),
+			Value::I64(_) => Value::I64(i64::MAX),
+			Value::F64(_) => Value::F64(f64::MAX),
+			_ => unimplemented!(), // TODO: Handle better & expand
+		}
+	}
+	pub fn type_min(&self) -> Self {
+		match self {
+			Value::Bool(_) => Value::Bool(false),
+			Value::I64(_) => Value::I64(i64::MIN),
+			Value::F64(_) => Value::F64(f64::MIN),
+			_ => unimplemented!(), // TODO: Handle better & expand
+		}
+	}
 }
 
 #[cfg(test)] // TODO: Get rid of this whole thing

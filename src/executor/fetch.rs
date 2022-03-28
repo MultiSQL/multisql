@@ -1,7 +1,9 @@
+use super::types::{ColumnInfo, ComplexTableName};
+
 use {
 	crate::{result::Result, StorageInner},
 	serde::Serialize,
-	sqlparser::ast::{ColumnDef, Ident},
+	sqlparser::ast::ColumnDef,
 	thiserror::Error as ThisError,
 };
 
@@ -11,13 +13,29 @@ pub enum FetchError {
 	TableNotFound(String),
 }
 
-pub async fn fetch_columns(storage: &StorageInner, table_name: &str) -> Result<Vec<Ident>> {
-	Ok(storage
-		.fetch_schema(table_name)
+pub async fn fetch_columns(
+	storage: &StorageInner,
+	table: ComplexTableName,
+) -> Result<Vec<ColumnInfo>> {
+	let schema = storage
+		.fetch_schema(&table.name)
 		.await?
-		.ok_or_else(|| FetchError::TableNotFound(table_name.to_string()))?
+		.ok_or_else(|| FetchError::TableNotFound(table.name.clone()))?;
+	let columns = schema
 		.column_defs
-		.into_iter()
-		.map(|ColumnDef { name, .. }| name)
-		.collect::<Vec<Ident>>())
+		.iter()
+		.map(|ColumnDef { name, .. }| {
+			let name = name.value.clone();
+			let index = schema
+				.indexes
+				.iter()
+				.find_map(|index| (index.column == name).then(|| index.name.clone()));
+			ColumnInfo {
+				table: table.clone(),
+				name,
+				index,
+			}
+		})
+		.collect();
+	Ok(columns)
 }

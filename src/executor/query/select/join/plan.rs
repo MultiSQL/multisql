@@ -3,7 +3,7 @@ use {
 	crate::{
 		executor::{
 			fetch::fetch_columns,
-			types::{ComplexColumnName, ComplexTableName},
+			types::{ColumnInfo, ComplexTableName},
 			MetaRecipe,
 		},
 		Context, JoinError, Result, StorageInner,
@@ -15,7 +15,7 @@ use {
 pub struct JoinPlan {
 	pub database: String,
 	pub table: String,
-	pub columns: Vec<ComplexColumnName>,
+	pub columns: Vec<ColumnInfo>,
 	pub join_type: JoinType,
 	pub constraint: MetaRecipe,
 	pub needed_tables: Vec<usize>,
@@ -63,7 +63,7 @@ impl JoinPlan {
 			needed_tables: vec![],
 		})
 	}
-	pub fn calculate_needed_tables(&mut self, table_columns: &Vec<Vec<ComplexColumnName>>) {
+	pub fn calculate_needed_tables(&mut self, table_columns: &Vec<Vec<ColumnInfo>>) {
 		self.needed_tables = table_columns
 			.iter()
 			.enumerate()
@@ -93,15 +93,16 @@ async fn get_columns(
 	storages: &Vec<(String, &mut StorageInner)>,
 	table: ComplexTableName,
 	context: &Context,
-) -> Result<Vec<ComplexColumnName>> {
+) -> Result<Vec<ColumnInfo>> {
 	if let Some((context_table_labels, ..)) = context.tables.get(&table.name) {
 		Ok(context_table_labels
 			.iter()
-			.map(|name| ComplexColumnName {
+			.map(|name| ColumnInfo {
 				table: table.clone(),
 				name: name.clone(),
+				index: None,
 			})
-			.collect::<Vec<ComplexColumnName>>())
+			.collect::<Vec<ColumnInfo>>())
 	} else {
 		let storage = storages
 			.into_iter()
@@ -115,13 +116,6 @@ async fn get_columns(
 			.or(storages.get(0).map(|(_, storage)| &**storage))
 			.ok_or(JoinError::TableNotFound(table.clone()))?;
 
-		Ok(fetch_columns(storage, table.name.as_str())
-			.await?
-			.into_iter()
-			.map(|name| ComplexColumnName {
-				table: table.clone(),
-				name: name.value,
-			})
-			.collect::<Vec<ComplexColumnName>>())
+		fetch_columns(storage, table).await
 	}
 }

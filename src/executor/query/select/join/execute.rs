@@ -1,9 +1,9 @@
 use {
 	super::{JoinError, JoinMethod, JoinPlan, JoinType},
 	crate::{
-		executor::types::{ComplexColumnName, Row},
-		Context, Ingredient, MetaRecipe, Method, PlannedRecipe, Recipe, Result, StorageInner,
-		Value,
+		executor::types::{ColumnInfo, Row},
+		Context, IndexFilter, Ingredient, MetaRecipe, Method, PlannedRecipe, Recipe, Result,
+		StorageInner, Value,
 	},
 };
 
@@ -14,10 +14,15 @@ pub struct JoinExecute {
 	pub method: JoinMethod,
 	pub join_type: JoinType,
 	pub widths: (usize, usize),
+	pub index_filter: Option<IndexFilter>,
 }
 
 impl JoinExecute {
-	pub fn new(plan: JoinPlan, plane_columns: &Vec<ComplexColumnName>) -> Result<Self> {
+	pub fn new(
+		plan: JoinPlan,
+		plane_columns: &Vec<ColumnInfo>,
+		index_filter: Option<IndexFilter>,
+	) -> Result<Self> {
 		let JoinPlan {
 			database,
 			table,
@@ -34,17 +39,21 @@ impl JoinExecute {
 			method,
 			join_type,
 			widths,
+			index_filter,
 		})
 	}
 	pub fn set_first_table(&mut self) {
 		self.method = JoinMethod::FirstTable;
 	}
 	pub async fn get_rows<'a>(&self, storage: &StorageInner) -> Result<Vec<Row>> {
-		storage
-			.scan_data(self.table.as_str())
-			.await?
-			.map(|result| result.map(|(_, row)| row.0))
-			.collect::<Result<Vec<Row>>>()
+		if let Some(index_filter) = self.index_filter.clone() {
+			storage.scan_data_indexed(self.table.as_str(), index_filter)
+		} else {
+			storage.scan_data(self.table.as_str())
+		}
+		.await?
+		.map(|result| result.map(|(_, row)| row.0))
+		.collect::<Result<Vec<Row>>>()
 	}
 	pub async fn execute<'a>(
 		self,
@@ -81,8 +90,8 @@ impl JoinExecute {
 
 fn decide_method(
 	constraint: MetaRecipe,
-	self_columns: Vec<ComplexColumnName>,
-	plane_columns: &Vec<ComplexColumnName>,
+	self_columns: Vec<ColumnInfo>,
+	plane_columns: &Vec<ColumnInfo>,
 ) -> Result<JoinMethod> {
 	Ok(match &constraint.recipe {
 		Recipe::Ingredient(Ingredient::Value(Value::Bool(true))) => JoinMethod::All,

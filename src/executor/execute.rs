@@ -3,7 +3,7 @@ use {
 		alter_row::{insert, update},
 		alter_table::{create_index, create_table, drop, truncate},
 		query::query,
-		types::ComplexColumnName,
+		types::ColumnInfo,
 	},
 	crate::{
 		data::{get_name, Schema},
@@ -133,7 +133,7 @@ pub async fn execute(
 				.into_iter()
 				.map(|column_def| {
 					let ColumnDef { name, .. } = column_def;
-					ComplexColumnName::of_name(name.value)
+					ColumnInfo::of_name(name.value)
 				})
 				.collect();
 			let filter = selection
