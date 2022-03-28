@@ -30,11 +30,11 @@ Main *TODO*s:
 	- [ ] `DELETE`
 	- [ ] `CREATE`
 	- [ ] `DROP`
+- [x] Indexing
+- [ ] Primary Key
+- [ ] Foreign Key
 
 Eventually:
 - [ ] Config
 	- [ ] Permissions
 - [ ] Pre plan (allows choice and analysis of specific optimisations and such)
-- [ ] Primary Key
-- [ ] Foreign Key
-- [ ] Indexing
