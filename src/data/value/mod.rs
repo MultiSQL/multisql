@@ -243,6 +243,23 @@ impl Value {
 			_ => unimplemented!(), // TODO: Handle better & expand
 		}
 	}
+
+	pub fn inc(&self) -> Self {
+		match self {
+			Value::Bool(false) => Value::Bool(true),
+			Value::I64(val) => Value::I64(val+1),
+			Value::F64(val) => Value::F64(f64::from_bits(val.to_bits()+1)),
+			_ => unimplemented!(), // TODO: Handle better & expand
+		}
+	}
+	pub fn dec(&self) -> Self {
+		match self {
+			Value::Bool(true) => Value::Bool(false),
+			Value::I64(val) => Value::I64(val-1),
+			Value::F64(val) => Value::F64(f64::from_bits(val.to_bits()-1)),
+			_ => unimplemented!(), // TODO: Handle better & expand
+		}
+	}
 }
 
 #[cfg(test)] // TODO: Get rid of this whole thing

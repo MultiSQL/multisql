@@ -118,6 +118,22 @@ impl Recipe {
 					}
 				}
 				Method::BinaryOperation(operator, left, right)
+					if operator as usize == Value::gt as usize =>
+				{
+					if let (
+						Recipe::Ingredient(Ingredient::Column(column)),
+						Recipe::Ingredient(Ingredient::Value(value)),
+					) = (left, right)
+					{
+						if let Some((table, index)) = indexed_columns.get(&column) {
+							let mut filters = HashMap::new();
+							let max_val = value.type_max();
+							filters.insert(table.clone(), Between(index.clone(), value.inc(), max_val));
+							return (Recipe::TRUE, Some(filters));
+						}
+					}
+				}
+				Method::BinaryOperation(operator, left, right)
 					if operator as usize == Value::lt as usize =>
 				{
 					if let (
@@ -129,6 +145,22 @@ impl Recipe {
 							let mut filters = HashMap::new();
 							let min_val = value.type_min();
 							filters.insert(table.clone(), Between(index.clone(), min_val, value));
+							return (Recipe::TRUE, Some(filters));
+						}
+					}
+				}
+				Method::BinaryOperation(operator, left, right)
+					if operator as usize == Value::lt_eq as usize =>
+				{
+					if let (
+						Recipe::Ingredient(Ingredient::Column(column)),
+						Recipe::Ingredient(Ingredient::Value(value)),
+					) = (left, right)
+					{
+						if let Some((table, index)) = indexed_columns.get(&column) {
+							let mut filters = HashMap::new();
+							let min_val = value.type_min();
+							filters.insert(table.clone(), Between(index.clone(), min_val, value.inc()));
 							return (Recipe::TRUE, Some(filters));
 						}
 					}

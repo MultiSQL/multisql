@@ -105,5 +105,57 @@ crate::util_macros::testcase!(
 			WHERE
 				a < 4
 		"# => a = I64: (1),(2),(3),(3));
+
+		crate::util_macros::assert_select!(glue, r#"
+			SELECT
+				a
+			FROM
+				indexed
+			WHERE
+				a > 1 + 1
+		"# => a = I64: (3),(3),(4),(100));
+		crate::util_macros::assert_select!(glue, r#"
+			SELECT
+				a
+			FROM
+				indexed
+			WHERE
+				1 + a < 4
+		"# => a = I64: (1),(2));
+		crate::util_macros::assert_select!(glue, r#"
+			SELECT
+				a
+			FROM
+				indexed
+			WHERE
+				a < a + 1
+		"# => a = I64: (1),(2),(3),(3),(4),(100));
+		crate::util_macros::assert_select!(glue, r#"
+			SELECT
+				a
+			FROM
+				indexed
+			WHERE
+				a > a + 1
+		"# => a = I64: );
+
+		crate::util_macros::assert_select!(glue, r#"
+			SELECT
+				a
+			FROM
+				indexed
+			WHERE
+				a < 4
+				AND a < 4
+		"# => a = I64: (1),(2),(3),(3));
+		crate::util_macros::assert_select!(glue, r#"
+			SELECT
+				a
+			FROM
+				indexed
+			WHERE
+				a < 4
+				AND a > 1
+		"# => a = I64: (2),(3),(3));
 	})
 );
