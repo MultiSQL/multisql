@@ -202,5 +202,27 @@ crate::util_macros::testcase!(
 			WHERE
 				a > 2
 		"# => a = I64: (3),(3),(10),(100));
+
+		assert!(
+			matches!(
+				glue.execute(r#"
+					UPDATE indexed
+					SET
+						a = -100
+					WHERE
+						a = 100
+				"#),
+				Ok(_)
+			)
+		);
+
+		crate::util_macros::assert_select!(glue, r#"
+			SELECT
+				a
+			FROM
+				indexed
+			WHERE
+				a > 2
+		"# => a = I64: (3),(3),(10));
 	})
 );

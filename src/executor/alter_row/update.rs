@@ -21,7 +21,7 @@ pub async fn update(
 		TableFactor::Table { name, .. } => get_name(&name).map(|name| name.clone()),
 		_ => Err(ExecuteError::QueryNotSupported.into()),
 	}?;
-	let Schema { column_defs, .. } = storage
+	let Schema { column_defs, indexes, .. } = storage
 		.fetch_schema(&table)
 		.await?
 		.ok_or(ExecuteError::TableNotExists)?;
@@ -111,8 +111,13 @@ pub async fn update(
 	validate_unique(&*storage, table, &column_defs, &rows, Some(&keys)).await?;
 	let keyed_rows: Vec<(Value, Row)> = keys.into_iter().zip(rows.into_iter().map(Row)).collect();
 	let num_rows = keyed_rows.len();
-	storage
+	let result = storage
 		.update_data(keyed_rows)
 		.await
-		.map(|_| Payload::Update(num_rows))
+		.map(|_| Payload::Update(num_rows))?;
+
+	for index in indexes.iter() {
+		index.reset(storage, &table, &column_defs).await?; // TODO: Not this; optimise
+	}
+	Ok(result)
 }

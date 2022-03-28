@@ -30,7 +30,7 @@ pub async fn truncate(storage: &mut StorageInner, table_name: &ObjectName) -> Re
 		let storage = result?;
 
 		// TODO: Maybe individual "truncate" operation
-		storage.delete_schema(table_name).await?;
+		storage.delete_schema(table_name).await?; // TODO: !!! This will delete INDEXes which it shouldn't!
 		storage.insert_schema(&schema).await?;
 		Ok(())
 	} else {
