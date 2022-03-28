@@ -78,25 +78,31 @@ impl Recipe {
 						Recipe::Method(Box::new(Method::BinaryOperation(operator, left, right))),
 						match (left_filters, right_filters) {
 							(Some(filters), None) | (None, Some(filters)) => Some(filters),
-							(Some(left_filters), Some(mut right_filters)) => Some(left_filters
-								.into_iter()
-								.map(|(table, filter)| {
-									(
-										table.clone(),
-										match right_filters.remove(&table) {
-											Some(right) => Inner(Box::new(filter), Box::new(right)),
-											None => filter,
-										}
-									)
-								}).collect::<HashMap<String, IndexFilter>>().into_iter()
-								.chain(right_filters.into_iter())
-								.collect::<HashMap<String, IndexFilter>>()),
+							(Some(left_filters), Some(mut right_filters)) => Some(
+								left_filters
+									.into_iter()
+									.map(|(table, filter)| {
+										(
+											table.clone(),
+											match right_filters.remove(&table) {
+												Some(right) => {
+													Inner(Box::new(filter), Box::new(right))
+												}
+												None => filter,
+											},
+										)
+									})
+									.collect::<HashMap<String, IndexFilter>>()
+									.into_iter()
+									.chain(right_filters.into_iter())
+									.collect::<HashMap<String, IndexFilter>>(),
+							),
 							(None, None) => None, // TODO: Don't unnecessarily rebuild
 						},
 					);
 				}
 				Method::BinaryOperation(operator, left, right)
-					if operator as usize == Value::gt_eq as usize =>
+					if operator as usize == Value::gt as usize =>
 				{
 					if let (
 						Recipe::Ingredient(Ingredient::Column(column)),
@@ -112,7 +118,7 @@ impl Recipe {
 					}
 				}
 				Method::BinaryOperation(operator, left, right)
-					if operator as usize == Value::lt_eq as usize =>
+					if operator as usize == Value::lt as usize =>
 				{
 					if let (
 						Recipe::Ingredient(Ingredient::Column(column)),
