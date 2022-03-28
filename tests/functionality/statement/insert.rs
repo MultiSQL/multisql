@@ -1,22 +1,16 @@
 crate::util_macros::testcase!(
 	(|mut glue: multisql::Glue| {
-		glue.execute(
-			r#"
+		crate::util_macros::execute!(glue, r#"
 			CREATE TABLE basic (
 				a INTEGER
 			)
-		"#,
-		)
-		.expect("CREATE TABLE basic");
-		glue.execute(
-			r#"
+		"#);
+		crate::util_macros::execute!(glue, r#"
 			INSERT INTO basic (
 				a
 			) VALUES (
 				1
 			)
-		"#,
-		)
-		.expect("INSERT basic");
+		"#);
 	})
 );

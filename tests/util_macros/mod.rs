@@ -110,6 +110,16 @@ macro_rules! select {
 }
 pub(crate) use select;
 
+macro_rules! execute {
+	($storage: expr, $query: expr) => {{
+		use fstrings::*;
+		$storage
+			.execute($query)
+			.expect(&fstrings::f!("Query Failed: $query"));
+	}};
+}
+pub(crate) use execute;
+
 macro_rules! assert_select {
 	($storage: expr, $query: expr => $($label: tt = $type: ident),* : $(($($value: expr),*)),*) => {{
 		if let (
