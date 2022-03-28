@@ -16,9 +16,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - run: rustup component add clippy rustfmt
-    - name: Clippy
-      run: cargo clippy -- -D warnings
+    - run: rustup component add rustfmt
     - name: Rustfmt
       run: cargo fmt --all -- --check
     - name: Build
