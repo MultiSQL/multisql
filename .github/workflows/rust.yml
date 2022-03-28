@@ -18,20 +18,10 @@ jobs:
     - uses: actions/checkout@v2
     - run: rustup component add clippy rustfmt
     - name: Clippy
-      run: cargo clippy --no-default-features -- -D warnings
-    - name: Clippy (alter-table)
-      run: cargo clippy --features alter-table -- -D warnings
-    - name: Clippy (sled-storage)
-      run: cargo clippy --features sled-storage -- -D warnings
-    - name: Clippy (all)
-      run: cargo clippy --all-features -- -D warnings
+      run: cargo clippy -- -D warnings
     - name: Rustfmt
       run: cargo fmt --all -- --check
     - name: Build
-      run: cargo build --all-features --verbose
+      run: cargo build
     - name: Run tests
-      run: cargo test --no-default-features --verbose
-    - name: Run tests with features (sled-storage)
-      run: cargo test --features sled-storage --verbose
-    - name: Run tests with all features
-      run: cargo test --all-features --verbose
+      run: cargo test
