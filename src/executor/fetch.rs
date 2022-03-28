@@ -1,6 +1,5 @@
-use super::types::{ColumnInfo, ComplexTableName};
-
 use {
+	super::types::{ColumnInfo, ComplexTableName},
 	crate::{result::Result, StorageInner},
 	serde::Serialize,
 	sqlparser::ast::ColumnDef,

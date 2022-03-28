@@ -1,10 +1,10 @@
-use serde::Serialize;
-use std::fmt::Debug;
-use thiserror::Error;
-
-use sqlparser::ast::{ObjectName, TableAlias, TableFactor};
-
-use crate::result::Result;
+use {
+	crate::result::Result,
+	serde::Serialize,
+	sqlparser::ast::{ObjectName, TableAlias, TableFactor},
+	std::fmt::Debug,
+	thiserror::Error,
+};
 
 #[derive(Error, Serialize, Debug, PartialEq)]
 pub enum TableError {

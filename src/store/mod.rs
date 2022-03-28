@@ -7,10 +7,9 @@ pub trait AlterTable {}
 
 #[cfg(feature = "auto-increment")]
 mod auto_increment;
+use crate::IndexFilter;
 #[cfg(feature = "auto-increment")]
 pub use auto_increment::AutoIncrement;
-
-use crate::IndexFilter;
 #[cfg(not(feature = "auto-increment"))]
 pub trait AutoIncrement {}
 

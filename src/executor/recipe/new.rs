@@ -1,5 +1,3 @@
-use sqlparser::ast::FunctionArgExpr;
-
 use {
 	super::{Ingredient, Method, Recipe, RecipeError, TryIntoMethod},
 	crate::{
@@ -9,7 +7,7 @@ use {
 		},
 		Context, Resolve, Result, SimplifyBy, Value,
 	},
-	sqlparser::ast::{Expr, FunctionArg, Ident, SelectItem, SetExpr},
+	sqlparser::ast::{Expr, FunctionArg, FunctionArgExpr, Ident, SelectItem, SetExpr},
 	std::convert::TryFrom,
 };
 

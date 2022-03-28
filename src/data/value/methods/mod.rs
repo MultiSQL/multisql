@@ -4,7 +4,6 @@ mod function;
 mod timestamp;
 mod unary;
 mod utility;
-
 use {
 	crate::{ConvertFrom, Value},
 	std::convert::Into,

@@ -3,19 +3,18 @@ mod new;
 mod planned;
 mod resolve;
 
-pub use {
-	from::TryIntoMethod,
-	new::MetaRecipe,
-	planned::PlannedRecipe,
-	resolve::{Resolve, SimplifyBy},
-};
-
 use {
 	crate::{executor::types::ObjectName, Error, Result, Value},
 	serde::Serialize,
 	sqlparser::ast::{DataType, Expr},
 	std::fmt::Debug,
 	thiserror::Error as ThisError,
+};
+pub use {
+	from::TryIntoMethod,
+	new::MetaRecipe,
+	planned::PlannedRecipe,
+	resolve::{Resolve, SimplifyBy},
 };
 
 #[derive(ThisError, Serialize, Debug, PartialEq)]

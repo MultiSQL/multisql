@@ -1,8 +1,6 @@
-use sqlparser::ast::Expr;
-
 use {
 	crate::{data::get_name, AlterError, ExecuteError, Index, Result, StorageInner},
-	sqlparser::ast::{ObjectName, OrderByExpr},
+	sqlparser::ast::{Expr, ObjectName, OrderByExpr},
 };
 
 pub async fn create_index(

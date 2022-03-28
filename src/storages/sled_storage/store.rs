@@ -1,19 +1,16 @@
-use std::cmp::Ordering;
-
-use rayon::slice::ParallelSliceMut;
-use sled::IVec;
-
-use crate::{join_iters, IndexFilter, JoinType, NullOrd, Row, Value};
-
 use {
 	super::{
 		err_into, fetch_schema,
 		store_mut::{index_prefix, indexed_key},
 		SledStorage,
 	},
-	crate::{Result, RowIter, Schema, Store},
+	crate::{
+		join_iters, IndexFilter, JoinType, NullOrd, Result, Row, RowIter, Schema, Store, Value,
+	},
 	async_trait::async_trait,
-	std::convert::Into,
+	rayon::slice::ParallelSliceMut,
+	sled::IVec,
+	std::{cmp::Ordering, convert::Into},
 };
 
 #[async_trait(?Send)]

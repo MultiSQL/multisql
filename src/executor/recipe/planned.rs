@@ -1,16 +1,13 @@
-use std::collections::HashMap;
-
-use crate::IndexFilter;
-
 use {
 	super::{
 		Ingredient, MetaRecipe, Method, Recipe, RecipeError, RecipeUtilities, Resolve, SimplifyBy,
 	},
 	crate::{
 		executor::types::{ColumnInfo, Row},
-		Result, Value,
+		IndexFilter, Result, Value,
 	},
 	fstrings::*,
+	std::collections::HashMap,
 };
 
 #[derive(Debug, Clone, Default)]

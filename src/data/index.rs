@@ -1,9 +1,10 @@
-use std::{cmp::Ordering, collections::HashMap};
-
-use crate::{result::Result, Ingredient, Method, Recipe, Row, StorageInner, Value};
-use rayon::prelude::*;
-use serde::{Deserialize, Serialize};
-use sqlparser::ast::ColumnDef;
+use {
+	crate::{result::Result, Ingredient, Method, Recipe, Row, StorageInner, Value},
+	rayon::prelude::*,
+	serde::{Deserialize, Serialize},
+	sqlparser::ast::ColumnDef,
+	std::{cmp::Ordering, collections::HashMap},
+};
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Index {

@@ -1,12 +1,12 @@
-use crate::Schema;
-use async_trait::async_trait;
-use serde::Serialize;
-use std::fmt::Debug;
-use thiserror::Error;
-
-use sqlparser::ast::ColumnDef;
-
-use {super::StorageError, crate::Result};
+use {
+	super::StorageError,
+	crate::{Result, Schema},
+	async_trait::async_trait,
+	serde::Serialize,
+	sqlparser::ast::ColumnDef,
+	std::fmt::Debug,
+	thiserror::Error,
+};
 
 #[derive(Error, Serialize, Debug, PartialEq)]
 pub enum AlterTableError {

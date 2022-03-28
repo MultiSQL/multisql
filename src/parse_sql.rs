@@ -1,7 +1,5 @@
-use sqlparser::ast::Statement;
-use sqlparser::dialect::GenericDialect;
-use sqlparser::parser::Parser;
 pub use sqlparser::parser::ParserError;
+use sqlparser::{ast::Statement, dialect::GenericDialect, parser::Parser};
 
 pub struct Query(pub Statement);
 

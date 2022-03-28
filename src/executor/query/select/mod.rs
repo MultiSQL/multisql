@@ -3,12 +3,6 @@ mod manual;
 mod order;
 mod plan;
 
-pub use {
-	manual::{Manual, ManualError, SelectItem},
-	order::Order,
-	plan::{Plan, PlanError},
-};
-
 use {
 	crate::{
 		executor::{
@@ -23,6 +17,11 @@ use {
 	serde::Serialize,
 	sqlparser::ast::{OrderByExpr, Select},
 	thiserror::Error as ThisError,
+};
+pub use {
+	manual::{Manual, ManualError, SelectItem},
+	order::Order,
+	plan::{Plan, PlanError},
 };
 
 #[derive(ThisError, Serialize, Debug, PartialEq)]

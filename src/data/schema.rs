@@ -3,13 +3,12 @@ use {
 	sqlparser::ast::{ColumnDef, ColumnOption, ColumnOptionDef, Expr},
 };
 
+use crate::Index;
 #[cfg(feature = "auto-increment")]
 use sqlparser::{
 	dialect::keywords::Keyword,
 	tokenizer::{Token, Word},
 };
-
-use crate::Index;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Schema {

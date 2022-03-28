@@ -1,6 +1,7 @@
-use std::cmp::Ordering;
-
-use crate::{NullOrd, Value};
+use {
+	crate::{NullOrd, Value},
+	std::cmp::Ordering,
+};
 
 pub enum JoinType {
 	Inner,

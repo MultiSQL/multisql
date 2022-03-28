@@ -2,7 +2,6 @@ mod select;
 mod set_expr;
 
 pub use select::{join::*, ManualError, PlanError, SelectError};
-
 use {
 	crate::{
 		executor::types::LabelsAndRows, result::Result, Cast, Context, MetaRecipe, RecipeUtilities,

@@ -103,8 +103,7 @@ impl PartialEq for Error {
 }
 
 mod stringify {
-	use serde::Serializer;
-	use std::fmt::Display;
+	use {serde::Serializer, std::fmt::Display};
 
 	pub fn serialize<T, S>(value: &T, serializer: S) -> Result<S::Ok, S::Error>
 	where

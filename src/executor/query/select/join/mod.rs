@@ -2,13 +2,11 @@ mod execute;
 mod manual;
 mod method;
 mod plan;
-
-pub use {execute::JoinExecute, manual::JoinManual, method::JoinMethod, plan::JoinPlan};
-
 use {
 	crate::executor::types::ComplexTableName, serde::Serialize, std::fmt::Debug,
 	thiserror::Error as ThisError,
 };
+pub use {execute::JoinExecute, manual::JoinManual, method::JoinMethod, plan::JoinPlan};
 
 #[derive(ThisError, Serialize, Debug, PartialEq)]
 pub enum JoinError {

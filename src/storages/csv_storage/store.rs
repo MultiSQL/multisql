@@ -1,6 +1,5 @@
 use {
-	super::utils::csv_reader,
-	super::CSVStorage,
+	super::{utils::csv_reader, CSVStorage},
 	crate::{Result, Row, RowIter, Schema, Store, Value, WIPError},
 	async_trait::async_trait,
 };
