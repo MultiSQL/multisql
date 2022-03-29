@@ -12,7 +12,6 @@ use {
 };
 
 mod select;
-mod value;
 
 pub(crate) type Variables = HashMap<String, Value>;
 
@@ -30,17 +29,35 @@ impl Context {
 	}
 }
 
+/// # Glue
+/// Glue is *the* interface for interacting with MultiSQL; a Glue instance comprises any number of stores, each with their own identifier.
+/// Once built, one will typically interact with Glue via queries.
+///
+/// There is a number of ways to deposit queries however, depending on the desired output:
+/// - [`Glue::execute()`] -- Might be considered the most generic.
+/// 		Replies with a [Result]<[Payload]>
+/// 		(payload being the response from any type of query).
+/// - [`Glue::execute_many()`] -- Same as `execute()` but will find any number of seperate queries in given text and provide a [Vec] in response.
+/// - [`Glue::select_as_string()`] -- Provides data, only for `SELECT` queries, as [String]s (rather than [Value]s).
+/// - [`Glue::select_as_json()`] -- Provides data, only for `SELECT` queries, as one big [String]; generally useful for webby interactions.
 pub struct Glue {
 	storages: Vec<(String, Storage)>,
 	context: Option<Context>,
 }
 
-// New
+/// ## Creation of new interfaces
 impl Glue {
+	/// Creates a [Glue] instance with just one [Storage].
+	pub fn new(name: String, storage: Storage) -> Self {
+		Self::new_multi(vec![(name, storage)])
+	}
+	/// Creates a [Glue] instance with access to all provided storages.
+	/// Argument is: [Vec]<(Identifier, [Storage])>
 	pub fn new_multi(storages: Vec<(String, Storage)>) -> Self {
 		let context = Some(Context::default());
 		Self { storages, context }
 	}
+	/// Merges existing [Glue] instances
 	pub fn new_multi_glue(glues: Vec<Glue>) -> Self {
 		glues
 			.into_iter()
@@ -50,28 +67,42 @@ impl Glue {
 			})
 			.unwrap()
 	}
-	pub fn new(name: String, storage: Storage) -> Self {
-		Self::new_multi(vec![(name, storage)])
-	}
 }
 
-// Modify
+/// Internal: Modify
 impl Glue {
-	pub fn take_context(&mut self) -> Context {
+	pub(crate) fn take_context(&mut self) -> Context {
 		self.context
 			.take()
 			.expect("Unreachable: Context wasn't replaced!")
 	}
-	pub fn replace_context(&mut self, context: Context) {
+	pub(crate) fn replace_context(&mut self, context: Context) {
 		self.context.replace(context);
 	}
-	pub fn set_context(&mut self, context: Context) {
+	#[allow(dead_code)]
+	fn set_context(&mut self, context: Context) {
 		self.context = Some(context);
 	}
 }
 
-// Execute
+/// ## Execute (Generic)
 impl Glue {
+	/// Will execute a single query.
+	pub fn execute(&mut self, query: &str) -> Result<Payload> {
+		let parsed_query =
+			parse_single(query).map_err(|error| WIPError::Debug(format!("{:?}", error)))?;
+		self.execute_parsed(parsed_query)
+	}
+	/// Will execute a set of queries.
+	pub fn execute_many(&mut self, query: &str) -> Result<Vec<Payload>> {
+		let parsed_queries =
+			parse(query).map_err(|error| WIPError::Debug(format!("{:?}", error)))?;
+		parsed_queries
+			.into_iter()
+			.map(|parsed_query| self.execute_parsed(parsed_query))
+			.collect::<Result<Vec<Payload>>>()
+	}
+	/// Will execute a pre-parsed query (see [Glue::pre_parse()] for more).
 	pub fn execute_parsed(&mut self, query: Query) -> Result<Payload> {
 		let mut storages: Vec<(String, Box<StorageInner>)> = self
 			.storages
@@ -96,24 +127,15 @@ impl Glue {
 
 		result
 	}
-
-	pub fn execute(&mut self, query: &str) -> Result<Payload> {
-		let parsed_query =
-			parse_single(query).map_err(|error| WIPError::Debug(format!("{:?}", error)))?;
-		self.execute_parsed(parsed_query)
-	}
-	pub fn execute_many(&mut self, query: &str) -> Result<Vec<Payload>> {
-		let parsed_queries =
-			parse(query).map_err(|error| WIPError::Debug(format!("{:?}", error)))?;
-		parsed_queries
-			.into_iter()
-			.map(|parsed_query| self.execute_parsed(parsed_query))
-			.collect::<Result<Vec<Payload>>>()
-	}
+	/// Provides a parsed query to execute later.
+	/// Particularly useful if executing a small query many times as parsing is not (computationally) free.
 	pub fn pre_parse(query: &str) -> Result<Vec<Query>> {
 		parse(query).map_err(|error| WIPError::Debug(format!("{:?}", error)).into())
 	}
+}
 
+/// ## Insert (`INSERT`)
+impl Glue {
 	pub fn insert_vec(
 		&mut self,
 		table_name: String,
@@ -174,6 +196,7 @@ impl Glue {
 }
 
 impl Payload {
+	// TODO: Move
 	pub fn unwrap_rows(self) -> Vec<Row> {
 		if let Payload::Select { rows, .. } = self {
 			rows
@@ -183,6 +206,7 @@ impl Payload {
 	}
 }
 
+// TODO: Move
 /*
 #[cfg(test)]
 mod tests {

@@ -1,8 +1,8 @@
 mod index;
 mod join;
 mod row;
-mod table;
 pub(crate) mod schema;
+mod table;
 pub(crate) mod value;
 
 pub use {

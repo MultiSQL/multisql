@@ -21,17 +21,23 @@
 //! 	");
 //! }
 //! ```
+//!
+//! ## See also
+//! - [Glue] -- Primary interface
+//! - [Storage] -- Needed to build an interface
+//! - [SledStorage] -- Most common type of storage/backend
+//! - [Value] -- Value wrapper
 
 pub use sqlparser as parser;
 
+mod data;
 mod executor;
 mod glue;
 mod parse_sql;
-mod storages;
-mod utils;
-mod data;
 mod result;
+mod storages;
 mod store;
+mod utils;
 
 pub use {data::*, executor::*, glue::*, parse_sql::*, result::*, storages::*, store::*};
 

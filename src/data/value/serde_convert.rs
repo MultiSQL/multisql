@@ -1,4 +1,3 @@
-#![cfg(feature = "expanded-api")]
 use crate::Value;
 
 impl From<Value> for serde_json::value::Value {

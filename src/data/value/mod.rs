@@ -12,6 +12,7 @@ mod convert;
 mod error;
 mod literal;
 mod methods;
+mod serde_convert;
 
 pub use {
 	big_endian::BigEndian,
@@ -20,15 +21,50 @@ pub use {
 	error::ValueError,
 };
 
+/// # Value
+/// Value is MultiSQL's value wrapper and stores any values which interact with the stores.
+/// At times they may be converted in the interface for convinence but otherwise, all value interactions with MultiSQL require this wrapper.
+///
+/// ## Conversion
+/// Value implements conversion to/from inner types; for example:
+///
+/// ```
+/// let value: Value = Value::I64(10);
+/// let int: i64 = 10;
+///
+/// assert_eq!(int, value.into());
+/// assert_eq!(value, int.into());
+/// ```
+///
+/// ### Casting
+/// Values can be cast between types via [Cast], for example:
+///
+/// ```
+/// let value_str: Value = Value::String("10");
+/// let value_int: Value = value.cast::<i64>().unwrap();
+///
+/// assert_eq!(10, value_int.into());
+/// ```
+///
+/// ## Equality
+/// Values of the same type compare as their inner values would.
+///
+/// Null never equals Null.
+///
+/// Floats and Integers implicitly compare and convert.
+/// (Feature: `implicit_float_conversion`)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Value {
+	Null,
+
 	Bool(bool),
-	Bytes(Vec<u8>),
 	I64(i64),
 	F64(f64),
 	Str(String),
-	Null,
+
+	Bytes(Vec<u8>),
 	Timestamp(i64),
+
 	Internal(i64),
 }
 
