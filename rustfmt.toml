@@ -1,2 +1,4 @@
+version = "Two"
+imports_layout = "vertical"
 hard_tabs = true
 #imports_granularity = "One"
