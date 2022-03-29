@@ -62,7 +62,7 @@ pub trait FullStorage: Store + StoreMut + AlterTable + AutoIncrement {}
 
 pub type RowIter = Box<dyn Iterator<Item = Result<(Value, Row)>>>;
 
-/// By implementing `Store` trait, you can run `SELECT` queries.
+/// `Store` -> `SELECT`
 #[async_trait(?Send)]
 pub trait Store {
 	async fn fetch_schema(&self, _table_name: &str) -> Result<Option<Schema>> {
@@ -89,8 +89,7 @@ pub trait Store {
 	}
 }
 
-/// `StoreMut` takes role of mutation, related to `INSERT`, `CREATE`, `DELETE`, `DROP` and
-/// `UPDATE`.
+/// `StoreMut` -> `INSERT`, `CREATE`, `DELETE`, `DROP`, `UPDATE`
 #[async_trait(?Send)]
 pub trait StoreMut {
 	async fn insert_schema(&mut self, _schema: &Schema) -> Result<()> {

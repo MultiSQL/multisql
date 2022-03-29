@@ -1,9 +1,9 @@
 mod index;
 mod join;
 mod row;
-pub mod schema;
+pub(crate) mod schema;
 mod table;
-pub mod value;
+pub(crate) mod value;
 
 pub use {
 	index::{Index, IndexFilter},

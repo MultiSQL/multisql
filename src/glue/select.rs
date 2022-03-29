@@ -4,7 +4,13 @@ use {
 	serde_json::{json, value::Value as JSONValue},
 };
 
+/// ## Select (`SELECT`)
 impl Glue {
+	/// Only for `SELECT` queries.
+	///
+	/// Output is one big [String] of [JSON](https://json.org), wrapped in a [Result] in case it fails.
+	///
+	/// Generally useful for webby interactions.
 	pub fn select_as_json(&mut self, query: &str) -> Result<String> {
 		// TODO: Make this more efficient and not affect database if not select by converting earlier
 		if let Payload::Select { labels, rows } = self.execute(query)? {
@@ -27,6 +33,11 @@ impl Glue {
 		}
 	}
 
+	/// Only for `SELECT` queries.
+	///
+	/// Output is one big [String] of [JSON](https://json.org), failures will be converted to json of `{error: [error]}`.
+	///
+	/// Generally useful for webby interactions.
 	pub fn select_as_json_with_headers(&mut self, query: &str) -> String {
 		// TODO: Make this more efficient and not affect database if not select by converting earlier
 		let mut result = || -> Result<_> {
@@ -59,6 +70,7 @@ impl Glue {
 		.to_string()
 	}
 
+	/// Only for `SELECT` queries.
 	pub fn select_as_string(&mut self, query: &str) -> Result<Vec<Vec<String>>> {
 		// TODO: Make this more efficient and not affect database
 		if let Payload::Select { labels, rows } = self.execute(query)? {
@@ -80,6 +92,7 @@ impl Glue {
 		}
 	}
 
+	/// Only for `SELECT` queries.
 	pub fn select_as_csv(&mut self, query: &str) -> Result<String> {
 		// TODO: Don't use `unwrap()`
 		if let Payload::Select { labels, rows } = self.execute(query)? {
