@@ -16,7 +16,7 @@
 		"sled-storage",
 		"csv-storage",
 		# Performance
-		"multithreading",# TODO: Multithreading optional (Remove uses without CFG)
+		"multithreading",
 		# Functionality
 		"alter-table",
 		"auto-increment",

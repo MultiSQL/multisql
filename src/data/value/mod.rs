@@ -26,24 +26,31 @@ pub use {
 /// At times they may be converted in the interface for convinence but otherwise, all value interactions with MultiSQL require this wrapper.
 ///
 /// ## Conversion
-/// Value implements conversion to/from inner types; for example:
+/// Value implements conversion from inner types; for example:
 ///
 /// ```
+/// # use multisql::Value;
 /// let value: Value = Value::I64(10);
 /// let int: i64 = 10;
 ///
-/// assert_eq!(int, value.into());
-/// assert_eq!(value, int.into());
+/// let int_value: Value = int.into();
+///
+/// assert_eq!(value, int_value);
 /// ```
 ///
 /// ### Casting
 /// Values can be cast between types via [Cast], for example:
 ///
 /// ```
-/// let value_str: Value = Value::String("10");
-/// let value_int: Value = value.cast::<i64>().unwrap();
+/// # use multisql::{Value, Cast};
+/// let value_str: Value = Value::Str(String::from("10"));
+/// let int: i64 = 10;
 ///
-/// assert_eq!(10, value_int.into());
+/// let str_int: i64 = value_str.cast().unwrap();
+///
+/// assert_eq!(int, str_int);
+///
+/// assert_eq!(Value::I64(int), Value::I64(Value::Str(String::from("10")).cast().unwrap()));
 /// ```
 ///
 /// ## Equality

@@ -6,12 +6,12 @@
 //! ## Examples
 //!
 //! ```
-//! use gluesql::{SledStorage, Storage, Glue};
+//! use multisql::{SledStorage, Storage, Glue};
 //! fn main() {
-//! 	let storage = SledStorage::new(&path)
+//! 	let storage = SledStorage::new("data/example_location/example")
 //! 		.map(Storage::new_sled)
-//! 		.expect("Create Storage");
-//! 	let mut glue = Glue::new(String::from("main"), storage)
+//! 		.expect("Storage Creation Failed");
+//! 	let mut glue = Glue::new(String::from("main"), storage);
 //!     
 //! 	glue.execute_many("
 //! 		DROP TABLE IF EXISTS test;
