@@ -1,13 +1,13 @@
 [package]
 	name = "multisql"
-	version = "0.0.0"
+	version = "0.0.1"
 	authors = ["Kyran Gostelow <kyran@gostelow.me>", "Taehoon Moon <taehoon.moon@outlook.com>"]
 	edition = "2021"
 	description = "MultiSQL"
 	license = "Apache-2.0"
-	repository = "https://github.com/SyRis-Consulting/multisql"
+	repository = "https://github.com/KyGost/multisql"
 	readme = "README.md"
-	keywords = ["sql-database", "sql"]
+	keywords = ["database", "database engine", "sql database", "sql", "modular", "multi-threaded"]
 	metadata.docs.rs.all-features = true
 
 [features]
