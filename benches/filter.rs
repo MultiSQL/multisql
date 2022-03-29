@@ -1,4 +1,8 @@
-use {multisql::{SledStorage, Storage, Glue, Value}, criterion::*, std::time::Duration};
+use {
+	criterion::*,
+	multisql::{Glue, SledStorage, Storage, Value},
+	std::time::Duration,
+};
 
 fn setup_glue() -> Glue {
 	let path = "data/sled_bench";
@@ -19,42 +23,74 @@ fn setup_glue() -> Glue {
 
 fn setup_a(glue: &mut Glue) {
 	let rows: Vec<Vec<Value>> = (0..10_000).into_iter().map(|pk| vec![pk.into()]).collect();
-	glue.execute("
+	glue.execute(
+		"
 		CREATE TABLE A (
 			pk INTEGER PRIMARY KEY
 		)
-	").unwrap();
-	glue.execute("
+	",
+	)
+	.unwrap();
+	glue.execute(
+		"
 		CREATE INDEX primkey ON A (pk)
-	").unwrap();
-	glue.insert_vec(String::from("A"), vec![String::from("pk")], rows).unwrap();
+	",
+	)
+	.unwrap();
+	glue.insert_vec(String::from("A"), vec![String::from("pk")], rows)
+		.unwrap();
 }
 
 fn setup_b(glue: &mut Glue) {
-	let rows: Vec<Vec<Value>> = (0..100_000).into_iter().map(|_row| vec![fastrand::i64(0..10_000).into(), fastrand::f64().into()]).collect();
-	glue.execute("
+	let rows: Vec<Vec<Value>> = (0..100_000)
+		.into_iter()
+		.map(|_row| vec![fastrand::i64(0..10_000).into(), fastrand::f64().into()])
+		.collect();
+	glue.execute(
+		"
 		CREATE TABLE B (
 			pk INTEGER AUTO_INCREMENT PRIMARY KEY,
 			fk INTEGER,
 			val FLOAT
 		)
-	").unwrap();
-	glue.execute("
+	",
+	)
+	.unwrap();
+	glue.execute(
+		"
 		CREATE INDEX primkey ON B (pk)
-	").unwrap();
-	glue.insert_vec(String::from("B"), vec![String::from("fk"), String::from("val")], rows).unwrap();
+	",
+	)
+	.unwrap();
+	glue.insert_vec(
+		String::from("B"),
+		vec![String::from("fk"), String::from("val")],
+		rows,
+	)
+	.unwrap();
 }
 
 fn setup_c(glue: &mut Glue) {
-	let rows: Vec<Vec<Value>> = (0..100_000).into_iter().map(|_row| vec![fastrand::i64(0..10_000).into(), fastrand::f64().into()]).collect();
-	glue.execute("
+	let rows: Vec<Vec<Value>> = (0..100_000)
+		.into_iter()
+		.map(|_row| vec![fastrand::i64(0..10_000).into(), fastrand::f64().into()])
+		.collect();
+	glue.execute(
+		"
 		CREATE TABLE C (
 			pk INTEGER AUTO_INCREMENT PRIMARY KEY,
 			fk INTEGER,
 			val FLOAT
 		)
-	").unwrap();
-	glue.insert_vec(String::from("C"), vec![String::from("fk"), String::from("val")], rows).unwrap();
+	",
+	)
+	.unwrap();
+	glue.insert_vec(
+		String::from("C"),
+		vec![String::from("fk"), String::from("val")],
+		rows,
+	)
+	.unwrap();
 }
 
 fn setup() -> Glue {
@@ -66,37 +102,47 @@ fn setup() -> Glue {
 }
 
 fn filter(table: &str) -> String {
-	format!("
+	format!(
+		"
 		SELECT
 			*
 		FROM
 			{}
 		WHERE
 			pk < 100
-	", table)
+	",
+		table
+	)
 }
 fn find(table: &str) -> String {
-	format!("
+	format!(
+		"
 		SELECT
 			*
 		FROM
 			{}
 		WHERE
 			pk = 100
-	", table)
+	",
+		table
+	)
 }
 fn sum_group(table: &str) -> String {
-	format!("
+	format!(
+		"
 		SELECT
 			SUM(val)
 		FROM
 			{}
 		GROUP BY
 			fk
-	", table)
+	",
+		table
+	)
 }
 fn join(table: &str) -> String {
-	format!("
+	format!(
+		"
 		SELECT
 			SUM(val)
 		FROM
@@ -105,7 +151,9 @@ fn join(table: &str) -> String {
 				ON {table}.fk = A.pk
 		GROUP BY
 			A.pk
-	", table = table)
+	",
+		table = table
+	)
 }
 
 fn bench(criterion: &mut Criterion) {
@@ -136,7 +184,9 @@ fn bench(criterion: &mut Criterion) {
 	group.finish();
 
 	let mut group = criterion.benchmark_group("sum_group");
-	group.sampling_mode(SamplingMode::Flat).measurement_time(Duration::from_secs(20));
+	group
+		.sampling_mode(SamplingMode::Flat)
+		.measurement_time(Duration::from_secs(20));
 	group.bench_function("b", |benchmarker| {
 		benchmarker.iter(|| glue.execute(&sum_group("B")).unwrap());
 	});
@@ -146,7 +196,9 @@ fn bench(criterion: &mut Criterion) {
 	group.finish();
 
 	let mut group = criterion.benchmark_group("join");
-	group.sampling_mode(SamplingMode::Flat).measurement_time(Duration::from_secs(30));
+	group
+		.sampling_mode(SamplingMode::Flat)
+		.measurement_time(Duration::from_secs(30));
 	group.bench_function("b", |benchmarker| {
 		benchmarker.iter(|| glue.execute(&join("B")).unwrap());
 	});
@@ -156,7 +208,7 @@ fn bench(criterion: &mut Criterion) {
 	group.finish();
 }
 
-criterion_group!{
+criterion_group! {
 	name = benches;
 	config = Criterion::default().noise_threshold(0.05).sample_size(10).warm_up_time(Duration::from_secs(5)).measurement_time(Duration::from_secs(10));
 	targets = bench
