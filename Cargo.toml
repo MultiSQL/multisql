@@ -7,7 +7,7 @@
 	license = "Apache-2.0"
 	repository = "https://github.com/KyGost/multisql"
 	readme = "README.md"
-	keywords = ["database", "database-engine", "sql-database", "sql", "modular", "multi-threaded"]
+	keywords = ["database", "database-engine", "sql", "modular", "multi-threaded"]
 	metadata.docs.rs.all-features = true
 
 [features]
