@@ -75,9 +75,10 @@ impl RecipeMeta {
 	fn append_aggregate(&mut self, aggregate: Recipe) {
 		self.aggregates.push(aggregate);
 	}
+	/* TODO: #50
 	fn append_subquery(&mut self, subquery: JoinManual) {
 		self.subqueries.push(subquery);
-	}
+	}*/
 	fn find_column(&self, column: &ObjectName) -> Option<usize> {
 		self.objects.iter().position(|search_column| {
 			search_column
@@ -97,6 +98,7 @@ impl RecipeMeta {
 		let index = self.aggregates.len() - 1;
 		Recipe::Ingredient(Ingredient::Aggregate(index))
 	}
+	/* TODO: #50
 	pub fn subquery(&mut self, subquery: Subquery) -> Result<Recipe> {
 		let result = subquery.column;
 		let table = subquery.table;
@@ -112,7 +114,7 @@ impl RecipeMeta {
 		};
 		self.append_subquery(subquery);
 		Ok(result)
-	}
+	}*/
 	pub fn aggregate_average(&mut self, argument: Recipe) -> Recipe {
 		Recipe::Method(Box::new(Method::BinaryOperation(
 			Value::generic_divide,
@@ -146,18 +148,6 @@ impl Recipe {
 		let error_expression_clone = expression.clone();
 		match expression {
 			Expr::Identifier(identifier) => {
-				#[cfg(feature = "double_quote_strings")]
-				if identifier.quote_style == Some('"') {
-					Ok(Recipe::Ingredient(Ingredient::Value(Value::Str(
-						identifier.value,
-					))))
-				} else {
-					Ok(Self::from_column(
-						identifier_into_object_name(vec![identifier]),
-						meta,
-					))
-				}
-				#[cfg(not(feature = "double_quote_strings"))]
 				Ok(Self::from_column(
 					identifier_into_object_name(vec![identifier]),
 					meta,
@@ -280,7 +270,7 @@ impl Recipe {
 				};
 				Ok(Recipe::Method(Box::new(body)))
 			}
-			Expr::Subquery(query) => {
+			/* TODO: #50 Expr::Subquery(query) => {
 				if let SetExpr::Select(statement) = query.body {
 					let table = statement
 						.from
@@ -313,7 +303,7 @@ impl Recipe {
 				} else {
 					Err(RecipeError::UnimplementedQuery(format!("{:?}", query)).into())
 				}
-			}
+			}*/
 			Expr::Nested(expression) => Self::with_meta(*expression, meta),
 			unimplemented => Err(RecipeError::UnimplementedExpression(unimplemented).into()),
 		}
