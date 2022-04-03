@@ -142,7 +142,7 @@ macro_rules! assert_select {
 		} else {
 			let _result = $storage.execute($query);
 			let _expect = crate::util_macros::select!($($label = $type),* : $(($($value),*)),*);
-			panic!("SELECT Error\n\tQuery:\t\t{query}\n\tResult:\t\t{result:?}\n\tExpected:\t{expect:?}", query=$query, result=_result, expect=_expect);
+			panic!("SELECT Error\n\tQuery:\n\t{query}\n\tResult:\n\t{result:?}\n\tExpected:\t{expect:?}", query=$query, result=_result, expect=_expect);
 		}
 	}};
 	($storage: expr, $query: expr => $($label: tt = $type: ident),* : $((_)),*) => {{ // Crappy but working way of testing single NULL
@@ -160,7 +160,7 @@ macro_rules! assert_select {
 		} else {
 			let _result = $storage.execute($query);
 			let _expect = crate::util_macros::select!($($label = $type),* : _);
-			panic!("SELECT Error\n\tQuery:\t\t{query}\n\tResult:\t\t{result:?}\n\tExpected:\t{expect:?}", query=$query, result=_result, expect=_expect);
+			panic!("SELECT Error\n\tQuery:\n\t{query}\n\tResult:\n\t{result:?}\n\tExpected:\t{expect:?}", query=$query, result=_result, expect=_expect);
 		}
 	}};
 }
@@ -169,10 +169,10 @@ pub(crate) use assert_select;
 macro_rules! assert_error {
 	($storage: expr, $query: expr, $error: expr) => {{
 		let _test: Result<(), _> = Err($error);
-		assert!(matches!($storage.execute($query), _test));
+		matches!($storage.execute($query), _test).then(||()).expect(&format!("Unexexpected\n\tQuery:\n\t{query}\n\tExpected:\t{expect:?}", query=$query, expect=$error));
 	}};
 	($storage: expr, $query: expr) => {
-		$storage.execute($query).unwrap_err();
+		$storage.execute($query).expect_err(&format!("Unexexpected Success\n\tQuery:\n\t{query}\n\tResult", query=$query));
 	};
 }
 pub(crate) use assert_error;
@@ -180,10 +180,10 @@ pub(crate) use assert_error;
 macro_rules! assert_success {
 	($storage: expr, $query: expr, $success: expr) => {{
 		let _test: multisql::Result<_> = Ok($success);
-		assert!(matches!($storage.execute($query), _test));
+		matches!($storage.execute($query), _test).then(||()).expect(&format!("Unexexpected\n\tQuery:\n\t{query}\n\tExpected:\t{expect:?}", query=$query, expect=$success));
 	}};
 	($storage: expr, $query: expr) => {
-		$storage.execute($query).unwrap();
+		$storage.execute($query).expect(&format!("Unexexpected Error\n\tQuery:\n\t{query}\n\tResult", query=$query));
 	};
 }
 pub(crate) use assert_success;
