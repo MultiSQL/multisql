@@ -1,10 +1,10 @@
 # Benchmarks
 
 ## Results
-(See results)[./criterion/report/index.html]
+[See results](./criterion/report/index.html)
 
 ## Tests
-(See tests)[./bench.rs]
+[See tests](./bench.rs])
 
 ## Hardware
 2950X (AMD Ryzen 16 Core (32 Thread) CPU)
