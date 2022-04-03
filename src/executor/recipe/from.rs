@@ -30,8 +30,8 @@ impl TryIntoMethod<FunctionOperator> for String {
 			"MONTH" => Ok(Value::function_month),
 			"DAY" => Ok(Value::function_day),
 			"HOUR" => Ok(Value::function_hour),
-			"MINUTE" => Ok(Value::function_hour),
-			"SECOND" => Ok(Value::function_hour),
+			"MINUTE" => Ok(Value::function_minute),
+			"SECOND" => Ok(Value::function_second),
 
 			"DATEADD" => Ok(Value::function_timestamp_add),
 			"DATEFROMPARTS" => Ok(Value::function_timestamp_from_parts),
