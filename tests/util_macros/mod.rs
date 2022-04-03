@@ -171,6 +171,9 @@ macro_rules! assert_error {
 		let _test: Result<(), _> = Err($error);
 		assert!(matches!($storage.execute($query), _test));
 	}};
+	($storage: expr, $query: expr) => {
+		$storage.execute($query).unwrap_err();
+	};
 }
 pub(crate) use assert_error;
 
@@ -179,6 +182,9 @@ macro_rules! assert_success {
 		let _test: multisql::Result<_> = Ok($success);
 		assert!(matches!($storage.execute($query), _test));
 	}};
+	($storage: expr, $query: expr) => {
+		$storage.execute($query).unwrap();
+	};
 }
 pub(crate) use assert_success;
 
