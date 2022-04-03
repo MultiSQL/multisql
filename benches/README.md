@@ -1,7 +1,7 @@
 # Benchmarks
 
 ## Results
-[See results](./criterion/report/index.html)
+[See results](https://htmlpreview.github.io/?https://github.com/KyGost/multisql/blob/main/benches/criterion/report/index.html)
 
 ## Tests
 [See tests](./bench.rs)
