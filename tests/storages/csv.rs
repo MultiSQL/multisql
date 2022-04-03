@@ -1,3 +1,4 @@
+#[allow(unused_must_use)]
 pub fn csv_storage(name: &str) -> multisql::Glue {
 	use {fstrings::*, multisql::*};
 
@@ -10,6 +11,8 @@ pub fn csv_storage(name: &str) -> multisql::Glue {
 		}
 	}
 
+	std::fs::create_dir("data");
+
 	let storage = CSVStorage::new(&path)
 		.map(Storage::new_csv)
 		.expect("Create Storage");
@@ -17,6 +20,6 @@ pub fn csv_storage(name: &str) -> multisql::Glue {
 	Glue::new(String::from("main"), storage)
 }
 
-//crate::util_macros::run!(csv_storage, functionality::statement::create);
-/*crate::util_macros::run!(csv_storage, functionality::statement::insert); TODO: GH Actions fail with CSV
-crate::util_macros::run!(csv_storage, functionality::statement::data_query);*/
+crate::util_macros::run!(csv_storage, functionality::statement::create::table);
+crate::util_macros::run!(csv_storage, functionality::statement::insert);
+crate::util_macros::run!(csv_storage, functionality::statement::data_query);

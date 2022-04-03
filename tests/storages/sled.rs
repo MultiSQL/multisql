@@ -1,7 +1,6 @@
 pub fn sled_storage(name: &str) -> multisql::Glue {
 	use {fstrings::*, multisql::*};
 
-	println_f!("{name}");
 	let path = f!("data/sled_{name}");
 
 	match std::fs::remove_dir_all(&path) {
