@@ -107,6 +107,12 @@ macro_rules! select {
 			rows: crate::util_macros::rows!(($($type),*) : $(($($value.into()),*)),*)
 		}
 	});
+	($($label: tt = $type: ident),* : _) => ({ // Crappy but working way of testing single NULL
+		multisql::Payload::Select {
+			labels: vec![$( stringify!($label).to_owned().replace("\"", "")),+],
+			rows: vec![multisql::Row(vec![multisql::Value::Null])]
+		}
+	});
 }
 pub(crate) use select;
 
@@ -137,5 +143,29 @@ macro_rules! assert_select {
 			assert!(false);
 		}
 	}};
+	($storage: expr, $query: expr => $($label: tt = $type: ident),* : $((_)),*) => {{ // Crappy but working way of testing single NULL
+		if let (
+			multisql::Payload::Select { labels, mut rows },
+			multisql::Payload::Select { labels: expect_labels, rows: expect_rows }
+		) = (
+			$storage.execute($query).expect("SELECT Error"),
+			crate::util_macros::select!($($label = $type),* : _)
+		) {
+			use fstrings::*;
+			assert_eq!(labels, expect_labels);
+			expect_rows.iter().for_each(|expect_row| {rows.remove(rows.iter().position(|_row| matches!(expect_row, _row)).expect(&f!("\nRow missing: {expect_row:?}.\nQuery: {query}\nOther rows: {rows:?}", query=$query)));});
+			rows.is_empty().then(||()).expect(&f!("Unexpected rows: {rows:?}\nQuery: {query}", query=$query));
+		} else {
+			assert!(false);
+		}
+	}};
 }
 pub(crate) use assert_select;
+
+macro_rules! assert_error {
+	($storage: expr, $query: expr, $error: expr) => {{
+		let _test: Result<(), _> = Err($error);
+		assert!(matches!($storage.execute($query), _test));
+	}};
+}
+pub(crate) use assert_error;
