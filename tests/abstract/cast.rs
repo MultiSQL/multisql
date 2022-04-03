@@ -1,5 +1,6 @@
 crate::util_macros::testcase!(
 	(|mut glue: multisql::Glue| {
+		/* TODO: Redo this test */
 		use super::Value::*, sqlparser::ast::DataType::*;
 		
 		macro_rules! cast {

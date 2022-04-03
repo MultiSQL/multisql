@@ -1,15 +1,13 @@
 use {
 	super::{Ingredient, Method, Recipe, RecipeError, TryIntoMethod},
 	crate::{
-		executor::{
-			query::{JoinManual, JoinType},
-			types::{ComplexTableName, ObjectName},
-		},
+		executor::{query::JoinManual, types::ObjectName},
 		Context, Resolve, Result, SimplifyBy, Value,
 	},
-	sqlparser::ast::{Expr, FunctionArg, FunctionArgExpr, Ident, SelectItem, SetExpr},
+	sqlparser::ast::{Expr, FunctionArg, FunctionArgExpr, Ident},
 	std::convert::TryFrom,
 };
+// TODO: #50 - imports: JoinType, SelectItem, SetExpr, ComplexTableName
 
 #[derive(Debug, Clone)]
 pub struct MetaRecipe {
@@ -130,11 +128,12 @@ impl RecipeMeta {
 	}
 }
 
+/* TODO: #50
 pub struct Subquery {
 	pub table: ComplexTableName,
 	pub column: Recipe,
 	pub constraint: Option<Expr>,
-}
+}*/
 
 impl Recipe {
 	pub fn new_without_meta(expression: Expr) -> Result<Self> {
