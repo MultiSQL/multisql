@@ -177,3 +177,18 @@ macro_rules! assert_success {
 	}};
 }
 pub(crate) use assert_success;
+
+macro_rules! assert_select_count {
+	($storage: expr, $query: expr, $count: expr) => {{
+		if let Ok(multisql::Payload::Select { rows, .. }) = $storage.execute($query) {
+			assert_eq!(rows.len(), $count)
+		} else {
+			panic!(
+				"Assert Select Count Failed\n\tQuery: {query}\n\tExpected: {count}",
+				query = $query,
+				count = $count
+			)
+		}
+	}};
+}
+pub(crate) use assert_select_count;

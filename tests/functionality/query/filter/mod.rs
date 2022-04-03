@@ -1,1 +1,1 @@
-crate::util_macros::make_all!(functionality::query::filter, [arithmetic, indexed]);
+crate::util_macros::make_all!(functionality::query::filter, [arithmetic, indexed, filter_simple]);
