@@ -1,6 +1,5 @@
 use {
 	crate::result::Result,
-	regex::Regex,
 	serde::{Deserialize, Serialize},
 	sqlparser::ast::DataType,
 	std::{cmp::Ordering, fmt::Debug},
@@ -218,74 +217,7 @@ impl Value {
 			(DataType::Float(_), value) => value.clone().cast().map(Value::F64),
 			(DataType::Text, value) => value.clone().cast().map(Value::Str),
 
-			(DataType::Time, Value::Str(value)) => {
-				let regex =
-					Regex::new(r"^(\d|[0-1]\d|2[0-3]):([0-5]\d)(:([0-5]\d))? ?([AaPp][Mm])?$");
-				if let Ok(regex) = regex {
-					if let Some(captures) = regex.captures(value) {
-						let modifier: bool = captures
-							.iter()
-							.last()
-							.map(|capture| {
-								capture
-									.map(|capture| {
-										Regex::new(r"^[Pp][Mm]$")
-											.ok()
-											.map(|regex| regex.is_match(capture.into()))
-									})
-									.flatten()
-							})
-							.flatten()
-							.unwrap_or(false);
-						let mut items: Vec<i64> = captures
-							.iter()
-							.skip(1)
-							.filter_map(|capture| {
-								capture
-									.map(|capture| {
-										let capture: &str = capture.into();
-										capture.parse::<i64>().ok()
-									})
-									.flatten()
-							})
-							.collect();
-						items.resize(3, 0);
-						let seconds = items.iter().fold(0, |acc, item| (acc * 60) + item)
-							+ if modifier { 12 * 60 * 60 } else { 0 };
-						Ok(Value::I64(seconds))
-					} else {
-						Err(())
-					}
-				} else {
-					Err(())
-				}
-				.map_err(|_| ValueError::ImpossibleCast.into())
-			}
-
 			_ => Err(ValueError::UnimplementedCast.into()),
-		}
-	}
-
-	pub fn is_some(&self) -> bool {
-		use Value::*;
-
-		!matches!(self, Null)
-	}
-
-	pub fn type_max(&self) -> Self {
-		match self {
-			Value::Bool(_) => Value::Bool(true),
-			Value::I64(_) => Value::I64(i64::MAX),
-			Value::F64(_) => Value::F64(f64::MAX),
-			_ => unimplemented!(), // TODO: Handle better & expand
-		}
-	}
-	pub fn type_min(&self) -> Self {
-		match self {
-			Value::Bool(_) => Value::Bool(false),
-			Value::I64(_) => Value::I64(i64::MIN),
-			Value::F64(_) => Value::F64(f64::MIN),
-			_ => unimplemented!(), // TODO: Handle better & expand
 		}
 	}
 

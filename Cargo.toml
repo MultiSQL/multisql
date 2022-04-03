@@ -43,7 +43,6 @@
 	sqlparser = { version = "0.15.0", features = ["serde"] }
 	thiserror = "1.0.21"
 	fstrings = "0.2.3"
-	regex = "1"
 	chrono = { version = "0.4.19", features = ["serde", "unstable-locales"] }
 	concat-idents = "1.1.2"
 	thousands = "0.2.0"
