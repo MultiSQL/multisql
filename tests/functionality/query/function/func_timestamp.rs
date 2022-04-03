@@ -13,6 +13,20 @@ crate::util_macros::testcase!(
 			"VALUES (DATEFROMPARTS(2001,2,3))" => unnamed_0 = I64:
 			(981158400)
 		);
+		crate::util_macros::assert_select!(glue,
+			"VALUES (MONTH(981158400))" => unnamed_0 = I64:
+			(2)
+		);
+
+		crate::util_macros::assert_select!(glue,
+			"VALUES (CONVERT('TIMESTAMP', '2001-02-03 04:05:06', 'DATETIME'), DATEFROMPARTS(2001,2,3,4,5,6))" => unnamed_0 = I64, unnamed_1 = I64:
+			(981173106, 981173106)
+		);
+
+		crate::util_macros::assert_select!(glue,
+			"VALUES (YEAR(981173106), MONTH(981173106), DAY(981173106), HOUR(981173106), MINUTE(981173106), SECOND(981173106))" => unnamed_0 = I64, unnamed_1 = I64, unnamed_2 = I64, unnamed_3 = I64, unnamed_4 = I64, unnamed_5 = I64:
+			(2001, 2, 3, 4, 5, 6)
+		);
 
 		crate::util_macros::assert_select!(glue,
 			"VALUES (
