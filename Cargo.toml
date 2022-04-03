@@ -20,8 +20,6 @@
 		"auto-increment",
 		# Data
 		"implicit_float_conversion",
-		# API
-		"expanded-api",
 	]
 
 	# Storages

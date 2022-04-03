@@ -147,12 +147,10 @@ impl Recipe {
 	fn with_meta(expression: Expr, meta: &mut RecipeMeta) -> Result<Self> {
 		let error_expression_clone = expression.clone();
 		match expression {
-			Expr::Identifier(identifier) => {
-				Ok(Self::from_column(
-					identifier_into_object_name(vec![identifier]),
-					meta,
-				))
-			}
+			Expr::Identifier(identifier) => Ok(Self::from_column(
+				identifier_into_object_name(vec![identifier]),
+				meta,
+			)),
 			Expr::CompoundIdentifier(identifier) => Ok(Self::from_column(
 				identifier_into_object_name(identifier),
 				meta,
