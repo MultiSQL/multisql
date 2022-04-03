@@ -5,44 +5,38 @@ crate::util_macros::testcase!(
 		crate::util_macros::execute!(glue, "INSERT INTO TableB VALUES (FALSE);");
 		crate::util_macros::execute!(glue, "INSERT INTO TableC VALUES (1, NULL);");
 
-		let test_cases: Vec<(_, multisql::Error)> = vec![
-			(
-				"INSERT INTO TableB SELECT uid FROM TableC;",
-				multisql::ValueError::IncompatibleDataType {
-					data_type: multisql::parser::ast::DataType::Boolean.to_string(),
-					value: format!("{:?}", multisql::Value::I64(1)),
-				}.into()
-			),
-			(
-				"INSERT INTO TableC (uid) VALUES (\"A\")",
-				multisql::ValueError::IncompatibleDataType {
-					data_type: multisql::parser::ast::DataType::Int(None).to_string(),
-					value: format!("{:?}", multisql::Value::Str(String::from("A"))),
-				}.into()
-			),
-			(
-				"INSERT INTO TableC VALUES (NULL, 30);",
-				multisql::ValueError::NullValueOnNotNullField.into()
-			),
-			(
-				"INSERT INTO TableC SELECT null_val FROM TableC;",
-				multisql::ValidateError::WrongNumberOfValues.into()
-			),
-			(
-				"UPDATE TableC SET uid = TRUE;",
-				multisql::ValueError::IncompatibleDataType {
-					data_type: multisql::parser::ast::DataType::Int(None).to_string(),
-					value: format!("{:?}", multisql::Value::Bool(true)),
-				}.into()
-			),
-			(
-				"UPDATE TableC SET uid = NULL;",
-				multisql::ValueError::NullValueOnNotNullField.into()
-			)
-		];
-
-		for (sql, _expected) in test_cases.into_iter() {
-			assert!(matches!(glue.execute(sql), Err(_expected)));
-		}
+		crate::util_macros::assert_error!(glue,
+			"INSERT INTO TableB SELECT uid FROM TableC;",
+			multisql::ValueError::IncompatibleDataType {
+				data_type: multisql::parser::ast::DataType::Boolean.to_string(),
+				value: format!("{:?}", multisql::Value::I64(1)),
+			}
+		);
+		crate::util_macros::assert_error!(glue,
+			"INSERT INTO TableC (uid) VALUES (\"A\")",
+			multisql::ValueError::IncompatibleDataType {
+				data_type: multisql::parser::ast::DataType::Int(None).to_string(),
+				value: format!("{:?}", multisql::Value::Str(String::from("A"))),
+			}
+		);
+		crate::util_macros::assert_error!(glue,
+			"INSERT INTO TableC VALUES (NULL, 30);",
+			multisql::ValueError::NullValueOnNotNullField
+		);
+		crate::util_macros::assert_error!(glue,
+			"INSERT INTO TableC SELECT null_val FROM TableC;",
+			multisql::ValidateError::WrongNumberOfValues
+		);
+		crate::util_macros::assert_error!(glue,
+			"UPDATE TableC SET uid = TRUE;",
+			multisql::ValueError::IncompatibleDataType {
+				data_type: multisql::parser::ast::DataType::Int(None).to_string(),
+				value: format!("{:?}", multisql::Value::Bool(true)),
+			}
+		);
+		crate::util_macros::assert_error!(glue,
+			"UPDATE TableC SET uid = NULL;",
+			multisql::ValueError::NullValueOnNotNullField
+		);
 	})
 );
