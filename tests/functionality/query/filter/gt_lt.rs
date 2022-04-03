@@ -1,22 +1,18 @@
 crate::util_macros::testcase!(
 	(|mut glue: multisql::Glue| {
 	crate::util_macros::execute!(glue, 
-		"
-		CREATE TABLE Operator (
+		"CREATE TABLE Operator (
 			id INTEGER,
 			name TEXT,
-		);
-	"
+		);"
 	);
 	crate::util_macros::execute!(glue, 
-		"
-		INSERT INTO Operator (id, name) VALUES
+		"INSERT INTO Operator (id, name) VALUES
 			(1, 'Abstract'),
 			(2, 'Azzzz'),
 			(3, 'July'),
 			(4, 'Romeo'),
-			(5, 'Trade');
-	"
+			(5, 'Trade');"
 	);
 
 		crate::util_macros::assert_select_count!(glue, "SELECT * FROM Operator WHERE id < 2;", 1);

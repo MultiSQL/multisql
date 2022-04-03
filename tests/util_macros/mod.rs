@@ -176,11 +176,19 @@ pub(crate) use assert_error;
 
 macro_rules! assert_success {
 	($storage: expr, $query: expr, $success: expr) => {{
-		let _test: Result<_, _> = Ok($success);
+		let _test: multisql::Result<_> = Ok($success);
 		assert!(matches!($storage.execute($query), _test));
 	}};
 }
 pub(crate) use assert_success;
+
+macro_rules! assert_result {
+	($storage: expr, $query: expr, $success: expr) => {{
+		let _test: multisql::Result<multisql::Payload> = $success;
+		assert!(matches!($storage.execute($query), _test));
+	}};
+}
+pub(crate) use assert_result;
 
 macro_rules! assert_select_count {
 	($storage: expr, $query: expr, $count: expr) => {{
