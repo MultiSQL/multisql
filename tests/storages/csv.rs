@@ -9,6 +9,7 @@ pub fn csv_storage(name: &str) -> multisql::Glue {
 			println!("fs::remove_file {:?}", e);
 		}
 	}
+	std::fs::create_dir("data").unwrap();
 
 	let storage = CSVStorage::new(&path)
 		.map(Storage::new_csv)
