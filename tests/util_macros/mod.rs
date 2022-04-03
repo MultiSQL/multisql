@@ -169,3 +169,11 @@ macro_rules! assert_error {
 	}};
 }
 pub(crate) use assert_error;
+
+macro_rules! assert_success {
+	($storage: expr, $query: expr, $success: expr) => {{
+		let _test: Result<_, _> = Ok($success);
+		assert!(matches!($storage.execute($query), _test));
+	}};
+}
+pub(crate) use assert_success;
