@@ -89,10 +89,11 @@ crate::util_macros::testcase!(
 			SELECT
 				SUM(a) AS sum,
 				MIN(a) AS min,
-				MAX(a) AS max
+				MAX(a) AS max,
+				AVG(a) AS avg
 			FROM
 				basic
-		"# => sum = I64, min = I64, max = I64: (6, 1, 3));
+		"# => sum = I64, min = I64, max = I64, avg = I64: (6, 1, 3, 2));
 
 		crate::util_macros::assert_select!(glue, r#"
 			SELECT
