@@ -1,0 +1,11 @@
+group,function,value,throughput_num,throughput_type,sample_measured_value,unit,iteration_count
+find,a,,,,168210378.0,ns,20
+find,a,,,,316581925.0,ns,40
+find,a,,,,566534643.0,ns,60
+find,a,,,,671205062.0,ns,80
+find,a,,,,888171953.0,ns,100
+find,a,,,,1034170204.0,ns,120
+find,a,,,,1240658562.0,ns,140
+find,a,,,,1439218694.0,ns,160
+find,a,,,,1598761436.0,ns,180
+find,a,,,,1748885034.0,ns,200

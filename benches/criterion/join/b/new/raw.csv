@@ -1,0 +1,11 @@
+group,function,value,throughput_num,throughput_type,sample_measured_value,unit,iteration_count
+join,b,,,,3142461322.0,ns,6
+join,b,,,,3257661588.0,ns,6
+join,b,,,,3203438131.0,ns,6
+join,b,,,,3209510407.0,ns,6
+join,b,,,,3113661506.0,ns,6
+join,b,,,,3262612595.0,ns,6
+join,b,,,,3121437145.0,ns,6
+join,b,,,,3403941573.0,ns,6
+join,b,,,,3496937510.0,ns,6
+join,b,,,,3865656189.0,ns,6
