@@ -129,10 +129,10 @@ pub(crate) use execute;
 macro_rules! assert_select {
 	($storage: expr, $query: expr => $($label: tt = $type: ident),* : $(($($value: expr),*)),*) => {{
 		if let (
-			multisql::Payload::Select { labels, mut rows },
+			Ok(multisql::Payload::Select { labels, mut rows }),
 			multisql::Payload::Select { labels: expect_labels, rows: expect_rows }
 		) = (
-			$storage.execute($query).expect("SELECT Error"),
+			$storage.execute($query),
 			crate::util_macros::select!($($label = $type),* : $(($($value),*)),*)
 		) {
 			use fstrings::*;
@@ -140,15 +140,17 @@ macro_rules! assert_select {
 			expect_rows.iter().for_each(|expect_row| {rows.remove(rows.iter().position(|row| expect_row == row).expect(&f!("\nRow missing: {expect_row:?}.\nQuery: {query}\nOther rows: {rows:?}", query=$query)));});
 			rows.is_empty().then(||()).expect(&f!("Unexpected rows: {rows:?}\nQuery: {query}", query=$query));
 		} else {
-			assert!(false);
+			let _result = $storage.execute($query);
+			let _expect = crate::util_macros::select!($($label = $type),* : $(($($value),*)),*);
+			panic!("SELECT Error\n\tQuery:\t\t{query}\n\tResult:\t\t{result:?}\n\tExpected:\t{expect:?}", query=$query, result=_result, expect=_expect);
 		}
 	}};
 	($storage: expr, $query: expr => $($label: tt = $type: ident),* : $((_)),*) => {{ // Crappy but working way of testing single NULL
 		if let (
-			multisql::Payload::Select { labels, mut rows },
+			Ok(multisql::Payload::Select { labels, mut rows }),
 			multisql::Payload::Select { labels: expect_labels, rows: expect_rows }
 		) = (
-			$storage.execute($query).expect("SELECT Error"),
+			$storage.execute($query),
 			crate::util_macros::select!($($label = $type),* : _)
 		) {
 			use fstrings::*;
@@ -156,7 +158,9 @@ macro_rules! assert_select {
 			expect_rows.iter().for_each(|expect_row| {rows.remove(rows.iter().position(|_row| matches!(expect_row, _row)).expect(&f!("\nRow missing: {expect_row:?}.\nQuery: {query}\nOther rows: {rows:?}", query=$query)));});
 			rows.is_empty().then(||()).expect(&f!("Unexpected rows: {rows:?}\nQuery: {query}", query=$query));
 		} else {
-			assert!(false);
+			let _result = $storage.execute($query);
+			let _expect = crate::util_macros::select!($($label = $type),* : _);
+			panic!("SELECT Error\n\tQuery:\t\t{query}\n\tResult:\t\t{result:?}\n\tExpected:\t{expect:?}", query=$query, result=_result, expect=_expect);
 		}
 	}};
 }
