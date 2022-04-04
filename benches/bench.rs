@@ -14,7 +14,7 @@ fn setup_glue() -> Glue {
 		}
 	}
 
-	let storage = SledStorage::new(&path)
+	let storage = SledStorage::new(path)
 		.map(Storage::new_sled)
 		.expect("Create Storage");
 
