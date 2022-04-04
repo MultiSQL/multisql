@@ -52,6 +52,7 @@ impl Manual {
 			cluster_by: _,
 			distribute_by: _,
 			sort_by: _,
+			into: _,
 		} = select;
 
 		let constraint = selection
