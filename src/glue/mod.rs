@@ -35,8 +35,8 @@ impl Context {
 ///
 /// There is a number of ways to deposit queries however, depending on the desired output:
 /// - [`Glue::execute()`] -- Might be considered the most generic.
-/// 		Replies with a [Result]<[Payload]>
-/// 		(payload being the response from any type of query).
+///     Replies with a [Result]<[Payload]>
+///     (payload being the response from any type of query).
 /// - [`Glue::execute_many()`] -- Same as `execute()` but will find any number of seperate queries in given text and provide a [Vec] in response.
 /// - [`Glue::select_as_string()`] -- Provides data, only for `SELECT` queries, as [String]s (rather than [Value]s).
 /// - [`Glue::select_as_json()`] -- Provides data, only for `SELECT` queries, as one big [String]; generally useful for webby interactions.

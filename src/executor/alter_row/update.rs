@@ -14,7 +14,7 @@ pub async fn update(
 	context: &Context,
 	table: &TableWithJoins,
 	selection: &Option<Expr>,
-	assignments: &Vec<Assignment>,
+	assignments: &[Assignment],
 ) -> Result<Payload> {
 	// TODO: Complex updates (joins)
 	let table = match &table.relation {
@@ -33,11 +33,8 @@ pub async fn update(
 	let columns = column_defs
 		.clone()
 		.into_iter()
-		.map(|column_def| {
-			let ColumnDef { name, .. } = column_def;
-			ColumnInfo::of_name(name.value)
-		})
-		.collect();
+		.map(|ColumnDef { name, .. }| ColumnInfo::of_name(name.value))
+		.collect::<Vec<ColumnInfo>>();
 
 	let filter = selection
 		.clone()

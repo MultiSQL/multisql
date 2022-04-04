@@ -43,11 +43,9 @@ impl Resolve for Ingredient {
 					Ingredient::Value(row.get(index).ok_or(RecipeError::UnreachableNoRow)?.clone())
 				} else if let SimplifyBy::OptRow(row) = component {
 					row.get(index)
-						.map(Clone::clone)
-						.flatten()
-						.map(|value| Ingredient::Value(value))
+						.and_then(Clone::clone)
+						.map(Ingredient::Value)
 						.unwrap_or(self)
-						.clone()
 				} else {
 					self
 				}
@@ -81,11 +79,12 @@ impl Resolve for Method {
 				if let Some(Value::Bool(value)) = left.as_solution() {
 					// Optimisation -- is this a good idea?
 					if !value {
-						if operator == Value::and {
+						// Clippy didn't like this without "as usize"
+						if operator as usize == Value::and as usize {
 							return Ok(Method::Value(Value::Bool(false)));
 						}
 					} else {
-						if operator == Value::or {
+						if operator as usize == Value::or as usize {
 							return Ok(Method::Value(Value::Bool(true)));
 						}
 					}

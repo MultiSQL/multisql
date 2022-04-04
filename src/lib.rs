@@ -8,17 +8,17 @@
 //! ```
 //! use multisql::{SledStorage, Storage, Glue};
 //! fn main() {
-//! 	let storage = SledStorage::new("data/example_location/example")
-//! 		.map(Storage::new_sled)
-//! 		.expect("Storage Creation Failed");
-//! 	let mut glue = Glue::new(String::from("main"), storage);
+//!   let storage = SledStorage::new("data/example_location/example")
+//!     .map(Storage::new_sled)
+//!     .expect("Storage Creation Failed");
+//!   let mut glue = Glue::new(String::from("main"), storage);
 //!     
-//! 	glue.execute_many("
-//! 		DROP TABLE IF EXISTS test;
-//! 		CREATE TABLE test (id INTEGER);
-//! 		INSERT INTO test VALUES (1),(2);
-//! 		SELECT * FROM test WHERE id > 1;
-//! 	");
+//!   glue.execute_many("
+//!     DROP TABLE IF EXISTS test;
+//!     CREATE TABLE test (id INTEGER);
+//!     INSERT INTO test VALUES (1),(2);
+//!     SELECT * FROM test WHERE id > 1;
+//!   ");
 //! }
 //! ```
 //!
