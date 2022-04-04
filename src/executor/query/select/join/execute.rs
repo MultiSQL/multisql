@@ -73,7 +73,7 @@ impl JoinExecute {
 						None
 					}
 				})
-				.or_else(||storages.get(0).map(|(_, storage)| &**storage))
+				.or_else(|| storages.get(0).map(|(_, storage)| &**storage))
 				.ok_or(JoinError::Unreachable)?;
 
 			self.get_rows(storage).await

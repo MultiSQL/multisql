@@ -69,9 +69,7 @@ pub async fn delete(
 		.map(|_| Payload::Delete(num_keys))?;
 
 	for index in indexes.iter() {
-		index
-			.reset(storages[0].1, table_name, &column_defs)
-			.await?; // TODO: Not this; optimise
+		index.reset(storages[0].1, table_name, &column_defs).await?; // TODO: Not this; optimise
 	}
 	Ok(result)
 }

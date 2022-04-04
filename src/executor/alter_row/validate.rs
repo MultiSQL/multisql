@@ -37,7 +37,9 @@ pub fn columns_to_positions(column_defs: &[ColumnDef], columns: &[Ident]) -> Res
 				column_defs
 					.iter()
 					.position(|column_def| stated_column.value == column_def.name.value)
-					.ok_or_else(||ValidateError::ColumnNotFound(stated_column.value.clone()).into())
+					.ok_or_else(|| {
+						ValidateError::ColumnNotFound(stated_column.value.clone()).into()
+					})
 			})
 			.collect::<Result<Vec<usize>>>()
 	}
@@ -111,7 +113,7 @@ pub fn validate(
 								recipe
 									.simplify(SimplifyBy::Basic)?
 									.as_solution()
-									.ok_or_else(||ValidateError::BadDefault.into())
+									.ok_or_else(|| ValidateError::BadDefault.into())
 							} else {
 								Err(ValidateError::MissingValue.into())
 							}

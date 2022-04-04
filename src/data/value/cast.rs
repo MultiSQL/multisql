@@ -180,7 +180,8 @@ impl Cast<NaiveDateTime> for Value {
 	// Default (from Timestamp)
 	fn cast(self) -> Result<NaiveDateTime> {
 		let timestamp: i64 = self.cast()?;
-		NaiveDateTime::from_timestamp_opt(timestamp, 0).ok_or(ValueError::ImpossibleCast.into())
+		NaiveDateTime::from_timestamp_opt(timestamp, 0)
+			.ok_or_else(|| ValueError::ImpossibleCast.into())
 	}
 }
 #[allow(clippy::zero_prefixed_literal)]
@@ -209,7 +210,7 @@ impl CastWithRules<NaiveDateTime> for Value {
 			rules
 				.iter()
 				.find_map(|try_rule| try_value.clone().cast_with_rule((*try_rule).into()).ok())
-				.ok_or(ValueError::ParseError(try_value.clone(), "TIMESTAMP").into())
+				.ok_or_else(|| ValueError::ParseError(try_value.clone(), "TIMESTAMP").into())
 		}
 		const TRY_RULES_TIMESTAMP: [i64; 1] = [000];
 		const TRY_RULES_DATETIME: [i64; 7] = [010, 011, 020, 021, 030, 031, 060];
@@ -224,8 +225,8 @@ impl CastWithRules<NaiveDateTime> for Value {
 				"DATE" => try_rules(&self, &TRY_RULES_DATE),
 				"TIME" => try_rules(&self, &TRY_RULES_TIME),
 				custom_format => for_format_datetime(self.clone(), custom_format)
-					.or(for_format_date(self.clone(), custom_format))
-					.or(for_format_time(self, custom_format)),
+					.or_else(|_| for_format_date(self.clone(), custom_format))
+					.or_else(|_| for_format_time(self, custom_format)),
 			},
 			Value::I64(000) => {
 				// From Timestamp (Default)

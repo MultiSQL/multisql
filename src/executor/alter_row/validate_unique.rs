@@ -65,24 +65,23 @@ pub async fn validate_unique(
 					Some(())
 				})
 				.collect::<Option<()>>()
-				.ok_or_else(||ValidateError::UnreachableUniqueValues.into())
+				.ok_or_else(|| ValidateError::UnreachableUniqueValues.into())
 		})?;
 
 	let mut new_values: Vec<Vec<Value>> = vec![vec![]; unique_columns.len()];
-	rows.iter()
-		.try_for_each::<_, Result<_>>(|row| {
-			unique_columns
-				.iter()
-				.enumerate()
-				.map(|(index, row_index)| {
-					new_values
-						.get_mut(index)?
-						.push(row.get(*row_index)?.clone());
-					Some(())
-				})
-				.collect::<Option<()>>()
-				.ok_or_else(||ValidateError::UnreachableUniqueValues.into())
-		})?;
+	rows.iter().try_for_each::<_, Result<_>>(|row| {
+		unique_columns
+			.iter()
+			.enumerate()
+			.map(|(index, row_index)| {
+				new_values
+					.get_mut(index)?
+					.push(row.get(*row_index)?.clone());
+				Some(())
+			})
+			.collect::<Option<()>>()
+			.ok_or_else(|| ValidateError::UnreachableUniqueValues.into())
+	})?;
 	let mut existing_values_iter = existing_values.into_iter();
 	new_values
 		.into_iter()

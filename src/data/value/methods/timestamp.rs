@@ -37,7 +37,7 @@ macro_rules! expect_arguments {
 macro_rules! optional_expect_arguments {
 	($arguments: expr, $min: expr, $max: expr) => {
 		match $arguments.len() {
-			len if len >= $min && len <= $max => (),
+			len if ($min..=$max).contains(&len) => (),
 			found => {
 				return Err(ValueError::NumberOfFunctionParamsNotMatching {
 					expected: $min,
@@ -88,25 +88,12 @@ impl Value {
 	}
 	pub fn function_timestamp_from_parts(arguments: Vec<Self>) -> Result<Self> {
 		optional_expect_arguments!(arguments, 1, 6);
-		protect_null!(arguments
-			.get(0).cloned()
-			.unwrap_or(Value::I64(1)))
-		.date_from_parts(
-			protect_null!(arguments
-				.get(1).cloned()
-				.unwrap_or(Value::I64(1))),
-			protect_null!(arguments
-				.get(2).cloned()
-				.unwrap_or(Value::I64(1))),
-			protect_null!(arguments
-				.get(3).cloned()
-				.unwrap_or(Value::I64(0))),
-			protect_null!(arguments
-				.get(4).cloned()
-				.unwrap_or(Value::I64(0))),
-			protect_null!(arguments
-				.get(5).cloned()
-				.unwrap_or(Value::I64(0))),
+		protect_null!(arguments.get(0).cloned().unwrap_or(Value::I64(1))).date_from_parts(
+			protect_null!(arguments.get(1).cloned().unwrap_or(Value::I64(1))),
+			protect_null!(arguments.get(2).cloned().unwrap_or(Value::I64(1))),
+			protect_null!(arguments.get(3).cloned().unwrap_or(Value::I64(0))),
+			protect_null!(arguments.get(4).cloned().unwrap_or(Value::I64(0))),
+			protect_null!(arguments.get(5).cloned().unwrap_or(Value::I64(0))),
 		)
 	}
 }
@@ -168,14 +155,16 @@ impl Value {
 		match self {
 			Value::Str(string) if string == "YEAR" => {
 				let years = datetime.year() + amount as i32;
-				let calculated = datetime.with_year(years).unwrap_or(
-					datetime
-						.with_day(28)
-						.ok_or(ValueError::DateError)
-						.unwrap() //?
-						.with_year(years)
-						.ok_or(ValueError::DateError)
-						.unwrap(), //?,
+				let calculated = datetime.with_year(years).unwrap_or_else(
+					|| {
+						datetime
+							.with_day(28)
+							.ok_or(ValueError::DateError)
+							.unwrap() //?
+							.with_year(years)
+							.ok_or(ValueError::DateError)
+							.unwrap()
+					}, //?,
 				);
 				Ok(Value::I64(calculated.timestamp()))
 			}

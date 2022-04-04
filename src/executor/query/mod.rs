@@ -92,8 +92,12 @@ pub async fn query(
 
 	let (mut labels, mut rows) = from_body(storages, context, body, order_by).await?;
 
-	offset.map(|offset| rows.drain(0..offset));
-	limit.map(|limit| rows.truncate(limit));
+	if let Some(offset) = offset {
+		rows.drain(0..offset);
+	}
+	if let Some(limit) = limit {
+		rows.truncate(limit);
+	}
 	if ENSURE_SIZE {
 		let row_width = rows
 			.iter()

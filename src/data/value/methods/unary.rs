@@ -19,6 +19,7 @@ macro_rules! generic {
 	};
 }
 
+#[allow(clippy::should_implement_trait)] // TODO
 impl Value {
 	pub fn unary_plus<Core>(self) -> Result<Self>
 	where

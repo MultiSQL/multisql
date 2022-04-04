@@ -13,7 +13,7 @@ pub async fn insert(
 	context: &mut Context,
 	table_name: &ObjectName,
 	columns: &[Ident],
-	source: &Box<Query>,
+	source: &Query,
 	expect_data: bool,
 ) -> Result<Payload> {
 	let table_name = get_name(table_name)?;
@@ -28,7 +28,7 @@ pub async fn insert(
 		.ok_or(ExecuteError::TableNotExists)?;
 
 	// TODO: Multi storage
-	let (labels, rows) = query(storages, context, *source.clone()).await?;
+	let (labels, rows) = query(storages, context, source.clone()).await?;
 	let column_positions = columns_to_positions(&column_defs, columns)?;
 
 	let rows = validate(&column_defs, &column_positions, rows)?;
@@ -51,9 +51,7 @@ pub async fn insert(
 
 	for index in indexes.iter() {
 		// TODO: Should definitely be just inserting an index record
-		index
-			.reset(storages[0].1, table_name, &column_defs)
-			.await?; // TODO: Not this; optimise
+		index.reset(storages[0].1, table_name, &column_defs).await?; // TODO: Not this; optimise
 	}
 
 	Ok(result)

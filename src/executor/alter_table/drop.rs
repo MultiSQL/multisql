@@ -36,11 +36,7 @@ pub async fn drop(
 					.try_fold(storage, |storage, column| async move {
 						if column.is_auto_incremented() {
 							storage
-								.set_increment_value(
-									table_name,
-									column.name.value.as_str(),
-									1_i64,
-								)
+								.set_increment_value(table_name, column.name.value.as_str(), 1_i64)
 								.await?;
 						}
 						Ok(storage)

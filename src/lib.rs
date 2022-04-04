@@ -1,4 +1,4 @@
-#![allow(clippy::option_map_unit_fn, clippy::fn_address_comparisons)]
+#![allow(clippy::fn_address_comparisons)]
 
 //! # MultiSQL
 //!
@@ -9,19 +9,17 @@
 //!
 //! ```
 //! use multisql::{SledStorage, Storage, Glue};
-//! fn main() {
-//!   let storage = SledStorage::new("data/example_location/example")
-//!     .map(Storage::new_sled)
-//!     .expect("Storage Creation Failed");
-//!   let mut glue = Glue::new(String::from("main"), storage);
-//!     
-//!   glue.execute_many("
-//!     DROP TABLE IF EXISTS test;
-//!     CREATE TABLE test (id INTEGER);
-//!     INSERT INTO test VALUES (1),(2);
-//!     SELECT * FROM test WHERE id > 1;
-//!   ");
-//! }
+//! let storage = SledStorage::new("data/example_location/example")
+//!   .map(Storage::new_sled)
+//!   .expect("Storage Creation Failed");
+//! let mut glue = Glue::new(String::from("main"), storage);
+//!
+//! glue.execute_many("
+//!   DROP TABLE IF EXISTS test;
+//!   CREATE TABLE test (id INTEGER);
+//!   INSERT INTO test VALUES (1),(2);
+//!   SELECT * FROM test WHERE id > 1;
+//! ");
 //! ```
 //!
 //! ## See also

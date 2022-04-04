@@ -25,11 +25,7 @@ pub async fn create_index(
 		.await?
 		.ok_or(ExecuteError::TableNotExists)?;
 
-	if schema
-		.indexes
-		.iter()
-		.any(|index| index.name == name)
-	{
+	if schema.indexes.iter().any(|index| index.name == name) {
 		if !if_not_exists {
 			Err(AlterError::AlreadyExists(name).into())
 		} else {
@@ -55,7 +51,7 @@ pub async fn create_index(
 		{
 			Err(AlterError::ColumnNotFound(
 				table_name.clone(),
-				column.unwrap_or_else(||String::from("NILL")),
+				column.unwrap_or_else(|| String::from("NILL")),
 			)
 			.into())
 		} else if let Some(column) = column {

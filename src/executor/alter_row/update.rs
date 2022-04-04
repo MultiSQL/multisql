@@ -95,7 +95,7 @@ pub async fn update(
 						.map(|(_, assignment_recipe)| {
 							assignment_recipe.clone().simplify_by_row(&row)?.confirm()
 						})
-						.unwrap_or_else(||Ok(old_value.clone()))
+						.unwrap_or_else(|| Ok(old_value.clone()))
 				})
 				.collect::<Result<VecRow>>();
 			Some(row.map(|row| (key, row)))
