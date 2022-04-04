@@ -2,6 +2,7 @@ use {
 	super::{
 		alter_row::{delete, insert, update},
 		alter_table::{create_index, create_table, drop, truncate},
+		other::explain,
 		query::query,
 	},
 	crate::{glue::Context, parse_sql::Query, Result, Row, StorageInner, Value},
@@ -24,6 +25,11 @@ pub enum ExecuteError {
 
 	#[error("unsupported insert value type: {0}")]
 	UnreachableUnsupportedInsertValueType(String),
+
+	#[error("object not recognised")]
+	ObjectNotRecognised,
+	#[error("unimplemented")]
+	Unimplemented,
 
 	#[error("table does not exist")]
 	TableNotExists,
@@ -138,6 +144,8 @@ pub async fn execute(
 			context.set_variable(name, value);
 			Ok(Payload::Success)
 		}
+
+		Statement::ExplainTable { table_name, .. } => explain(&storages, table_name).await,
 		_ => Err(ExecuteError::QueryNotSupported.into()),
 	}
 }

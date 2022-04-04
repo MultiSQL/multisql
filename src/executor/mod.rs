@@ -2,6 +2,7 @@ mod alter_row;
 mod alter_table;
 mod execute;
 mod fetch;
+mod other;
 mod query;
 mod recipe;
 mod types;

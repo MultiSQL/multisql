@@ -172,14 +172,14 @@ macro_rules! assert_error {
 		matches!($storage.execute($query), _test)
 			.then(|| ())
 			.expect(&format!(
-				"Unexexpected\n\tQuery:\n\t{query}\n\tExpected:\t{expect:?}",
+				"Unexpected\n\tQuery:\n\t{query}\n\tExpected:\t{expect:?}",
 				query = $query,
 				expect = $error
 			));
 	}};
 	($storage: expr, $query: expr) => {
 		$storage.execute($query).expect_err(&format!(
-			"Unexexpected Success\n\tQuery:\n\t{query}\n\tResult",
+			"Unexpected Success\n\tQuery:\n\t{query}\n\tResult",
 			query = $query
 		));
 	};
@@ -192,14 +192,14 @@ macro_rules! assert_success {
 		matches!($storage.execute($query), _test)
 			.then(|| ())
 			.expect(&format!(
-				"Unexexpected\n\tQuery:\n\t{query}\n\tExpected:\t{expect:?}",
+				"Unexpected\n\tQuery:\n\t{query}\n\tExpected:\t{expect:?}",
 				query = $query,
 				expect = $success
 			));
 	}};
 	($storage: expr, $query: expr) => {
 		$storage.execute($query).expect(&format!(
-			"Unexexpected Error\n\tQuery:\n\t{query}\n\tResult",
+			"Unexpected Error\n\tQuery:\n\t{query}\n\tResult",
 			query = $query
 		));
 	};
