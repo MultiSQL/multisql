@@ -46,6 +46,15 @@ pub(crate) async fn explain(
 			rows: columns,
 		})
 	} else {
-		Err(ExecuteError::Unimplemented.into())
+		let tables = store
+			.scan_schemas()
+			.await?
+			.into_iter()
+			.map(|Schema { table_name, .. }| Row(vec![table_name.into()]))
+			.collect();
+		Ok(Payload::Select {
+			labels: vec![String::from("table")],
+			rows: tables,
+		})
 	}
 }
