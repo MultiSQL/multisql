@@ -10,7 +10,7 @@ use {
 
 pub struct Order(Vec<PlannedOrderItem>);
 impl Order {
-	pub fn new(order_by: Vec<OrderByExpr>, columns: &Vec<ColumnInfo>) -> Result<Self> {
+	pub fn new(order_by: Vec<OrderByExpr>, columns: &[ColumnInfo]) -> Result<Self> {
 		let order_items = order_by
 			.into_iter()
 			.map(|order_by_item| PlannedOrderItem::new(order_by_item, columns))
@@ -54,7 +54,7 @@ impl Order {
 
 struct PlannedOrderItem(OrderTerm, PlannedRecipe);
 impl PlannedOrderItem {
-	pub fn new(order_by_item: OrderByExpr, columns: &Vec<ColumnInfo>) -> Result<Self> {
+	pub fn new(order_by_item: OrderByExpr, columns: &[ColumnInfo]) -> Result<Self> {
 		let OrderByExpr {
 			expr,
 			asc,
@@ -105,7 +105,7 @@ impl OrderTerm {
 struct OrderTerms(Vec<OrderTerm>);
 
 impl OrderTerms {
-	pub fn sort(&self, order_items_a: &Vec<Value>, order_items_b: &Vec<Value>) -> Ordering {
+	pub fn sort(&self, order_items_a: &[Value], order_items_b: &[Value]) -> Ordering {
 		order_items_a
 			.iter()
 			.zip(order_items_b)

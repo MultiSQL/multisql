@@ -65,7 +65,7 @@ impl JoinMethod {
 							.iter()
 							.enumerate()
 							.filter_map(|(index, right_row)| {
-								if try_option!(recipe.confirm_join_constraint(&left_row, &right_row))
+								if try_option!(recipe.confirm_join_constraint(&left_row, right_row))
 								{
 									Some(Ok((
 										index,
@@ -79,7 +79,7 @@ impl JoinMethod {
 						Ok(if inner_rows.is_empty() && join.includes_left() {
 							(
 								vec![],
-								vec![join_parts(left_row.clone(), vec![Value::Null; right_width])],
+								vec![join_parts(left_row, vec![Value::Null; right_width])],
 							)
 						} else {
 							inner_rows.into_iter().unzip()
@@ -120,7 +120,7 @@ impl JoinMethod {
 							.and_then(|row_l| {
 								row_r
 									.get(plane_index)
-									.and_then(|row_r| row_l.null_cmp(&row_r))
+									.and_then(|row_r| row_l.null_cmp(row_r))
 							})
 							.unwrap_or(Ordering::Equal)
 					});
@@ -155,7 +155,7 @@ impl JoinMethod {
 							.and_then(|row_l| {
 								row_r
 									.get(self_index)
-									.and_then(|row_r| row_l.null_cmp(&row_r))
+									.and_then(|row_r| row_l.null_cmp(row_r))
 							})
 							.unwrap_or(Ordering::Equal)
 					});
@@ -227,13 +227,10 @@ impl JoinMethod {
 							.map(|left| join_parts(left, vec![Value::Null; right_width]))
 							.collect::<Vec<Row>>()
 					})
-					.reduce(
-						|| vec![],
-						|mut all, set| {
-							all.extend(set);
-							all
-						},
-					);
+					.reduce(Vec::new, |mut all, set| {
+						all.extend(set);
+						all
+					});
 
 				let mut inner_rows = inner_results
 					.into_par_iter()
@@ -251,15 +248,12 @@ impl JoinMethod {
 								all.extend(set);
 								all
 							})
-							.unwrap_or(vec![])
+							.unwrap_or_default()
 					})
-					.reduce(
-						|| vec![],
-						|mut all: Vec<Row>, set| {
-							all.extend(set);
-							all
-						},
-					);
+					.reduce(Vec::new, |mut all: Vec<Row>, set| {
+						all.extend(set);
+						all
+					});
 
 				let right_rows = right_results
 					.into_par_iter()
@@ -269,13 +263,10 @@ impl JoinMethod {
 							.map(|right| join_parts(vec![Value::Null; left_width], right))
 							.collect::<Vec<Row>>()
 					})
-					.reduce(
-						|| vec![],
-						|mut all, set| {
-							all.extend(set);
-							all
-						},
-					);
+					.reduce(Vec::new, |mut all, set| {
+						all.extend(set);
+						all
+					});
 
 				if join.includes_left() {
 					inner_rows.extend(left_rows)

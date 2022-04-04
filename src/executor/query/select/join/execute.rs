@@ -20,7 +20,7 @@ pub struct JoinExecute {
 impl JoinExecute {
 	pub fn new(
 		plan: JoinPlan,
-		plane_columns: &Vec<ColumnInfo>,
+		plane_columns: &[ColumnInfo],
 		index_filter: Option<IndexFilter>,
 	) -> Result<Self> {
 		let JoinPlan {
@@ -57,7 +57,7 @@ impl JoinExecute {
 	}
 	pub async fn execute<'a>(
 		self,
-		storages: &Vec<(String, &mut StorageInner)>,
+		storages: &[(String, &mut StorageInner)],
 		context: &Context,
 		plane_rows: Vec<Row>,
 	) -> Result<Vec<Row>> {
@@ -91,7 +91,7 @@ impl JoinExecute {
 fn decide_method(
 	constraint: MetaRecipe,
 	self_columns: Vec<ColumnInfo>,
-	plane_columns: &Vec<ColumnInfo>,
+	plane_columns: &[ColumnInfo],
 ) -> Result<JoinMethod> {
 	Ok(match &constraint.recipe {
 		Recipe::Ingredient(Ingredient::Value(Value::Bool(true))) => JoinMethod::All,

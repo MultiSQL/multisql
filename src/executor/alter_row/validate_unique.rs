@@ -29,7 +29,7 @@ pub async fn validate_unique(
 	table_name: &str,
 	column_defs: &[ColumnDef],
 	rows: &[Row],
-	ignore_keys: Option<&Vec<Value>>,
+	ignore_keys: Option<&[Value]>,
 ) -> Result<()> {
 	let unique_columns: Vec<usize> = column_defs
 		.iter()

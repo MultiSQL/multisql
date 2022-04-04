@@ -12,7 +12,7 @@ pub async fn insert(
 	storages: &mut Vec<(String, &mut StorageInner)>,
 	context: &mut Context,
 	table_name: &ObjectName,
-	columns: &Vec<Ident>,
+	columns: &[Ident],
 	source: &Box<Query>,
 	expect_data: bool,
 ) -> Result<Payload> {

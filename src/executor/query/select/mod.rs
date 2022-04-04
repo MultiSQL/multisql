@@ -42,7 +42,7 @@ pub enum SelectError {
 }
 
 pub async fn select(
-	storages: &Vec<(String, &mut StorageInner)>,
+	storages: &[(String, &mut StorageInner)],
 	context: &Context,
 	query: Select,
 	order_by: Vec<OrderByExpr>,
@@ -144,6 +144,7 @@ pub async fn select(
 	Ok((labels, final_rows))
 }
 
+#[allow(clippy::type_complexity)] // TODO
 fn accumulate(
 	mut rows_l: Vec<(Vec<Value>, Option<PlannedRecipe>, Vec<PlannedRecipe>)>,
 	rows_r: Vec<(Vec<Value>, Option<PlannedRecipe>, Vec<PlannedRecipe>)>,

@@ -62,6 +62,8 @@ impl Resolve for Ingredient {
 	}
 }
 
+#[allow(clippy::if_same_then_else)] // No idea what Clippy is trying to say here
+#[allow(clippy::collapsible_else_if)] // Intentional for clarity
 impl Resolve for Method {
 	fn simplify(self, component: SimplifyBy) -> Result<Self> {
 		Ok(match self {

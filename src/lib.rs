@@ -1,3 +1,5 @@
+#![allow(clippy::option_map_unit_fn, clippy::fn_address_comparisons)]
+
 //! # MultiSQL
 //!
 //! `multisql` is a highly modular SQL database engine library written in Rust.

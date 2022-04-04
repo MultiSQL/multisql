@@ -64,7 +64,7 @@ impl PlannedRecipe {
 		columns: &[ColumnInfo],
 	) -> Result<(Self, HashMap<String, IndexFilter>)> {
 		let mut new = Self::new(meta_recipe, columns)?;
-		let indexed_table_columns = columns.to_owned().into_iter().enumerate().fold(
+		let indexed_table_columns = columns.iter().cloned().enumerate().fold(
 			HashMap::new(),
 			|mut tables: HashMap<String, Vec<(usize, String)>>, (index, column)| {
 				if let Some(index_name) = new
@@ -73,11 +73,11 @@ impl PlannedRecipe {
 					.find(|need_index| need_index == &&Some(index))
 					.and_then(|_| column.index.clone())
 				{
-					let col_table = column.table.name;
-					if let Some(table) = tables.get_mut(&col_table) {
+					let col_table = &column.table.name;
+					if let Some(table) = tables.get_mut(col_table) {
 						table.push((index, index_name));
 					} else {
-						tables.insert(col_table, vec![(index, index_name)]);
+						tables.insert(col_table.clone(), vec![(index, index_name)]);
 					}
 				}
 				tables
@@ -258,9 +258,7 @@ impl PlannedRecipe {
 		if let Recipe::Ingredient(Ingredient::Column(_)) = self.recipe {
 			self.needed_column_indexes
 				.get(0)
-				.map(|index| index.map(|index| columns.get(index)))
-				.flatten()
-				.flatten()
+				.and_then(|index| index.and_then(|index| columns.get(index)))
 				.map(|column| {
 					if include_table {
 						format!("{}.{}", column.table.name, column.name)
