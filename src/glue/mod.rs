@@ -1,8 +1,10 @@
 #![cfg(feature = "sled-storage")]
+
+use crate::ExecuteError;
 use {
 	crate::{
-		execute, parse, parse_single, Payload, Query, Result, Row, Storage, StorageInner, Value,
-		WIPError,
+		execute, parse, parse_single, CSVStorage, Payload, Query, Result, Row, SledStorage,
+		Storage, StorageInner, Value, WIPError,
 	},
 	futures::executor::block_on,
 	sqlparser::ast::{
@@ -140,6 +142,38 @@ impl Glue {
 	}
 	/// Will execute a pre-parsed query (see [Glue::pre_parse()] for more).
 	pub fn execute_parsed(&mut self, query: Query) -> Result<Payload> {
+		if let Query(Statement::CreateDatabase {
+			db_name,
+			if_not_exists,
+			location,
+			..
+		}) = query
+		{
+			let store_name = db_name.0[0].value.clone();
+			return if self.storages.iter().any(|(store, _)| store == &store_name) {
+				if if_not_exists {
+					Ok(Payload::Success)
+				} else {
+					Err(ExecuteError::DatabaseExists(store_name).into())
+				}
+			} else {
+				match location {
+					None => Err(ExecuteError::InvalidDatabaseLocation.into()), // TODO: Memory
+					Some(location) => {
+						let store = if location.ends_with("/") {
+							Storage::new_sled(SledStorage::new(&location)?)
+						} else if location.ends_with(".csv") {
+							Storage::new_csv(CSVStorage::new(&location)?)
+						} else {
+							return Err(ExecuteError::InvalidDatabaseLocation.into());
+						};
+						self.extend(vec![Glue::new(store_name, store)]);
+						Ok(Payload::Success)
+					}
+				}
+			};
+		}
+
 		let mut storages: Vec<(String, Box<StorageInner>)> = self
 			.storages
 			.iter_mut()

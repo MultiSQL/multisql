@@ -30,6 +30,10 @@ pub enum ExecuteError {
 	ObjectNotRecognised,
 	#[error("unimplemented")]
 	Unimplemented,
+	#[error("database already exists")]
+	DatabaseExists(String),
+	#[error("invalid database location")]
+	InvalidDatabaseLocation,
 
 	#[error("table does not exist")]
 	TableNotExists,
@@ -116,6 +120,8 @@ pub async fn execute(
 			table,
 			selection,
 			assignments,
+			// TODO
+			from: _,
 		} => update(storages[0].1, context, table, selection, assignments).await,
 		Statement::Delete {
 			table_name,
@@ -146,6 +152,8 @@ pub async fn execute(
 		}
 
 		Statement::ExplainTable { table_name, .. } => explain(&storages, table_name).await,
+
+		Statement::CreateDatabase { .. } => unreachable!(), // Handled at Glue interface // TODO: Clean up somehow
 		_ => Err(ExecuteError::QueryNotSupported.into()),
 	}
 }
