@@ -67,6 +67,42 @@ impl Glue {
 			})
 			.unwrap()
 	}
+	/// Merge existing [Glue] with [Vec] of other [Glue]s
+	/// For example:
+	/// ```
+	/// use multisql::{SledStorage, Storage, Glue};
+	/// let storage = SledStorage::new("data/example_location/example")
+	///   .map(Storage::new_sled)
+	///   .expect("Storage Creation Failed");
+	/// let mut glue = Glue::new(String::from("main"), storage);
+	///
+	/// glue.execute_many("
+	///   DROP TABLE IF EXISTS test;
+	///   CREATE TABLE test (id INTEGER);
+	///   INSERT INTO test VALUES (1),(2);
+	///   SELECT * FROM test WHERE id > 1;
+	/// ");
+	///
+	/// let other_storage = SledStorage::new("data/example_location/example_other")
+	///   .map(Storage::new_sled)
+	///   .expect("Storage Creation Failed");
+	/// let mut other_glue = Glue::new(String::from("other"), other_storage);
+	///
+	/// glue.extend(vec![other_glue]);
+	/// ```
+	///
+	pub fn extend(&mut self, glues: Vec<Glue>) {
+		self.storages.extend(
+			glues
+				.into_iter()
+				.reduce(|mut main, other| {
+					main.storages.extend(other.storages);
+					main
+				})
+				.unwrap()
+				.storages,
+		)
+	}
 }
 
 /// Internal: Modify
