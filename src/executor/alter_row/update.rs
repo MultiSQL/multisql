@@ -18,7 +18,7 @@ pub async fn update(
 ) -> Result<Payload> {
 	// TODO: Complex updates (joins)
 	let table = match &table.relation {
-		TableFactor::Table { name, .. } => get_name(&name).map(|name| name.clone()),
+		TableFactor::Table { name, .. } => get_name(name).cloned(),
 		_ => Err(ExecuteError::QueryNotSupported.into()),
 	}?;
 	let Schema {
@@ -47,7 +47,7 @@ pub async fn update(
 		.unwrap_or(Ok(PlannedRecipe::TRUE))?;
 
 	let assignments = assignments
-		.into_iter()
+		.iter()
 		.map(|assignment| {
 			let Assignment { id, value } = assignment;
 			let column_compare = id
@@ -79,7 +79,7 @@ pub async fn update(
 
 			let row = row.0;
 
-			let confirm_constraint = filter.confirm_constraint(&row.clone());
+			let confirm_constraint = filter.confirm_constraint(&row);
 			if let Ok(false) = confirm_constraint {
 				return None;
 			} else if let Err(error) = confirm_constraint {
@@ -95,7 +95,7 @@ pub async fn update(
 						.map(|(_, assignment_recipe)| {
 							assignment_recipe.clone().simplify_by_row(&row)?.confirm()
 						})
-						.unwrap_or(Ok(old_value.clone()))
+						.unwrap_or_else(||Ok(old_value.clone()))
 				})
 				.collect::<Result<VecRow>>();
 			Some(row.map(|row| (key, row)))
@@ -118,7 +118,7 @@ pub async fn update(
 		.map(|_| Payload::Update(num_rows))?;
 
 	for index in indexes.iter() {
-		index.reset(storage, &table, &column_defs).await?; // TODO: Not this; optimise
+		index.reset(storage, table, &column_defs).await?; // TODO: Not this; optimise
 	}
 	Ok(result)
 }

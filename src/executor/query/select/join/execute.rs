@@ -65,7 +65,7 @@ impl JoinExecute {
 			Ok(context_table_rows.clone())
 		} else {
 			let storage = storages
-				.into_iter()
+				.iter()
 				.find_map(|(name, storage)| {
 					if name == &self.database {
 						Some(&**storage)
@@ -73,7 +73,7 @@ impl JoinExecute {
 						None
 					}
 				})
-				.or(storages.get(0).map(|(_, storage)| &**storage))
+				.or_else(||storages.get(0).map(|(_, storage)| &**storage))
 				.ok_or(JoinError::Unreachable)?;
 
 			self.get_rows(storage).await

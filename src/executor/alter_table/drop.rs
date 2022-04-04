@@ -39,7 +39,7 @@ pub async fn drop(
 								.set_increment_value(
 									table_name,
 									column.name.value.as_str(),
-									1 as i64,
+									1_i64,
 								)
 								.await?;
 						}

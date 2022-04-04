@@ -1,4 +1,5 @@
 #[cfg(feature = "alter-table")]
+#[allow(clippy::module_inception)] // TODO
 mod alter_table;
 mod create_index;
 mod create_table;

@@ -23,7 +23,7 @@ pub async fn create_table(
 		validate(column_def)?;
 	}
 
-	if let Some(_) = storage.fetch_schema(&schema.table_name).await? {
+	if storage.fetch_schema(&schema.table_name).await?.is_some() {
 		if !if_not_exists {
 			Err(AlterError::TableAlreadyExists(schema.table_name.to_owned()).into())
 		} else {

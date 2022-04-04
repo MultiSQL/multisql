@@ -54,7 +54,7 @@ impl JoinManual {
 		match table {
 			TableFactor::Table { name, alias, .. } => {
 				let name_parts = name.0.len();
-				if name_parts > 2 || name_parts < 1 {
+				if !(1..=2).contains(&name_parts) {
 					return Err(JoinError::UnimplementedNumberOfComponents.into());
 				}
 				let database = if name_parts == 2 {
