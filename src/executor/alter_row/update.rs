@@ -74,12 +74,7 @@ pub async fn update(
 		.scan_data(&table)
 		.await?
 		.into_iter()
-		.filter_map(|row_result| {
-			let (key, row) = match row_result {
-				Ok(keyed_row) => keyed_row,
-				Err(error) => return Some(Err(error)),
-			};
-
+		.filter_map(|(key, row)| {
 			let row = row.0;
 
 			let confirm_constraint = filter.confirm_constraint(&row.clone());

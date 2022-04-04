@@ -1,6 +1,6 @@
 use {
 	super::{utils::csv_reader, CSVStorage},
-	crate::{Result, Row, RowIter, Schema, Store, Value, WIPError},
+	crate::{Plane, Result, Row, Schema, Store, Value, WIPError},
 	async_trait::async_trait,
 };
 
@@ -10,10 +10,10 @@ impl Store for CSVStorage {
 		Ok(self.schema.clone())
 	}
 
-	async fn scan_data(&self, _table_name: &str) -> Result<RowIter> {
+	async fn scan_data(&self, _table_name: &str) -> Result<Plane> {
 		let mut reader = csv_reader(&self)?;
 
-		let keyed_rows: Vec<Result<(Value, Row)>> = reader
+		reader
 			.records()
 			.enumerate()
 			.map(|(index, record)| {
@@ -29,8 +29,6 @@ impl Store for CSVStorage {
 						)
 					})
 			})
-			.collect();
-
-		Ok(Box::new(keyed_rows.into_iter()))
+			.collect::<Result<_>>()
 	}
 }

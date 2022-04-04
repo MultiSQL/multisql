@@ -1,23 +1,14 @@
-#[cfg(feature = "alter-table")]
 mod alter_table;
-#[cfg(feature = "alter-table")]
 pub use alter_table::*;
-#[cfg(not(feature = "alter-table"))]
-pub trait AlterTable {}
-
-#[cfg(feature = "auto-increment")]
 mod auto_increment;
 use crate::IndexFilter;
-#[cfg(feature = "auto-increment")]
 pub use auto_increment::AutoIncrement;
-#[cfg(not(feature = "auto-increment"))]
-pub trait AutoIncrement {}
 
 use {
 	crate::{
 		data::{Row, Schema},
 		result::Result,
-		Value,
+		Plane, Value,
 	},
 	async_trait::async_trait,
 	serde::Serialize,
@@ -60,8 +51,6 @@ pub type StorageInner = dyn FullStorage;
 
 pub trait FullStorage: Store + StoreMut + AlterTable + AutoIncrement {}
 
-pub type RowIter = Box<dyn Iterator<Item = Result<(Value, Row)>>>;
-
 /// `Store` -> `SELECT`
 #[async_trait(?Send)]
 pub trait Store {
@@ -69,7 +58,7 @@ pub trait Store {
 		Err(StorageError::Unimplemented.into())
 	}
 
-	async fn scan_data(&self, _table_name: &str) -> Result<RowIter> {
+	async fn scan_data(&self, _table_name: &str) -> Result<Plane> {
 		Err(StorageError::Unimplemented.into())
 	}
 
@@ -77,7 +66,7 @@ pub trait Store {
 		&self,
 		_table_name: &str,
 		_index_filters: IndexFilter,
-	) -> Result<RowIter> {
+	) -> Result<Plane> {
 		Err(StorageError::Unimplemented.into())
 	}
 	async fn scan_index(

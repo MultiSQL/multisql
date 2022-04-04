@@ -47,8 +47,9 @@ pub async fn validate_unique(
 	storage
 		.scan_data(table_name)
 		.await?
+		.into_iter()
 		.map(|result| {
-			let (key, row) = result?;
+			let (key, row) = result;
 			if let Some(ignore_keys) = ignore_keys {
 				if ignore_keys.iter().any(|ignore_key| ignore_key == &key) {
 					return Ok(());

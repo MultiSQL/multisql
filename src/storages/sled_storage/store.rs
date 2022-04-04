@@ -4,9 +4,7 @@ use {
 		store_mut::{index_prefix, indexed_key},
 		SledStorage,
 	},
-	crate::{
-		join_iters, IndexFilter, JoinType, NullOrd, Result, Row, RowIter, Schema, Store, Value,
-	},
+	crate::{join_iters, IndexFilter, JoinType, NullOrd, Plane, Result, Row, Schema, Store, Value},
 	async_trait::async_trait,
 	rayon::slice::ParallelSliceMut,
 	sled::IVec,
@@ -19,24 +17,25 @@ impl Store for SledStorage {
 		fetch_schema(&self.tree, table_name).map(|(_, schema)| schema)
 	}
 
-	async fn scan_data(&self, table_name: &str) -> Result<RowIter> {
+	async fn scan_data(&self, table_name: &str) -> Result<Plane> {
 		let prefix = format!("data/{}/", table_name);
 
-		let result_set = self.tree.scan_prefix(prefix.as_bytes()).map(|item| {
-			let (key, value) = item.map_err(err_into)?;
-			let value = bincode::deserialize(&value).map_err(err_into)?;
+		self.tree
+			.scan_prefix(prefix.as_bytes())
+			.map(|item| {
+				let (key, value) = item.map_err(err_into)?;
+				let value = bincode::deserialize(&value).map_err(err_into)?;
 
-			Ok(((&key).into(), value))
-		});
-
-		Ok(Box::new(result_set))
+				Ok(((&key).into(), value))
+			})
+			.collect::<Result<Vec<(Value, Row)>>>()
 	}
 
 	async fn scan_data_indexed(
 		&self,
 		table_name: &str,
 		index_filter: IndexFilter,
-	) -> Result<RowIter> {
+	) -> Result<Plane> {
 		let index_results = self.scan_index(table_name, index_filter).await?;
 		let row_results = index_results.into_iter().map(|pk| {
 			if let Value::Bytes(pk) = pk {
@@ -47,17 +46,14 @@ impl Store for SledStorage {
 				unreachable!();
 			}
 		});
-		let result_set = row_results
+		row_results
 			.map(|item| {
 				let (pk, value) = item.map_err(err_into)?;
 				let value = bincode::deserialize(&value).map_err(err_into)?;
 
 				Ok((Value::Bytes(pk.to_vec()), value))
 			})
-			.collect::<Vec<Result<(Value, Row)>>>()
-			.into_iter(); // Need to collect because of usage of self
-
-		Ok(Box::new(result_set))
+			.collect::<Result<Vec<(Value, Row)>>>()
 	}
 
 	async fn scan_index(&self, table_name: &str, index_filter: IndexFilter) -> Result<Vec<Value>> {

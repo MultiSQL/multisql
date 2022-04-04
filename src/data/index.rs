@@ -1,5 +1,5 @@
 use {
-	crate::{result::Result, Ingredient, Method, Recipe, Row, StorageInner, Value},
+	crate::{result::Result, Ingredient, Method, Recipe, StorageInner, Value},
 	rayon::prelude::*,
 	serde::{Deserialize, Serialize},
 	sqlparser::ast::ColumnDef,
@@ -35,10 +35,7 @@ impl Index {
 		table: &str,
 		column_defs: &[ColumnDef],
 	) -> Result<()> {
-		let rows = storage
-			.scan_data(table)
-			.await?
-			.collect::<Result<Vec<(Value, Row)>>>()?;
+		let rows = storage.scan_data(table).await?;
 		let column_index: usize = column_defs
 			.iter()
 			.enumerate()
