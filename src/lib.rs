@@ -9,7 +9,7 @@
 //!
 //! ```
 //! use multisql::{SledStorage, Storage, Glue};
-//! let storage = SledStorage::new("data/example_location/example")
+//! let storage = SledStorage::new("data/example_location/lib_example")
 //!   .map(Storage::new_sled)
 //!   .expect("Storage Creation Failed");
 //! let mut glue = Glue::new(String::from("main"), storage);
