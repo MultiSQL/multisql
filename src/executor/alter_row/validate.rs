@@ -37,7 +37,9 @@ pub fn columns_to_positions(column_defs: &[ColumnDef], columns: &[Ident]) -> Res
 				column_defs
 					.iter()
 					.position(|column_def| stated_column.value == column_def.name.value)
-					.ok_or(ValidateError::ColumnNotFound(stated_column.value.clone()).into())
+					.ok_or_else(|| {
+						ValidateError::ColumnNotFound(stated_column.value.clone()).into()
+					})
 			})
 			.collect::<Result<Vec<usize>>>()
 	}
@@ -53,7 +55,7 @@ pub fn validate(
 	}
 
 	let column_info = column_defs
-		.into_iter()
+		.iter()
 		.enumerate()
 		.map(|(column_def_index, column_def)| {
 			let ColumnDef { data_type, .. } = column_def;
@@ -84,7 +86,7 @@ pub fn validate(
 						.map(|index| {
 							row.get(index).map(|value| {
 								let mut value = value.clone();
-								if let Err(error) = value.validate_null(nullable.clone()) {
+								if let Err(error) = value.validate_null(*nullable) {
 									value = if let Some(fallback) = failure_recipe.clone() {
 										if !matches!(
 											fallback,
@@ -111,7 +113,7 @@ pub fn validate(
 								recipe
 									.simplify(SimplifyBy::Basic)?
 									.as_solution()
-									.ok_or(ValidateError::BadDefault.into())
+									.ok_or_else(|| ValidateError::BadDefault.into())
 							} else {
 								Err(ValidateError::MissingValue.into())
 							}

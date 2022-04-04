@@ -29,7 +29,7 @@ pub async fn validate_unique(
 	table_name: &str,
 	column_defs: &[ColumnDef],
 	rows: &[Row],
-	ignore_keys: Option<&Vec<Value>>,
+	ignore_keys: Option<&[Value]>,
 ) -> Result<()> {
 	let unique_columns: Vec<usize> = column_defs
 		.iter()
@@ -47,7 +47,7 @@ pub async fn validate_unique(
 	storage
 		.scan_data(table_name)
 		.await?
-		.map(|result| {
+		.try_for_each::<_, Result<_>>(|result| {
 			let (key, row) = result?;
 			if let Some(ignore_keys) = ignore_keys {
 				if ignore_keys.iter().any(|ignore_key| ignore_key == &key) {
@@ -65,26 +65,23 @@ pub async fn validate_unique(
 					Some(())
 				})
 				.collect::<Option<()>>()
-				.ok_or(ValidateError::UnreachableUniqueValues.into())
-		})
-		.collect::<Result<()>>()?;
+				.ok_or_else(|| ValidateError::UnreachableUniqueValues.into())
+		})?;
 
 	let mut new_values: Vec<Vec<Value>> = vec![vec![]; unique_columns.len()];
-	rows.into_iter()
-		.map(|row| {
-			unique_columns
-				.iter()
-				.enumerate()
-				.map(|(index, row_index)| {
-					new_values
-						.get_mut(index)?
-						.push(row.get(*row_index)?.clone());
-					Some(())
-				})
-				.collect::<Option<()>>()
-				.ok_or(ValidateError::UnreachableUniqueValues.into())
-		})
-		.collect::<Result<()>>()?;
+	rows.iter().try_for_each::<_, Result<_>>(|row| {
+		unique_columns
+			.iter()
+			.enumerate()
+			.map(|(index, row_index)| {
+				new_values
+					.get_mut(index)?
+					.push(row.get(*row_index)?.clone());
+				Some(())
+			})
+			.collect::<Option<()>>()
+			.ok_or_else(|| ValidateError::UnreachableUniqueValues.into())
+	})?;
 	let mut existing_values_iter = existing_values.into_iter();
 	new_values
 		.into_iter()
@@ -92,10 +89,10 @@ pub async fn validate_unique(
 			let mut existing_values = existing_values_iter.next()?;
 
 			existing_values.sort_unstable_by(|value_l, value_r| {
-				value_l.partial_cmp(&value_r).unwrap_or(Ordering::Equal)
+				value_l.partial_cmp(value_r).unwrap_or(Ordering::Equal)
 			});
 			new_values.sort_unstable_by(|value_l, value_r| {
-				value_l.partial_cmp(&value_r).unwrap_or(Ordering::Equal)
+				value_l.partial_cmp(value_r).unwrap_or(Ordering::Equal)
 			});
 
 			let mut existing_values = existing_values.into_iter();

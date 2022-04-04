@@ -23,7 +23,7 @@ impl PlannedRecipe {
 		needed_column_indexes: vec![],
 		aggregates: vec![],
 	};
-	pub fn new(meta_recipe: MetaRecipe, columns: &Vec<ColumnInfo>) -> Result<Self> {
+	pub fn new(meta_recipe: MetaRecipe, columns: &[ColumnInfo]) -> Result<Self> {
 		let MetaRecipe { recipe, meta } = meta_recipe;
 		let aggregates = meta.aggregates;
 		let needed_column_indexes = meta
@@ -37,7 +37,7 @@ impl PlannedRecipe {
 							.enumerate()
 							.filter_map(|(index, column)| {
 								if column == &needed_column {
-									Some(index.clone())
+									Some(index)
 								} else {
 									None
 								}
@@ -61,10 +61,10 @@ impl PlannedRecipe {
 	}
 	pub fn new_constraint(
 		meta_recipe: MetaRecipe,
-		columns: &Vec<ColumnInfo>,
+		columns: &[ColumnInfo],
 	) -> Result<(Self, HashMap<String, IndexFilter>)> {
 		let mut new = Self::new(meta_recipe, columns)?;
-		let indexed_table_columns = columns.clone().into_iter().enumerate().fold(
+		let indexed_table_columns = columns.iter().cloned().enumerate().fold(
 			HashMap::new(),
 			|mut tables: HashMap<String, Vec<(usize, String)>>, (index, column)| {
 				if let Some(index_name) = new
@@ -73,11 +73,11 @@ impl PlannedRecipe {
 					.find(|need_index| need_index == &&Some(index))
 					.and_then(|_| column.index.clone())
 				{
-					let col_table = column.table.name;
-					if let Some(table) = tables.get_mut(&col_table) {
+					let col_table = &column.table.name;
+					if let Some(table) = tables.get_mut(col_table) {
 						table.push((index, index_name));
 					} else {
-						tables.insert(col_table, vec![(index, index_name)]);
+						tables.insert(col_table.clone(), vec![(index, index_name)]);
 					}
 				}
 				tables
@@ -96,7 +96,7 @@ impl PlannedRecipe {
 
 		let result = new.recipe.reduce_by_index_filter(indexed_column_tables);
 		new.recipe = result.0;
-		let index_filters = result.1.unwrap_or(HashMap::new());
+		let index_filters = result.1.unwrap_or_default();
 
 		Ok((new, index_filters))
 	}
@@ -207,9 +207,7 @@ impl PlannedRecipe {
 
 				let other_val = if let Recipe::Method(other_agg) = other_agg {
 					if let Method::Aggregate(_, recipe) = *other_agg {
-						let value = recipe
-							.confirm_or_err(RecipeError::UnreachableAggregatationFailed.into())?;
-						value
+						recipe.confirm_or_err(RecipeError::UnreachableAggregatationFailed.into())?
 					} else {
 						return Err(RecipeError::UnreachableNotAggregate(format!(
 							"{:?}",
@@ -255,14 +253,12 @@ impl PlannedRecipe {
 		&self,
 		selection_index: usize,
 		include_table: bool,
-		columns: &Vec<ColumnInfo>,
+		columns: &[ColumnInfo],
 	) -> String {
 		if let Recipe::Ingredient(Ingredient::Column(_)) = self.recipe {
 			self.needed_column_indexes
 				.get(0)
-				.map(|index| index.map(|index| columns.get(index)))
-				.flatten()
-				.flatten()
+				.and_then(|index| index.and_then(|index| columns.get(index)))
 				.map(|column| {
 					if include_table {
 						format!("{}.{}", column.table.name, column.name)

@@ -111,7 +111,7 @@ impl Manual {
                 all_joins.extend(joins);
                 all_joins
             })
-            .ok_or(ManualError::UncaughtASTError(String::from("No tables")))?;
+            .ok_or_else(||ManualError::UncaughtASTError(String::from("No tables")))?;
 		//joins.extend(subqueries);
 		//let joins = joins;
 

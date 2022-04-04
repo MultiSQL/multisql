@@ -2,8 +2,7 @@ use {crate::Value, sled::IVec, std::convert::From};
 
 impl From<&IVec> for Value {
 	fn from(from: &IVec) -> Self {
-		let result = Value::Bytes(from.to_vec());
-		result
+		Value::Bytes(from.to_vec())
 	}
 }
 

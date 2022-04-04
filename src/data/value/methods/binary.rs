@@ -1,3 +1,5 @@
+#![allow(clippy::should_implement_trait)] // TODO
+
 use {
 	super::ValueCore,
 	crate::{Convert, ConvertFrom, Result, Value, ValueError},

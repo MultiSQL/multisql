@@ -26,14 +26,13 @@ impl MetaRecipe {
 			.map(|object_name| {
 				object_name
 					.clone()
-					.map(|object_name| {
+					.and_then(|object_name| {
 						if object_name.len() == 1 {
 							context.variables.get(&object_name[0]).map(Clone::clone)
 						} else {
 							None
 						}
 					})
-					.flatten()
 					.map(|value| (None, Some(value)))
 					.unwrap_or((object_name, None))
 			})
@@ -81,7 +80,7 @@ impl RecipeMeta {
 		self.objects.iter().position(|search_column| {
 			search_column
 				.as_ref()
-				.map(|search_column| &column == &search_column)
+				.map(|search_column| column == search_column)
 				.unwrap_or(false)
 		})
 	}

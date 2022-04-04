@@ -20,7 +20,7 @@ pub struct JoinExecute {
 impl JoinExecute {
 	pub fn new(
 		plan: JoinPlan,
-		plane_columns: &Vec<ColumnInfo>,
+		plane_columns: &[ColumnInfo],
 		index_filter: Option<IndexFilter>,
 	) -> Result<Self> {
 		let JoinPlan {
@@ -57,7 +57,7 @@ impl JoinExecute {
 	}
 	pub async fn execute<'a>(
 		self,
-		storages: &Vec<(String, &mut StorageInner)>,
+		storages: &[(String, &mut StorageInner)],
 		context: &Context,
 		plane_rows: Vec<Row>,
 	) -> Result<Vec<Row>> {
@@ -65,7 +65,7 @@ impl JoinExecute {
 			Ok(context_table_rows.clone())
 		} else {
 			let storage = storages
-				.into_iter()
+				.iter()
 				.find_map(|(name, storage)| {
 					if name == &self.database {
 						Some(&**storage)
@@ -73,7 +73,7 @@ impl JoinExecute {
 						None
 					}
 				})
-				.or(storages.get(0).map(|(_, storage)| &**storage))
+				.or_else(|| storages.get(0).map(|(_, storage)| &**storage))
 				.ok_or(JoinError::Unreachable)?;
 
 			self.get_rows(storage).await
@@ -91,7 +91,7 @@ impl JoinExecute {
 fn decide_method(
 	constraint: MetaRecipe,
 	self_columns: Vec<ColumnInfo>,
-	plane_columns: &Vec<ColumnInfo>,
+	plane_columns: &[ColumnInfo],
 ) -> Result<JoinMethod> {
 	Ok(match &constraint.recipe {
 		Recipe::Ingredient(Ingredient::Value(Value::Bool(true))) => JoinMethod::All,

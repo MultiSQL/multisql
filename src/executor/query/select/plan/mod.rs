@@ -35,7 +35,7 @@ pub enum PlanError {
 
 impl Plan {
 	pub async fn new(
-		storages: &Vec<(String, &mut StorageInner)>,
+		storages: &[(String, &mut StorageInner)],
 		context: &Context,
 		select: Select,
 		order_by: Vec<OrderByExpr>,
@@ -59,7 +59,10 @@ impl Plan {
 		.collect::<Result<Vec<JoinPlan>>>()?;
 
 		joins.sort_unstable();
-		let table_columns = joins.iter().map(|join| join.columns.clone()).collect();
+		let table_columns = joins
+			.iter()
+			.map(|join| join.columns.clone())
+			.collect::<Vec<Vec<ColumnInfo>>>();
 		let joins = joins
 			.into_iter()
 			.map(|mut join| {
@@ -136,14 +139,13 @@ impl Plan {
 				Ok(match select_item {
 					SelectItem::Recipe(meta_recipe, alias) => {
 						let recipe = PlannedRecipe::new(meta_recipe, &columns)?;
-						let label =
-							alias.unwrap_or(recipe.get_label(index, include_table, &columns));
+						let label = alias
+							.unwrap_or_else(|| recipe.get_label(index, include_table, &columns));
 						vec![(recipe, label)]
 					}
 					SelectItem::Wildcard(specifier) => {
-						let specified_table = specifier
-							.map(|specifier| specifier.get(0).map(|result| result.clone()))
-							.flatten();
+						let specified_table =
+							specifier.and_then(|specifier| specifier.get(0).cloned());
 						let matches_table = |column: &ColumnInfo| {
 							specified_table
 								.clone()

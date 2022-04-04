@@ -19,7 +19,7 @@ pub async fn from_body(
 ) -> Result<LabelsAndRows> {
 	match body {
 		SetExpr::Select(query) => {
-			let (labels, rows) = select(&storages, &context, *query, order_by).await?;
+			let (labels, rows) = select(storages, context, *query, order_by).await?;
 			Ok((labels, rows))
 		}
 		SetExpr::Values(values) => {
@@ -70,12 +70,9 @@ pub async fn from_body(
 				Union => [left, right].concat(),
 				Except => left
 					.into_iter()
-					.filter(|row| !right.contains(&row))
+					.filter(|row| !right.contains(row))
 					.collect(),
-				Intersect => left
-					.into_iter()
-					.filter(|row| right.contains(&row))
-					.collect(),
+				Intersect => left.into_iter().filter(|row| right.contains(row)).collect(),
 			};
 			if !all {
 				rows.dedup();

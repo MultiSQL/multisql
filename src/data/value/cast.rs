@@ -16,82 +16,92 @@ pub trait CastWithRules<Output> {
 // Cores
 impl Cast<bool> for Value {
 	fn cast(self) -> Result<bool> {
-		self.clone().convert().or(Ok(match self {
-			Value::Bool(value) => value,
-			Value::I64(value) => match value {
-				1 => true,
-				0 => false,
-				_ => return Err(ValueError::ImpossibleCast.into()),
-			},
-			Value::F64(value) => {
-				if value.eq(&1.0) {
-					true
-				} else if value.eq(&0.0) {
-					false
-				} else {
-					return Err(ValueError::ImpossibleCast.into());
+		self.clone().convert().or_else(|_| {
+			Ok(match self {
+				Value::Bool(value) => value,
+				Value::I64(value) => match value {
+					1 => true,
+					0 => false,
+					_ => return Err(ValueError::ImpossibleCast.into()),
+				},
+				Value::F64(value) => {
+					if value.eq(&1.0) {
+						true
+					} else if value.eq(&0.0) {
+						false
+					} else {
+						return Err(ValueError::ImpossibleCast.into());
+					}
 				}
-			}
-			Value::Str(value) => match value.to_uppercase().as_str() {
-				"TRUE" => true,
-				"FALSE" => false,
-				_ => return Err(ValueError::ImpossibleCast.into()),
-			},
-			Value::Null => return Err(ValueError::ImpossibleCast.into()),
-			_ => unimplemented!(),
-		}))
+				Value::Str(value) => match value.to_uppercase().as_str() {
+					"TRUE" => true,
+					"FALSE" => false,
+					_ => return Err(ValueError::ImpossibleCast.into()),
+				},
+				Value::Null => return Err(ValueError::ImpossibleCast.into()),
+				_ => unimplemented!(),
+			})
+		})
 	}
 }
 
 impl Cast<i64> for Value {
 	fn cast(self) -> Result<i64> {
-		self.clone().convert().or(Ok(match self {
-			Value::Bool(value) => {
-				if value {
-					1
-				} else {
-					0
+		self.clone().convert().or_else(|_| {
+			Ok(match self {
+				Value::Bool(value) => {
+					if value {
+						1
+					} else {
+						0
+					}
 				}
-			}
-			Value::I64(value) => value,
-			Value::F64(value) => value.trunc() as i64,
-			Value::Str(value) => lexical::parse(value).map_err(|_| ValueError::ImpossibleCast)?,
-			Value::Null => return Err(ValueError::ImpossibleCast.into()),
-			_ => unimplemented!(),
-		}))
+				Value::I64(value) => value,
+				Value::F64(value) => value.trunc() as i64,
+				Value::Str(value) => {
+					lexical::parse(value).map_err(|_| ValueError::ImpossibleCast)?
+				}
+				Value::Null => return Err(ValueError::ImpossibleCast.into()),
+				_ => unimplemented!(),
+			})
+		})
 	}
 }
 
 impl Cast<f64> for Value {
 	fn cast(self) -> Result<f64> {
-		self.clone().convert().or(Ok(match self {
-			Value::Bool(value) => {
-				if value {
-					1.0
-				} else {
-					0.0
+		self.clone().convert().or_else(|_| {
+			Ok(match self {
+				Value::Bool(value) => {
+					if value {
+						1.0
+					} else {
+						0.0
+					}
 				}
-			}
-			Value::I64(value) => (value as f64).trunc(),
-			Value::F64(value) => value,
-			Value::Str(value) => {
-				fast_float::parse(value).map_err(|_| ValueError::ImpossibleCast)?
-			}
-			Value::Null => return Err(ValueError::ImpossibleCast.into()),
-			_ => unimplemented!(),
-		}))
+				Value::I64(value) => (value as f64).trunc(),
+				Value::F64(value) => value,
+				Value::Str(value) => {
+					fast_float::parse(value).map_err(|_| ValueError::ImpossibleCast)?
+				}
+				Value::Null => return Err(ValueError::ImpossibleCast.into()),
+				_ => unimplemented!(),
+			})
+		})
 	}
 }
 impl Cast<String> for Value {
 	fn cast(self) -> Result<String> {
-		self.clone().convert().or(Ok(match self {
-			Value::Bool(value) => (if value { "TRUE" } else { "FALSE" }).to_string(),
-			Value::I64(value) => lexical::to_string(value),
-			Value::F64(value) => lexical::to_string(value),
-			Value::Str(value) => value,
-			Value::Null => String::from("NULL"),
-			_ => unimplemented!(),
-		}))
+		self.clone().convert().or_else(|_| {
+			Ok(match self {
+				Value::Bool(value) => (if value { "TRUE" } else { "FALSE" }).to_string(),
+				Value::I64(value) => lexical::to_string(value),
+				Value::F64(value) => lexical::to_string(value),
+				Value::Str(value) => value,
+				Value::Null => String::from("NULL"),
+				_ => unimplemented!(),
+			})
+		})
 	}
 }
 
@@ -133,22 +143,22 @@ impl CastWithRules<String> for Value {
 	fn cast_with_rule(self, rule: Self) -> Result<String> {
 		match rule {
 			Value::I64(000) | Value::Bool(true) => self.cast(),
-			Value::Str(specified) if specified == String::from("DATETIME") => {
+			Value::Str(specified) if specified == *"DATETIME" => {
 				Ok(NaiveDateTime::from_timestamp(self.convert()?, 0)
 					.format("%F %T")
 					.to_string())
 			}
-			Value::Str(specified) if specified == String::from("MONEY") => {
+			Value::Str(specified) if specified == *"MONEY" => {
 				let value: f64 = self.convert()?;
 				let value = (value * 100.0).round() / 100.0;
 				let value = value.separate_with_commas();
 				Ok(format!("${}", value))
 			}
-			Value::Str(specified) if specified == String::from("SEPARATED") => {
+			Value::Str(specified) if specified == *"SEPARATED" => {
 				let value: f64 = self.convert()?;
 				let value = (value * 100.0).round() / 100.0;
 				let value = value.separate_with_commas();
-				Ok(format!("{}", value))
+				Ok(value)
 			}
 			Value::Str(format) if matches!(self, Value::I64(..)) => {
 				// TODO: TIMESTAMP type
@@ -170,9 +180,11 @@ impl Cast<NaiveDateTime> for Value {
 	// Default (from Timestamp)
 	fn cast(self) -> Result<NaiveDateTime> {
 		let timestamp: i64 = self.cast()?;
-		NaiveDateTime::from_timestamp_opt(timestamp, 0).ok_or(ValueError::ImpossibleCast.into())
+		NaiveDateTime::from_timestamp_opt(timestamp, 0)
+			.ok_or_else(|| ValueError::ImpossibleCast.into())
 	}
 }
+#[allow(clippy::zero_prefixed_literal)]
 impl CastWithRules<NaiveDateTime> for Value {
 	fn cast_with_rule(self, rule: Self) -> Result<NaiveDateTime> {
 		fn for_format_datetime(string: Value, format: &str) -> Result<NaiveDateTime> {
@@ -198,7 +210,7 @@ impl CastWithRules<NaiveDateTime> for Value {
 			rules
 				.iter()
 				.find_map(|try_rule| try_value.clone().cast_with_rule((*try_rule).into()).ok())
-				.ok_or(ValueError::ParseError(try_value.clone(), "TIMESTAMP").into())
+				.ok_or_else(|| ValueError::ParseError(try_value.clone(), "TIMESTAMP").into())
 		}
 		const TRY_RULES_TIMESTAMP: [i64; 1] = [000];
 		const TRY_RULES_DATETIME: [i64; 7] = [010, 011, 020, 021, 030, 031, 060];
@@ -213,8 +225,8 @@ impl CastWithRules<NaiveDateTime> for Value {
 				"DATE" => try_rules(&self, &TRY_RULES_DATE),
 				"TIME" => try_rules(&self, &TRY_RULES_TIME),
 				custom_format => for_format_datetime(self.clone(), custom_format)
-					.or(for_format_date(self.clone(), custom_format))
-					.or(for_format_time(self, custom_format)),
+					.or_else(|_| for_format_date(self.clone(), custom_format))
+					.or_else(|_| for_format_time(self, custom_format)),
 			},
 			Value::I64(000) => {
 				// From Timestamp (Default)
