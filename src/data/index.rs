@@ -54,7 +54,7 @@ impl Index {
 			.map(|(key, mut values)| (values.swap_remove(column_index), key))
 			.collect();
 
-		storage.update_index(&table, &self.name, keys).await
+		storage.update_index(table, &self.name, keys).await
 	}
 }
 

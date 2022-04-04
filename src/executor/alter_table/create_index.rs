@@ -21,23 +21,18 @@ pub async fn create_index(
 	let table_name = get_name(table)?;
 
 	let schema = storage
-		.fetch_schema(&table_name)
+		.fetch_schema(table_name)
 		.await?
 		.ok_or(ExecuteError::TableNotExists)?;
 
-	if schema
-		.indexes
-		.iter()
-		.find(|index| index.name == name)
-		.is_some()
-	{
+	if schema.indexes.iter().any(|index| index.name == name) {
 		if !if_not_exists {
 			Err(AlterError::AlreadyExists(name).into())
 		} else {
 			Ok(())
 		}
 	} else {
-		let mut columns = columns.into_iter();
+		let mut columns = columns.iter();
 		let column = columns.next().and_then(|column| match column.expr.clone() {
 			Expr::Identifier(ident) => Some(ident.value),
 			_ => None,
@@ -56,17 +51,17 @@ pub async fn create_index(
 		{
 			Err(AlterError::ColumnNotFound(
 				table_name.clone(),
-				column.unwrap_or(String::from("NILL")),
+				column.unwrap_or_else(|| String::from("NILL")),
 			)
 			.into())
 		} else if let Some(column) = column {
 			let mut schema = schema.clone();
 			let index = Index::new(name, column, unique);
 			index
-				.reset(storage, &table_name, &schema.column_defs)
+				.reset(storage, table_name, &schema.column_defs)
 				.await?;
 			schema.indexes.push(index);
-			storage.replace_schema(&table_name, schema).await
+			storage.replace_schema(table_name, schema).await
 		} else {
 			unreachable!()
 		}

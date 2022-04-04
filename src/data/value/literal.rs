@@ -10,7 +10,7 @@ impl<'a> TryFrom<&'a AstValue> for Value {
 
 	fn try_from(ast_value: &'a AstValue) -> Result<Self> {
 		match ast_value {
-			AstValue::Boolean(value) => Ok(Value::Bool(value.clone())),
+			AstValue::Boolean(value) => Ok(Value::Bool(*value)),
 			AstValue::Number(value, false) => value
 				.parse::<i64>()
 				.map_or_else(

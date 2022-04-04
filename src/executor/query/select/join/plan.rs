@@ -40,7 +40,7 @@ impl Ord for JoinPlan {
 impl JoinPlan {
 	pub async fn new<'a>(
 		join_manual: JoinManual,
-		storages: &Vec<(String, &mut StorageInner)>,
+		storages: &[(String, &mut StorageInner)],
 		context: &Context,
 	) -> Result<Self> {
 		let JoinManual {
@@ -63,7 +63,7 @@ impl JoinPlan {
 			needed_tables: vec![],
 		})
 	}
-	pub fn calculate_needed_tables(&mut self, table_columns: &Vec<Vec<ColumnInfo>>) {
+	pub fn calculate_needed_tables(&mut self, table_columns: &[Vec<ColumnInfo>]) {
 		self.needed_tables = table_columns
 			.iter()
 			.enumerate()
@@ -90,7 +90,7 @@ impl JoinPlan {
 }
 
 async fn get_columns(
-	storages: &Vec<(String, &mut StorageInner)>,
+	storages: &[(String, &mut StorageInner)],
 	table: ComplexTableName,
 	context: &Context,
 ) -> Result<Vec<ColumnInfo>> {
@@ -105,7 +105,7 @@ async fn get_columns(
 			.collect::<Vec<ColumnInfo>>())
 	} else {
 		let storage = storages
-			.into_iter()
+			.iter()
 			.find_map(|(name, storage)| {
 				if name == &table.database {
 					Some(&**storage)
@@ -113,8 +113,8 @@ async fn get_columns(
 					None
 				}
 			})
-			.or(storages.get(0).map(|(_, storage)| &**storage))
-			.ok_or(JoinError::TableNotFound(table.clone()))?;
+			.or_else(|| storages.get(0).map(|(_, storage)| &**storage))
+			.ok_or_else(|| JoinError::TableNotFound(table.clone()))?;
 
 		fetch_columns(storage, table).await
 	}

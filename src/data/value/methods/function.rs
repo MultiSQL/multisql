@@ -21,7 +21,7 @@ macro_rules! expect_arguments {
 macro_rules! optional_expect_arguments {
 	($arguments: expr, $min: expr, $max: expr) => {
 		match $arguments.len() {
-			len if len >= $min && len <= $max => (),
+			len if ($min..=$max).contains(&len) => (),
 			found => {
 				return Err(ValueError::NumberOfFunctionParamsNotMatching {
 					expected: $min,

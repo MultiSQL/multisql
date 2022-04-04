@@ -11,8 +11,10 @@ impl Store for CSVStorage {
 	}
 
 	async fn scan_data(&self, _table_name: &str) -> Result<Plane> {
-		let mut reader = csv_reader(&self)?;
+		let mut reader = csv_reader(self)?;
 
+		#[allow(clippy::needless_collect)]
+		// Clippy doesn't understand the need. Needed because we have borrowed values within.
 		reader
 			.records()
 			.enumerate()

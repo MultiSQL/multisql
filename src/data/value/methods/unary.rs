@@ -19,13 +19,14 @@ macro_rules! generic {
 	};
 }
 
+#[allow(clippy::should_implement_trait)] // TODO
 impl Value {
 	pub fn unary_plus<Core>(self) -> Result<Self>
 	where
 		Core: ValueCore + Clone,
 	{
 		let core = Core::convert_from(self)?;
-		let result = core.clone();
+		let result = core;
 		Ok(result.into())
 	}
 	pub fn unary_minus<Core>(self) -> Result<Self>

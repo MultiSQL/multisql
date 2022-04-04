@@ -110,7 +110,7 @@ pub async fn execute(
 			table,
 			selection,
 			assignments,
-		} => update(storages[0].1, &context, table, selection, assignments).await,
+		} => update(storages[0].1, context, table, selection, assignments).await,
 		Statement::Delete {
 			table_name,
 			selection,
