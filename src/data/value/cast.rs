@@ -143,22 +143,22 @@ impl CastWithRules<String> for Value {
 	fn cast_with_rule(self, rule: Self) -> Result<String> {
 		match rule {
 			Value::I64(000) | Value::Bool(true) => self.cast(),
-			Value::Str(specified) if specified == String::from("DATETIME") => {
+			Value::Str(specified) if specified == *"DATETIME" => {
 				Ok(NaiveDateTime::from_timestamp(self.convert()?, 0)
 					.format("%F %T")
 					.to_string())
 			}
-			Value::Str(specified) if specified == String::from("MONEY") => {
+			Value::Str(specified) if specified == *"MONEY" => {
 				let value: f64 = self.convert()?;
 				let value = (value * 100.0).round() / 100.0;
 				let value = value.separate_with_commas();
 				Ok(format!("${}", value))
 			}
-			Value::Str(specified) if specified == String::from("SEPARATED") => {
+			Value::Str(specified) if specified == *"SEPARATED" => {
 				let value: f64 = self.convert()?;
 				let value = (value * 100.0).round() / 100.0;
 				let value = value.separate_with_commas();
-				Ok(format!("{}", value))
+				Ok(value)
 			}
 			Value::Str(format) if matches!(self, Value::I64(..)) => {
 				// TODO: TIMESTAMP type

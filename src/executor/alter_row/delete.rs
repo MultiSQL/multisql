@@ -13,7 +13,7 @@ pub async fn delete(
 	table_name: &ObjectName,
 	selection: &Option<Expr>,
 ) -> Result<Payload> {
-	let table_name = get_name(&table_name)?;
+	let table_name = get_name(table_name)?;
 	let Schema {
 		column_defs,
 		indexes,
@@ -51,7 +51,7 @@ pub async fn delete(
 
 			let row = row.0;
 
-			let confirm_constraint = filter.confirm_constraint(&row.clone());
+			let confirm_constraint = filter.confirm_constraint(&row);
 			match confirm_constraint {
 				Ok(true) => Some(Ok(key)),
 				Ok(false) => None,
@@ -70,7 +70,7 @@ pub async fn delete(
 
 	for index in indexes.iter() {
 		index
-			.reset(storages[0].1, &table_name, &column_defs)
+			.reset(storages[0].1, table_name, &column_defs)
 			.await?; // TODO: Not this; optimise
 	}
 	Ok(result)

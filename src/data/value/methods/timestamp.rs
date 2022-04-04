@@ -89,29 +89,23 @@ impl Value {
 	pub fn function_timestamp_from_parts(arguments: Vec<Self>) -> Result<Self> {
 		optional_expect_arguments!(arguments, 1, 6);
 		protect_null!(arguments
-			.get(0)
-			.map(|value| value.clone())
+			.get(0).cloned()
 			.unwrap_or(Value::I64(1)))
 		.date_from_parts(
 			protect_null!(arguments
-				.get(1)
-				.map(|value| value.clone())
+				.get(1).cloned()
 				.unwrap_or(Value::I64(1))),
 			protect_null!(arguments
-				.get(2)
-				.map(|value| value.clone())
+				.get(2).cloned()
 				.unwrap_or(Value::I64(1))),
 			protect_null!(arguments
-				.get(3)
-				.map(|value| value.clone())
+				.get(3).cloned()
 				.unwrap_or(Value::I64(0))),
 			protect_null!(arguments
-				.get(4)
-				.map(|value| value.clone())
+				.get(4).cloned()
 				.unwrap_or(Value::I64(0))),
 			protect_null!(arguments
-				.get(5)
-				.map(|value| value.clone())
+				.get(5).cloned()
 				.unwrap_or(Value::I64(0))),
 		)
 	}

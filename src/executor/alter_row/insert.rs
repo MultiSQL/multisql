@@ -52,7 +52,7 @@ pub async fn insert(
 	for index in indexes.iter() {
 		// TODO: Should definitely be just inserting an index record
 		index
-			.reset(storages[0].1, &table_name, &column_defs)
+			.reset(storages[0].1, table_name, &column_defs)
 			.await?; // TODO: Not this; optimise
 	}
 

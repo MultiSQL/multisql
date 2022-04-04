@@ -20,7 +20,7 @@ impl BigEndian for Value {
 			]
 			.concat(),
 			F64(v) => [SEP.as_slice(), &v.to_be_bytes()].concat(),
-			Str(v) => [SEP.as_slice(), &v.as_bytes()].concat(),
+			Str(v) => [SEP.as_slice(), v.as_bytes()].concat(),
 			_ => unimplemented!(),
 		}
 	}

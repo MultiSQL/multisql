@@ -25,7 +25,7 @@ impl Value {
 		Core: ValueCore + Clone,
 	{
 		let core = Core::convert_from(self)?;
-		let result = core.clone();
+		let result = core;
 		Ok(result.into())
 	}
 	pub fn unary_minus<Core>(self) -> Result<Self>
