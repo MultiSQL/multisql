@@ -39,6 +39,9 @@ impl TryIntoMethod<FunctionOperator> for String {
 			"ROUND" => Ok(Value::function_round),
 			"POW" => Ok(Value::function_pow),
 
+			"RAND" => Ok(Value::function_rand),
+			"UUID" => Ok(Value::function_rand),
+
 			"IIF" => Ok(Value::function_iif),
 			"IFNULL" => Ok(Value::function_if_null),
 			"NULLIF" => Ok(Value::function_null_if),

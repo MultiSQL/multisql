@@ -96,6 +96,10 @@ crate::util_macros::testcase!(
 			(String::from("AeeBee"), String::from("AeeBeeCee"))
 		);
 
+		crate::util_macros::assert_success!(glue, "VALUES (UUID())");
+		crate::util_macros::assert_success!(glue, "VALUES (RAND(), RAND(2, 300), RAND(-10,10))");
+		crate::util_macros::assert_error!(glue, "VALUES (RAND(1))");
+
 		glue.execute("VALUES (IIF(NULL, 0, 1))").unwrap_err(); // Should this be an error?
 		glue.execute("VALUES (IIF(7, 0, 1))").unwrap_err();
 		glue.execute("VALUES (LEN(100))").unwrap_err();
