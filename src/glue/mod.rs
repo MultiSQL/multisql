@@ -123,6 +123,15 @@ impl Glue {
 	}
 }
 
+impl Glue {
+	pub fn into_connections(self) -> Vec<(String, Connection)> {
+		self.storages
+			.into_iter()
+			.map(|name, storage| (name, storage.into_source()))
+			.collect()
+	}
+}
+
 /// ## Execute (Generic)
 impl Glue {
 	/// Will execute a single query.
