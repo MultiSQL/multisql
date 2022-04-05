@@ -20,7 +20,7 @@ use {
 		Value,
 	},
 	async_trait::async_trait,
-	serde::Serialize,
+	serde::{Deserialize, Serialize},
 	std::fmt::Debug,
 	thiserror::Error,
 };
@@ -29,15 +29,53 @@ use {
 pub enum StorageError {
 	#[error("this storage has not yet implemented this method")]
 	Unimplemented,
+	#[error("tried to connect to an unknown storage")]
+	UnknownConnection,
+}
+
+#[derive(Serialize, Deserialize)]
+pub enum Connection {
+	Unknown,
+	Sled(String),
+	CSV(String, crate::CSVSettings),
+}
+impl Default for Connection {
+	fn default() -> Self {
+		Connection::Unknown
+	}
+}
+impl TryFrom<Connection> for Storage {
+	type Error = crate::Error;
+	fn try_from(connection: Connection) -> Result<Storage> {
+		use {
+			crate::{CSVStorage, SledStorage},
+			Connection::*,
+		};
+		let storage: Option<Box<dyn FullStorage>> = Some(match &connection {
+			Sled(path) => Box::new(SledStorage::new(&path)?),
+			CSV(path, settings) => {
+				Box::new(CSVStorage::new_with_settings(&path, settings.clone())?)
+			}
+			Unknown => return Err(StorageError::UnknownConnection.into()),
+		});
+		Ok(Storage {
+			storage,
+			source_connection: connection,
+		})
+	}
 }
 
 pub struct Storage {
+	source_connection: Connection,
 	storage: Option<Box<dyn FullStorage>>,
 }
 impl Storage {
 	pub fn new(storage: Box<dyn FullStorage>) -> Self {
 		let storage = Some(storage);
-		Self { storage }
+		Self {
+			storage,
+			source_connection: Connection::default(),
+		}
 	}
 	pub fn replace(&mut self, storage: Box<dyn FullStorage>) {
 		self.storage.replace(storage);
@@ -53,6 +91,12 @@ impl Storage {
 		self.replace(storage);
 		readable*/
 		unimplemented!()
+	}
+	pub fn into_source(self) -> Connection {
+		self.source_connection
+	}
+	pub fn from_source(connection: Connection) -> Result<Self> {
+		connection.try_into()
 	}
 }
 
