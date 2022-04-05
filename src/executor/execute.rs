@@ -32,6 +32,8 @@ pub enum ExecuteError {
 	Unimplemented,
 	#[error("database already exists")]
 	DatabaseExists(String),
+	#[error("invalid file location")]
+	InvalidFileLocation,
 	#[error("invalid database location")]
 	InvalidDatabaseLocation,
 

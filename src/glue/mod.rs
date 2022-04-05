@@ -172,6 +172,23 @@ impl Glue {
 					}
 				}
 			};
+		} else if let Query(Statement::Execute { name, parameters }) = query {
+			return match name.value.as_str() {
+				"FILE" => {
+					if let Some(Ok(query)) = parameters.get(0).map(|path| {
+						if let Expr::Value(AstValue::SingleQuotedString(path)) = path {
+							std::fs::read_to_string(path).map_err(|_| ())
+						} else {
+							Err(())
+						}
+					}) {
+						self.execute(&query)
+					} else {
+						Err(ExecuteError::InvalidFileLocation.into())
+					}
+				}
+				_ => Err(ExecuteError::Unimplemented.into()),
+			};
 		}
 
 		let mut storages: Vec<(String, Box<StorageInner>)> = self
