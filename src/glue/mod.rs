@@ -127,7 +127,7 @@ impl Glue {
 	pub fn into_connections(self) -> Vec<(String, Connection)> {
 		self.storages
 			.into_iter()
-			.map(|name, storage| (name, storage.into_source()))
+			.map(|(name, storage)| (name, storage.into_source()))
 			.collect()
 	}
 }
