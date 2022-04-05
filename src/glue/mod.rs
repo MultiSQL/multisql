@@ -177,7 +177,7 @@ impl Glue {
 				"FILE" => {
 					if let Some(Ok(query)) = parameters.get(0).map(|path| {
 						if let Expr::Value(AstValue::SingleQuotedString(path)) = path {
-							std::fs::read_to_string(path).map_err(|_|())
+							std::fs::read_to_string(path).map_err(|_| ())
 						} else {
 							Err(())
 						}
