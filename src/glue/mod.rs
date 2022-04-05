@@ -3,7 +3,7 @@
 use crate::ExecuteError;
 use {
 	crate::{
-		execute, parse, parse_single, CSVStorage, Payload, Query, Result, Row, SledStorage,
+		execute, parse, parse_single, CSVSettings, Connection, Payload, Query, Result, Row,
 		Storage, StorageInner, Value, WIPError,
 	},
 	futures::executor::block_on,
@@ -161,9 +161,9 @@ impl Glue {
 					None => Err(ExecuteError::InvalidDatabaseLocation.into()), // TODO: Memory
 					Some(location) => {
 						let store = if location.ends_with("/") {
-							Storage::new_sled(SledStorage::new(&location)?)
+							Connection::Sled(location).try_into()?
 						} else if location.ends_with(".csv") {
-							Storage::new_csv(CSVStorage::new(&location)?)
+							Connection::CSV(location, CSVSettings::default()).try_into()?
 						} else {
 							return Err(ExecuteError::InvalidDatabaseLocation.into());
 						};

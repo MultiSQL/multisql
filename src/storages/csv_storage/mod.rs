@@ -12,7 +12,7 @@ impl crate::AutoIncrement for CSVStorage {}*/
 use {
 	crate::{data::Schema, store::*, FullStorage, Result, Storage, WIPError},
 	csv::ReaderBuilder,
-	serde::Serialize,
+	serde::{Deserialize, Serialize},
 	sqlparser::ast::{ColumnDef, DataType, Ident},
 	std::{
 		default::Default,
@@ -33,7 +33,7 @@ pub struct CSVStorage {
 	path: String,
 	pub csv_settings: CSVSettings,
 }
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct CSVSettings {
 	pub delimiter: u8,
 	pub quoting: bool,
