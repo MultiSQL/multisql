@@ -35,5 +35,16 @@ crate::util_macros::testcase!(
 			(String::from("id"), String::from("INT")),
 			(String::from("val"), String::from("FLOAT"))
 		);
+
+		crate::util_macros::assert_select!(glue, "
+			EXPLAIN ALL
+		" => database = Str:
+			(String::from("main"))
+		);
+		crate::util_macros::assert_select!(glue, "
+			EXPLAIN ALL_TABLE
+		" => database = Str, table = Str:
+			(String::from("main"), String::from("simple"))
+		);
 	})
 );

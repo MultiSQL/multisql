@@ -1,4 +1,4 @@
-use crate::{ExecuteError, Payload, Row, Schema};
+use crate::{ExecuteError, Payload, Row, Schema, Value};
 use crate::{Result, StorageInner};
 use sqlparser::ast::ObjectName;
 
@@ -13,7 +13,31 @@ pub(crate) async fn explain(
 		2 => (name_vec.remove(0).value, Some(name_vec.remove(0).value)),
 		1 => {
 			let name = name_vec.remove(0).value;
-			if storages.iter().any(|(store, _)| store == &name) {
+			if name == "ALL" {
+				let databases = storages
+					.iter()
+					.map(|(name, _)| Row(vec![name.clone().into()]))
+					.collect();
+				return Ok(Payload::Select {
+					labels: vec![String::from("database")],
+					rows: databases,
+				});
+			}
+			if name == "ALL_TABLE" {
+				let mut tables = vec![];
+				for (name, store) in storages.iter() {
+					tables.extend(
+						get_tables(store)
+							.await?
+							.into_iter()
+							.map(|table| Row(vec![name.clone().into(), table])),
+					);
+				}
+				return Ok(Payload::Select {
+					labels: vec![String::from("database"), String::from("table")],
+					rows: tables,
+				});
+			} else if storages.iter().any(|(store, _)| store == &name) {
 				(name, None)
 			} else {
 				(storages[0].0.clone(), Some(name))
@@ -46,15 +70,22 @@ pub(crate) async fn explain(
 			rows: columns,
 		})
 	} else {
-		let tables = store
-			.scan_schemas()
-			.await?
-			.into_iter()
-			.map(|Schema { table_name, .. }| Row(vec![table_name.into()]))
-			.collect();
 		Ok(Payload::Select {
 			labels: vec![String::from("table")],
-			rows: tables,
+			rows: get_tables(&store)
+				.await?
+				.into_iter()
+				.map(|table| Row(vec![table]))
+				.collect(),
 		})
 	}
+}
+
+async fn get_tables(store: &&mut StorageInner) -> Result<Vec<Value>> {
+	Ok(store
+		.scan_schemas()
+		.await?
+		.into_iter()
+		.map(|Schema { table_name, .. }| table_name.into())
+		.collect())
 }
