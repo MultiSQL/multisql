@@ -8,7 +8,8 @@ use {
 	},
 	futures::executor::block_on,
 	sqlparser::ast::{
-		Expr, Ident, ObjectName, Query as AstQuery, SetExpr, Statement, Value as AstValue, Values,
+		Expr, Ident, ObjectName, ObjectType, Query as AstQuery, SetExpr, Statement,
+		Value as AstValue, Values,
 	},
 	std::{collections::HashMap, fmt::Debug},
 };
@@ -198,6 +199,29 @@ impl Glue {
 				}
 				_ => Err(ExecuteError::Unimplemented.into()),
 			};
+		} else if let Query(Statement::Drop {
+			object_type: ObjectType::Schema, // FOR NOW! // TODO: sqlparser-rs#454
+			if_exists,
+			names,
+			..
+		}) = query
+		{
+			let database_name = names
+				.get(0)
+				.and_then(|name| name.0.get(0).map(|name| name.value.clone()))
+				.ok_or(ExecuteError::ObjectNotRecognised)?;
+
+			let index = self
+				.storages
+				.iter()
+				.enumerate()
+				.find_map(|(index, (name, _))| (name == &database_name).then(|| index));
+			if let Some(index) = index {
+				self.storages.remove(index);
+			} else if !if_exists {
+				return Err(ExecuteError::ObjectNotRecognised.into());
+			}
+			return Ok(Payload::Success);
 		}
 
 		let mut storages: Vec<(String, Box<StorageInner>)> = self

@@ -104,6 +104,27 @@ impl Recipe {
 					);
 				}
 				Method::BinaryOperation(operator, left, right)
+					if operator as usize == Value::eq as usize =>
+				{
+					if let (
+						Recipe::Ingredient(Ingredient::Column(column)),
+						Recipe::Ingredient(Ingredient::Value(value)),
+					) = (left, right)
+					{
+						if let Some((table, index)) = indexed_columns.get(&column) {
+							let mut filters = HashMap::new();
+							filters.insert(
+								table.clone(),
+								Inner(
+									Box::new(LessThan(index.clone(), value.inc())),
+									Box::new(MoreThan(index.clone(), value)),
+								),
+							); // Eh; TODO: Improve
+							return (Recipe::TRUE, Some(filters));
+						}
+					}
+				}
+				Method::BinaryOperation(operator, left, right)
 					if operator as usize == Value::gt_eq as usize =>
 				{
 					if let (
