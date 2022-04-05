@@ -36,8 +36,12 @@ pub enum StorageError {
 #[derive(Serialize, Deserialize)]
 pub enum Connection {
 	Unknown,
+	#[cfg(feature = "sled-storage")]
 	Sled(String),
+	#[cfg(feature = "csv-storage")]
 	CSV(String, crate::CSVSettings),
+	#[cfg(feature = "sheet-storage")]
+	Sheet(String),
 }
 impl Default for Connection {
 	fn default() -> Self {
@@ -48,13 +52,17 @@ impl TryFrom<Connection> for Storage {
 	type Error = crate::Error;
 	fn try_from(connection: Connection) -> Result<Storage> {
 		use {
-			crate::{CSVStorage, SledStorage},
+			crate::{CSVStorage, SheetStorage, SledStorage},
 			Connection::*,
 		};
 		let storage: Option<Box<dyn FullStorage>> = Some(match &connection {
-			Sled(path) => Box::new(SledStorage::new(&path)?),
-			CSV(path, settings) => {
-				Box::new(CSVStorage::new_with_settings(&path, settings.clone())?)
+			#[cfg(feature = "sled-storage")]
+			Sled(path) => Box::new(SledStorage::new(path)?),
+			#[cfg(feature = "csv-storage")]
+			CSV(path, settings) => Box::new(CSVStorage::new_with_settings(path, settings.clone())?),
+			#[cfg(feature = "sheet-storage")]
+			Sheet(path) => {
+				Box::new(SheetStorage::new(path)?)
 			}
 			Unknown => return Err(StorageError::UnknownConnection.into()),
 		});
