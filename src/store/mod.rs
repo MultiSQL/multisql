@@ -61,9 +61,7 @@ impl TryFrom<Connection> for Storage {
 			#[cfg(feature = "csv-storage")]
 			CSV(path, settings) => Box::new(CSVStorage::new_with_settings(path, settings.clone())?),
 			#[cfg(feature = "sheet-storage")]
-			Sheet(path) => {
-				Box::new(SheetStorage::new(path)?)
-			}
+			Sheet(path) => Box::new(SheetStorage::new(path)?),
 			Unknown => return Err(StorageError::UnknownConnection.into()),
 		});
 		Ok(Storage {

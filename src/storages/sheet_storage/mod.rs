@@ -2,20 +2,23 @@ mod store;
 mod store_mut;
 
 use {
-	crate::{data::Schema, store::*, FullStorage, Result, Storage, Error},
-	calamine::{Reader, open_workbook},
-	csv::ReaderBuilder,
-	serde::{Deserialize, Serialize},
-	sqlparser::ast::{ColumnDef, DataType, Ident},
-	std::{
-		default::Default,
+	crate::{store::*, Result},
+	std::{path::Path,
 		fmt::Debug,
-		fs::{File, OpenOptions},
-		io::BufReader,
 	},
+	umya_spreadsheet::{new_file, reader, writer, Spreadsheet},
+	serde::{Deserialize, Serialize},
+	thiserror::Error,
 };
 
+#[derive(Error, Serialize, Debug, PartialEq)]
+pub enum SheetStorageError {
+	#[error("FSError")]
+	FSError,
+}
+
 pub struct SheetStorage {
+	book: Spreadsheet,
 	path: String,
 }
 
@@ -25,15 +28,11 @@ impl FullStorage for SheetStorage {}
 
 impl SheetStorage {
 	pub fn new(path: &str) -> Result<Self> {
+		let book = reader::xlsx::lazy_read(Path::new(path)).unwrap_or_else(|_| new_file());
 		let path = path.to_string();
-		Ok(Self { path })
+		Ok(Self { book, path })
 	}
-	pub fn workbook<Sheet>(&self) -> Sheet
-	where Sheet: Reader<RS = BufReader<File>> + Sized {
-		if let Ok(workbook) = open_workbook(&self.path) {
-			workbook
-		} else {
-			panic!()
-		}
+	pub(crate) fn save(&self) -> Result<()> {
+		writer::xlsx::write(&self.book, Path::new(&self.path)).map_err(|_|SheetStorageError::FSError.into())
 	}
 }

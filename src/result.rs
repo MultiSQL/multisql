@@ -6,7 +6,7 @@ use {
 			RecipeError, SelectError, ValidateError,
 		},
 		store::StorageError,
-		CSVStorageError,
+		CSVStorageError, SheetStorageError
 	},
 	serde::Serialize,
 	std::marker::{Send, Sync},
@@ -66,6 +66,8 @@ pub enum Error {
 	StorageImplementation(#[from] StorageError),
 	#[error(transparent)]
 	CSVStorage(#[from] CSVStorageError),
+	#[error(transparent)]
+	SheetStorage(#[from] SheetStorageError)
 }
 
 unsafe impl Send for Error {}
@@ -97,6 +99,7 @@ impl PartialEq for Error {
 			(WIP(l), WIP(r)) => l == r,
 			(StorageImplementation(l), StorageImplementation(r)) => l == r,
 			(CSVStorage(l), CSVStorage(r)) => l == r,
+			(SheetStorage(l), SheetStorage(r)) => l == r,
 			_ => false,
 		}
 	}
