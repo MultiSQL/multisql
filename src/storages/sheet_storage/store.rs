@@ -32,15 +32,18 @@ impl Store for SheetStorage {
 		let rows: Vec<Result<(Value, Row)>> = sheet
 			.get_row_dimensions()
 			.into_iter()
-			.skip(1)
-			.map(|row| {
+			//.skip(1)
+			.filter_map(|row| {
 				let key = row.get_row_num();
-				sheet
+				if key == &1 {
+					return None;
+				}
+				Some(sheet
 					.get_collection_by_row(key)
 					.into_iter()
 					.map(|(_, cell)| cell.clone().try_into())
 					.collect::<Result<Vec<_>>>()
-					.map(|row| (Value::I64((*key).into()), Row(row)))
+					.map(|row| (Value::I64((*key).into()), Row(row))))
 			})
 			.collect();
 		Ok(Box::new(rows.into_iter()))
