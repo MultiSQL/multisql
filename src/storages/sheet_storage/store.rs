@@ -27,6 +27,7 @@ impl Store for SheetStorage {
 	}
 	async fn scan_data(&self, sheet_name: &str) -> Result<RowIter> {
 		let sheet = self.book.get_sheet_by_name(sheet_name).unwrap();
+		let Schema { column_defs, .. } = schema_from_sheet(&sheet);
 
 		// Skip header
 		let rows: Vec<Result<(Value, Row)>> = sheet
@@ -38,12 +39,19 @@ impl Store for SheetStorage {
 				if key == &1 {
 					return None;
 				}
-				Some(sheet
-					.get_collection_by_row(key)
-					.into_iter()
-					.map(|(_, cell)| cell.clone().try_into())
-					.collect::<Result<Vec<_>>>()
-					.map(|row| (Value::I64((*key).into()), Row(row))))
+				Some(
+					sheet
+						.get_collection_by_row(key)
+						.into_iter()
+						.zip(&column_defs)
+						.map(|((_, cell), ColumnDef { data_type, .. })| {
+							Ok(Value::Str(String::from(cell.get_value()))
+								.cast_datatype(data_type)
+								.unwrap_or(Value::Null))
+						})
+						.collect::<Result<Vec<_>>>()
+						.map(|row| (Value::I64((*key).into()), Row(row))),
+				)
 			})
 			.collect();
 		Ok(Box::new(rows.into_iter()))
@@ -58,22 +66,32 @@ impl TryFrom<Cell> for Value {
 			Cell::TYPE_BOOL => Value::Bool(Value::Str(cell.get_value().to_string()).cast()?),
 			Cell::TYPE_NUMERIC => Value::F64(Value::Str(cell.get_value().to_string()).cast()?),
 			Cell::TYPE_NULL => Value::Null,
-			_ => return Err(StorageError::Unimplemented.into())
+			_ => return Err(StorageError::Unimplemented.into()),
 		})
 	}
 }
 
 fn schema_from_sheet(sheet: &Worksheet) -> Schema {
-	let mut column_defs: Vec<(_, ColumnDef)> = sheet.get_comments().iter().filter_map(|comment| {let coordinate = comment.get_coordinate();
-		if coordinate.get_row_num() == &1 {
-			let col = coordinate.get_col_num();
-			let text = comment.get_text().get_text();
-			let column_def: ColumnDef = serde_yaml::from_str(&text).unwrap();
-			Some((col, column_def))
-		} else {None}
-	}).collect();
+	let mut column_defs: Vec<(_, ColumnDef)> = sheet
+		.get_comments()
+		.iter()
+		.filter_map(|comment| {
+			let coordinate = comment.get_coordinate();
+			if coordinate.get_row_num() == &1 {
+				let col = coordinate.get_col_num();
+				let text = comment.get_text().get_text();
+				let column_def: ColumnDef = serde_yaml::from_str(&text).unwrap();
+				Some((col, column_def))
+			} else {
+				None
+			}
+		})
+		.collect();
 	column_defs.sort_by(|(col_a, _), (col_b, _)| col_a.cmp(col_b));
-	let column_defs = column_defs.into_iter().map(|(_, column_def)| column_def).collect();
+	let column_defs = column_defs
+		.into_iter()
+		.map(|(_, column_def)| column_def)
+		.collect();
 
 	Schema {
 		table_name: sheet.get_title().to_string(),

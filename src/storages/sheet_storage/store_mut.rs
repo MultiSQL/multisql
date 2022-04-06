@@ -16,11 +16,10 @@ impl StoreMut for SheetStorage {
 			..
 		} = schema;
 		let sheet = self.book.new_sheet(sheet_name).unwrap();
-		column_defs.into_iter().enumerate().for_each(
-			|(
-				index,
-				column_def,
-			)| {
+		column_defs
+			.into_iter()
+			.enumerate()
+			.for_each(|(index, column_def)| {
 				let col = (index as u32) + 1;
 				let row = 1;
 				sheet
@@ -31,10 +30,13 @@ impl StoreMut for SheetStorage {
 				let mut comment_text = RichText::default();
 				comment_text.add_rich_text_elements(comment_text_element);
 				let mut comment = Comment::default();
-				comment.set_text(comment_text).get_coordinate_mut().set_col_num(col).set_row_num(row);
+				comment
+					.set_text(comment_text)
+					.get_coordinate_mut()
+					.set_col_num(col)
+					.set_row_num(row);
 				sheet.add_comments(comment);
-			},
-		);
+			});
 		self.save()
 	}
 	async fn insert_data(&mut self, sheet_name: &str, rows: Vec<Row>) -> Result<()> {
