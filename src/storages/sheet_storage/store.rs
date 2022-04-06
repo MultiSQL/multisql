@@ -1,3 +1,5 @@
+use crate::StorageError;
+
 use {
 	crate::{Cast, Result, Row, RowIter, Schema, SheetStorage, Store, Value},
 	async_trait::async_trait,
@@ -52,22 +54,13 @@ impl TryFrom<Cell> for Value {
 			Cell::TYPE_STRING | Cell::TYPE_STRING2 => Value::Str(cell.get_value().to_string()),
 			Cell::TYPE_BOOL => Value::Bool(Value::Str(cell.get_value().to_string()).cast()?),
 			Cell::TYPE_NUMERIC => Value::F64(Value::Str(cell.get_value().to_string()).cast()?),
-			Cell::TYPE_ERROR | _ => {
-				unimplemented!()
-			}
+			Cell::TYPE_NULL => Value::Null,
+			_ => return Err(StorageError::Unimplemented.into())
 		})
 	}
 }
 
 fn schema_from_sheet(sheet: &Worksheet) -> Schema {
-	let headers = sheet.get_collection_by_row(&1);
-	let mut first_row: Vec<&str> = sheet
-		.get_collection_by_row(&2)
-		.into_iter()
-		.map(|(_, fr_cell)| fr_cell.get_data_type())
-		.collect();
-	first_row.resize_with(headers.len(), || "");
-
 	let mut column_defs: Vec<(_, ColumnDef)> = sheet.get_comments().iter().filter_map(|comment| {let coordinate = comment.get_coordinate();
 		if coordinate.get_row_num() == &1 {
 			let col = coordinate.get_col_num();
