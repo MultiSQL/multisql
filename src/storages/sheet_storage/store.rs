@@ -68,26 +68,16 @@ fn schema_from_sheet(sheet: &Worksheet) -> Schema {
 		.collect();
 	first_row.resize_with(headers.len(), || "");
 
-	let column_defs = headers
-		.into_iter()
-		.zip(first_row)
-		.map(|((_, header), fr_cell)| ColumnDef {
-			name: Ident {
-				value: header.get_value().to_string(),
-				quote_style: None,
-			},
-			data_type: match fr_cell {
-				CellValue::TYPE_BOOL => DataType::Boolean,
-				CellValue::TYPE_NUMERIC => DataType::Float(None),
-				_ => DataType::Text,
-			},
-			collation: None,
-			options: vec![ColumnOptionDef {
-				option: ColumnOption::Null,
-				name: None,
-			}],
-		})
-		.collect();
+	let mut column_defs: Vec<(_, ColumnDef)> = sheet.get_comments().iter().filter_map(|comment| {let coordinate = comment.get_coordinate();
+		if coordinate.get_row_num() == &1 {
+			let col = coordinate.get_col_num();
+			let text = comment.get_text().get_text();
+			let column_def: ColumnDef = serde_yaml::from_str(&text).unwrap();
+			Some((col, column_def))
+		} else {None}
+	}).collect();
+	column_defs.sort_by(|(col_a, _), (col_b, _)| col_a.cmp(col_b));
+	let column_defs = column_defs.into_iter().map(|(_, column_def)| column_def).collect();
 
 	Schema {
 		table_name: sheet.get_title().to_string(),

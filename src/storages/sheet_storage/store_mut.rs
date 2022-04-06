@@ -1,3 +1,5 @@
+use umya_spreadsheet::{Comment, RichText, TextElement};
+
 use {
 	crate::{Result, Row, Schema, SheetStorage, StoreMut},
 	async_trait::async_trait,
@@ -17,27 +19,20 @@ impl StoreMut for SheetStorage {
 		column_defs.into_iter().enumerate().for_each(
 			|(
 				index,
-				ColumnDef {
-					name, data_type, ..
-				},
+				column_def,
 			)| {
+				let col = (index as u32) + 1;
+				let row = 1;
 				sheet
-					.get_cell_by_column_and_row_mut((index as u32) + 1, 1)
-					.set_value(name.value.clone());
-				sheet
-					.get_cell_by_column_and_row_mut((index as u32) + 1, 2)
-					.set_value(match data_type {
-						// Ick!
-						DataType::Int(_) | DataType::Float(_) => "0",
-						DataType::Boolean => "false",
-						_ => "",
-					})
-					.set_data_type(match data_type {
-						DataType::Text => CellValue::TYPE_STRING,
-						DataType::Int(_) | DataType::Float(_) => CellValue::TYPE_NUMERIC,
-						DataType::Boolean => CellValue::TYPE_BOOL,
-						_ => CellValue::TYPE_STRING2,
-					});
+					.get_cell_by_column_and_row_mut(col, row)
+					.set_value(column_def.name.value.clone());
+				let mut comment_text_element = TextElement::default();
+				comment_text_element.set_text(serde_yaml::to_string(&column_def).unwrap());
+				let mut comment_text = RichText::default();
+				comment_text.add_rich_text_elements(comment_text_element);
+				let mut comment = Comment::default();
+				comment.set_text(comment_text).get_coordinate_mut().set_col_num(col).set_row_num(row);
+				sheet.add_comments(comment);
 			},
 		);
 		self.save()
