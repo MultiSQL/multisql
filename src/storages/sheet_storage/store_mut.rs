@@ -41,10 +41,7 @@ impl StoreMut for SheetStorage {
 	}
 	async fn insert_data(&mut self, sheet_name: &str, rows: Vec<Row>) -> Result<()> {
 		let sheet = self.book.get_sheet_by_name_mut(sheet_name).unwrap();
-		let mut row_init = sheet.get_row_dimensions().len() + 1; // TODO: Not this
-		if row_init == 3 {
-			row_init = 2; // TODO: VERY not this
-		}
+		let row_init = sheet.get_row_dimensions().len() + 1; // TODO: Not this
 		rows.into_iter()
 			.enumerate()
 			.for_each(|(row_num, Row(row))| {

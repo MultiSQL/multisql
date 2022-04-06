@@ -54,7 +54,7 @@ impl AutoIncrement for SheetStorage {
 		)>,
 	> {
 		let sheet = self.book.get_sheet_by_name_mut(sheet_name).unwrap();
-		let row_init = sheet.get_row_dimensions().len() + 1;
+		let row_init = sheet.get_row_dimensions().len();
 		Ok(columns
 			.into_iter()
 			.map(|(index, name, _)| ((index, name), row_init as i64))
