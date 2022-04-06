@@ -6,9 +6,7 @@ pub fn sheet_storage(name: &str) -> multisql::Glue {
 
 	match std::fs::remove_file(&path) {
 		Ok(()) => (),
-		Err(e) => {
-			println!("fs::remove_file {:?}", e);
-		}
+		Err(_) => {}
 	}
 
 	std::fs::create_dir("data");

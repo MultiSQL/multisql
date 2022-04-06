@@ -94,6 +94,12 @@ impl From<String> for Value {
 		Value::Str(from)
 	}
 }
+impl From<Value> for String {
+	// unsafe
+	fn from(from: Value) -> String {
+		from.cast().unwrap()
+	}
+}
 
 impl PartialEq for Value {
 	fn eq(&self, other: &Value) -> bool {

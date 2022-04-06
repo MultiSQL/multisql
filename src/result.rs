@@ -6,7 +6,7 @@ use {
 			RecipeError, SelectError, ValidateError,
 		},
 		store::StorageError,
-		CSVStorageError, SheetStorageError
+		CSVStorageError, SheetStorageError,
 	},
 	serde::Serialize,
 	std::marker::{Send, Sync},
@@ -67,7 +67,7 @@ pub enum Error {
 	#[error(transparent)]
 	CSVStorage(#[from] CSVStorageError),
 	#[error(transparent)]
-	SheetStorage(#[from] SheetStorageError)
+	SheetStorage(#[from] SheetStorageError),
 }
 
 unsafe impl Send for Error {}

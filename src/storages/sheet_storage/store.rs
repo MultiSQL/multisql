@@ -1,9 +1,9 @@
 use {
-	crate::{Result, Row, RowIter, Schema, SheetStorage, Store, Value},
+	crate::{Cast, Result, Row, RowIter, Schema, SheetStorage, Store, Value},
 	async_trait::async_trait,
-	sqlparser::ast::{ColumnDef, DataType, Ident},
+	sqlparser::ast::{ColumnDef, ColumnOption, ColumnOptionDef, DataType, Ident},
 	std::convert::TryFrom,
-	umya_spreadsheet::{Cell, Worksheet},
+	umya_spreadsheet::{Cell, CellValue, Worksheet},
 };
 
 #[async_trait(?Send)]
@@ -50,6 +50,8 @@ impl TryFrom<Cell> for Value {
 	fn try_from(cell: Cell) -> Result<Self> {
 		Ok(match cell.get_data_type() {
 			Cell::TYPE_STRING | Cell::TYPE_STRING2 => Value::Str(cell.get_value().to_string()),
+			Cell::TYPE_BOOL => Value::Bool(Value::Str(cell.get_value().to_string()).cast()?),
+			Cell::TYPE_NUMERIC => Value::F64(Value::Str(cell.get_value().to_string()).cast()?),
 			Cell::TYPE_ERROR | _ => {
 				unimplemented!()
 			}
@@ -58,18 +60,32 @@ impl TryFrom<Cell> for Value {
 }
 
 fn schema_from_sheet(sheet: &Worksheet) -> Schema {
-	let headers = sheet.get_collection_by_row(&0);
+	let headers = sheet.get_collection_by_row(&1);
+	let mut first_row: Vec<&str> = sheet
+		.get_collection_by_row(&2)
+		.into_iter()
+		.map(|(_, fr_cell)| fr_cell.get_data_type())
+		.collect();
+	first_row.resize_with(headers.len(), || "");
 
 	let column_defs = headers
 		.into_iter()
-		.map(|(_, header)| ColumnDef {
+		.zip(first_row)
+		.map(|((_, header), fr_cell)| ColumnDef {
 			name: Ident {
 				value: header.get_value().to_string(),
 				quote_style: None,
 			},
-			data_type: DataType::Text,
+			data_type: match fr_cell {
+				CellValue::TYPE_BOOL => DataType::Boolean,
+				CellValue::TYPE_NUMERIC => DataType::Float(None),
+				_ => DataType::Text,
+			},
 			collation: None,
-			options: vec![],
+			options: vec![ColumnOptionDef {
+				option: ColumnOption::Null,
+				name: None,
+			}],
 		})
 		.collect();
 
