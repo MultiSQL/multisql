@@ -1,3 +1,4 @@
+mod column;
 mod index;
 mod join;
 mod row;
@@ -6,6 +7,7 @@ mod table;
 pub(crate) mod value;
 
 pub use {
+	column::*,
 	index::{Index, IndexFilter},
 	join::{join_iters, JoinType},
 	row::{Row, RowError},
