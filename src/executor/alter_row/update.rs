@@ -113,7 +113,7 @@ pub async fn update(
 	let keyed_rows: Vec<(Value, Row)> = keys.into_iter().zip(rows.into_iter().map(Row)).collect();
 	let num_rows = keyed_rows.len();
 	let result = storage
-		.update_data(keyed_rows)
+		.update_data(&table, keyed_rows)
 		.await
 		.map(|_| Payload::Update(num_rows))?;
 
