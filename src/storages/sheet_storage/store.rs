@@ -26,7 +26,7 @@ impl Store for SheetStorage {
 	}
 	async fn scan_data(&self, sheet_name: &str) -> Result<RowIter> {
 		let sheet = self.book.get_sheet_by_name(sheet_name).unwrap();
-		let Schema { column_defs, .. } = schema_from_sheet(&sheet)?;
+		let Schema { column_defs, .. } = schema_from_sheet(sheet)?;
 
 		let rows: Vec<Result<(Value, Row)>> = sheet
 			.get_row_dimensions()
@@ -77,7 +77,7 @@ fn schema_from_sheet(sheet: &Worksheet) -> Result<Schema> {
 			if coordinate.get_row_num() == &1 {
 				let col = coordinate.get_col_num();
 				let text = comment.get_text().get_text();
-				let column_def: Result<Column> = serde_yaml::from_str(&text)
+				let column_def: Result<Column> = serde_yaml::from_str(text)
 					.map_err(|_| SheetStorageError::FailedColumnParse.into());
 				Some(column_def.map(|column_def| (col, column_def)))
 			} else {

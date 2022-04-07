@@ -5,7 +5,6 @@ use {
 	crate::{AlterTable, AlterTableError, Column, Result, Row, Schema, Value},
 	async_trait::async_trait,
 	boolinator::Boolinator,
-	sqlparser::ast::Ident,
 	std::{iter::once, str},
 };
 

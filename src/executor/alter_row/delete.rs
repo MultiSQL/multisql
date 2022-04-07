@@ -5,7 +5,7 @@ use {
 		Column, Context, ExecuteError, MetaRecipe, Payload, PlannedRecipe, Result, StorageInner,
 		Value,
 	},
-	sqlparser::ast::{ColumnDef, Expr, ObjectName},
+	sqlparser::ast::{Expr, ObjectName},
 };
 
 pub async fn delete(
@@ -65,7 +65,7 @@ pub async fn delete(
 
 	let result = storages[0]
 		.1
-		.delete_data(&table_name, keys)
+		.delete_data(table_name, keys)
 		.await
 		.map(|_| Payload::Delete(num_keys))?;
 

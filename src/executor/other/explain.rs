@@ -48,13 +48,11 @@ pub(crate) async fn explain(
 
 	let store = storages
 		.iter()
-		.find_map(|(name, store)| (name == &store_name).then(|| store))
-		.ok_or_else(|| ExecuteError::ObjectNotRecognised)?;
+		.find_map(|(name, store)| (name == &store_name).then(|| store)).ok_or(ExecuteError::ObjectNotRecognised)?;
 	if let Some(table_name) = opt_table_name {
 		let Schema { column_defs, .. } = store
 			.fetch_schema(&table_name)
-			.await?
-			.ok_or_else(|| ExecuteError::ObjectNotRecognised)?;
+			.await?.ok_or(ExecuteError::ObjectNotRecognised)?;
 		let columns = column_defs
 			.iter()
 			.map(|column| {
@@ -72,7 +70,7 @@ pub(crate) async fn explain(
 	} else {
 		Ok(Payload::Select {
 			labels: vec![String::from("table")],
-			rows: get_tables(&store)
+			rows: get_tables(store)
 				.await?
 				.into_iter()
 				.map(|table| Row(vec![table]))

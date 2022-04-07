@@ -18,7 +18,7 @@ impl StoreMut for SheetStorage {
 			.new_sheet(sheet_name)
 			.map_err(|_| SheetStorageError::FailedToCreateSheet)?;
 		column_defs
-			.into_iter()
+			.iter()
 			.enumerate()
 			.try_for_each::<_, Result<_>>(|(index, column_def)| {
 				let col = (index as u32) + 1;

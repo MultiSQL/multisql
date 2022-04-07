@@ -27,7 +27,7 @@ pub async fn auto_increment(
 		.await?;
 
 	let mut column_values = column_values;
-	for row in rows.into_iter() {
+	for row in rows.iter_mut() {
 		for ((index, _name), value) in &mut column_values {
 			let cell = row.0.get_mut(*index).unwrap();
 			if matches!(cell, Value::Null) {

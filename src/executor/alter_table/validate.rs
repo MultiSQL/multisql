@@ -6,8 +6,8 @@ use {
 pub fn validate(column_def: &ColumnDef) -> Result<()> {
 	let ColumnDef {
 		data_type,
-		options,
-		name,
+		options: _,
+		name: _,
 		..
 	} = column_def;
 

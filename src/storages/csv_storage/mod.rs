@@ -13,7 +13,6 @@ use {
 	crate::{data::Schema, store::*, Column, FullStorage, Result, Storage, ValueType, WIPError},
 	csv::ReaderBuilder,
 	serde::{Deserialize, Serialize},
-	sqlparser::ast::{DataType, Ident},
 	std::{
 		default::Default,
 		fmt::Debug,
