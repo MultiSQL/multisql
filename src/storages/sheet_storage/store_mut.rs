@@ -25,7 +25,7 @@ impl StoreMut for SheetStorage {
 				let row = 1;
 				sheet
 					.get_cell_by_column_and_row_mut(col, row)
-					.set_value(column_def.name.value.clone());
+					.set_value(&column_def.name);
 				let mut comment_text_element = TextElement::default();
 				comment_text_element.set_text(
 					serde_yaml::to_string(&column_def)

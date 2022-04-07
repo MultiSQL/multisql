@@ -1,9 +1,9 @@
 use {
+	crate::{Column, Index},
 	serde::{Deserialize, Serialize},
 	sqlparser::ast::{ColumnDef, ColumnOption, ColumnOptionDef, Expr},
 };
 
-use crate::Index;
 #[cfg(feature = "auto-increment")]
 use sqlparser::{
 	dialect::keywords::Keyword,
@@ -13,77 +13,6 @@ use sqlparser::{
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Schema {
 	pub table_name: String,
-	pub column_defs: Vec<ColumnDef>,
+	pub column_defs: Vec<Column>,
 	pub indexes: Vec<Index>,
-}
-
-pub trait ColumnDefExt {
-	fn is_nullable(&self) -> bool;
-
-	fn is_unique(&self) -> bool;
-
-	#[cfg(feature = "auto-increment")]
-	fn is_auto_incremented(&self) -> bool;
-
-	fn get_default(&self) -> Option<&Expr>;
-}
-
-impl ColumnDefExt for ColumnDef {
-	fn is_nullable(&self) -> bool {
-		self.options
-			.iter()
-			.any(|ColumnOptionDef { option, .. }| matches!(option, ColumnOption::Null))
-	}
-
-	fn is_unique(&self) -> bool {
-		self.options
-			.iter()
-			.any(|ColumnOptionDef { option, .. }| matches!(option, ColumnOption::Unique { .. }))
-	}
-
-	#[cfg(feature = "auto-increment")]
-	fn is_auto_incremented(&self) -> bool {
-		self.options
-			.iter()
-			.any(|ColumnOptionDef { option, .. }| option.is_auto_increment())
-	}
-
-	fn get_default(&self) -> Option<&Expr> {
-		self.options
-			.iter()
-			.find_map(|ColumnOptionDef { option, .. }| match option {
-				ColumnOption::Default(expr) => Some(expr),
-				_ => None,
-			})
-	}
-}
-
-pub trait ColumnOptionExt {
-	fn is_auto_increment(&self) -> bool;
-}
-
-#[cfg(not(feature = "auto-increment"))]
-impl ColumnOptionExt for ColumnOption {
-	fn is_auto_increment(&self) -> bool {
-		false
-	}
-}
-
-#[cfg(feature = "auto-increment")]
-impl ColumnOptionExt for ColumnOption {
-	fn is_auto_increment(&self) -> bool {
-		matches!(self,
-		ColumnOption::DialectSpecific(tokens)
-			if matches!(
-				tokens[..],
-				[
-					Token::Word(Word {
-						keyword: Keyword::AUTO_INCREMENT,
-						..
-					}),
-					..
-				]
-			)
-		)
-	}
 }

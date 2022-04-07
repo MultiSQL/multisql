@@ -1,11 +1,11 @@
 use {
 	crate::{
-		data::schema::ColumnDefExt, executor::types::Row, Ingredient, Recipe, RecipeUtilities,
-		Resolve, Result, SimplifyBy, Value,
+		executor::types::Row, Ingredient, Recipe, RecipeUtilities,
+		Resolve, Result, SimplifyBy, Value, ValueType, Column, ValueDefault
 	},
 	rayon::prelude::*,
 	serde::Serialize,
-	sqlparser::ast::{ColumnDef, DataType, Ident},
+	sqlparser::ast::Ident,
 	thiserror::Error as ThisError,
 };
 
@@ -27,7 +27,7 @@ pub enum ValidateError {
 	UnreachableUniqueValues,
 }
 
-pub fn columns_to_positions(column_defs: &[ColumnDef], columns: &[Ident]) -> Result<Vec<usize>> {
+pub fn columns_to_positions(column_defs: &[Column], columns: &[Ident]) -> Result<Vec<usize>> {
 	if columns.is_empty() {
 		Ok((0..column_defs.len()).collect())
 	} else {
@@ -36,7 +36,7 @@ pub fn columns_to_positions(column_defs: &[ColumnDef], columns: &[Ident]) -> Res
 			.map(|stated_column| {
 				column_defs
 					.iter()
-					.position(|column_def| stated_column.value == column_def.name.value)
+					.position(|column_def| stated_column.value == column_def.name)
 					.ok_or_else(|| {
 						ValidateError::ColumnNotFound(stated_column.value.clone()).into()
 					})
@@ -46,38 +46,35 @@ pub fn columns_to_positions(column_defs: &[ColumnDef], columns: &[Ident]) -> Res
 }
 
 pub fn validate(
-	column_defs: &[ColumnDef],
+	columns: &[Column],
 	stated_columns: &[usize],
-	rows: Vec<Row>,
-) -> Result<Vec<Row>> {
+	rows: &mut Vec<Row>,
+) -> Result<()> {
 	if rows.iter().any(|row| row.len() != stated_columns.len()) {
 		return Err(ValidateError::WrongNumberOfValues.into());
 	}
 
-	let column_info = column_defs
+	let column_info = columns
 		.iter()
 		.enumerate()
-		.map(|(column_def_index, column_def)| {
-			let ColumnDef { data_type, .. } = column_def;
+		.map(|(column_def_index, column)| {
 			let index = stated_columns
 				.iter()
 				.position(|stated_column| stated_column == &column_def_index);
 
-			let nullable = column_def.is_nullable();
-			#[cfg(feature = "auto-increment")]
-			let nullable = nullable || column_def.is_auto_incremented();
+			let nullable = column.is_nullable || column.default.is_some();
 
-			let failure_recipe = if let Some(default) = column_def.get_default() {
-				Some(Recipe::new_without_meta(default.clone())?)
+			let failure_recipe = if let Some(ValueDefault::Recipe(expr)) = &column.default {
+				Some(Recipe::new_without_meta(expr.clone())?)
 			} else if nullable {
 				Some(Recipe::NULL)
 			} else {
 				None
 			};
-			Ok((index, failure_recipe, nullable, data_type))
+			Ok((index, failure_recipe, nullable, &column.data_type))
 		})
-		.collect::<Result<Vec<(Option<usize>, Option<Recipe>, bool, &DataType)>>>()?;
-	rows.into_par_iter()
+		.collect::<Result<Vec<(Option<usize>, Option<Recipe>, bool, &ValueType)>>>()?;
+	*rows = rows.into_par_iter()
 		.map(|row| {
 			column_info
 				.iter()
@@ -103,7 +100,7 @@ pub fn validate(
 										return Err(error);
 									}
 								}
-								value = value.validate_type(data_type)?;
+								value.is(data_type)?;
 								Ok(value)
 							})
 						})
@@ -121,5 +118,6 @@ pub fn validate(
 				})
 				.collect::<Result<Row>>()
 		})
-		.collect::<Result<Vec<Row>>>()
+		.collect::<Result<Vec<Row>>>()?;
+	Ok(())
 }

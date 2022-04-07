@@ -10,10 +10,10 @@ impl crate::AlterTable for CSVStorage {}
 impl crate::AutoIncrement for CSVStorage {}*/
 
 use {
-	crate::{data::Schema, store::*, FullStorage, Result, Storage, WIPError},
+	crate::{data::Schema, store::*, Column, FullStorage, Result, Storage, ValueType, WIPError},
 	csv::ReaderBuilder,
 	serde::{Deserialize, Serialize},
-	sqlparser::ast::{ColumnDef, DataType, Ident},
+	sqlparser::ast::{DataType, Ident},
 	std::{
 		default::Default,
 		fmt::Debug,
@@ -85,14 +85,11 @@ fn discern_schema(file: File, csv_settings: &CSVSettings) -> Result<Option<Schem
 		.map_err(|error| WIPError::Debug(format!("{:?}", error)))?;
 	let column_defs = headers
 		.iter()
-		.map(|header| ColumnDef {
-			name: Ident {
-				value: header.to_string(),
-				quote_style: None,
-			},
-			data_type: DataType::Text,
-			collation: None,
-			options: vec![],
+		.map(|header| {
+			let mut column = Column::default();
+			column.name = header.to_string();
+			column.data_type = ValueType::Str;
+			column
 		})
 		.collect();
 	if headers.is_empty() {

@@ -57,10 +57,10 @@ pub(crate) async fn explain(
 			.ok_or_else(|| ExecuteError::ObjectNotRecognised)?;
 		let columns = column_defs
 			.iter()
-			.map(|column_def| {
+			.map(|column| {
 				(
-					column_def.name.value.clone().into(),
-					column_def.data_type.to_string().into(),
+					column.name.clone().into(),
+					column.data_type.to_string().into(),
 				)
 			})
 			.map(|(name, data_type)| Row(vec![name, data_type]))

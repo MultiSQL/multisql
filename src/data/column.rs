@@ -1,23 +1,28 @@
 use {
-	crate::Value,
+	crate::ValueType,
 	serde::{Deserialize, Serialize},
 	sqlparser::{
-		ast::{ColumnDef, ColumnOption, ColumnOptionDef, DataType, Expr, Ident},
+		ast::{ColumnDef, ColumnOption, ColumnOptionDef, Expr, Ident},
 		dialect::keywords::Keyword,
 		tokenizer::{Token, Word},
 	},
 };
 
 #[derive(Default, Clone, Serialize, Deserialize)]
-struct Column {
-	name: String,
-	data_type: ValueType,
-	default: Option<ValueDefault>,
+pub struct Column {
+	pub name: String,
+	pub data_type: ValueType,
+	pub default: Option<ValueDefault>,
 
-	is_nullable: bool,
-	is_unique: bool,
+	pub is_nullable: bool,
+	pub is_unique: bool,
 }
 
+impl From<&ColumnDef> for Column {
+	fn from(column_def: &ColumnDef) -> Self {
+		column_def.clone().into()
+	}
+}
 impl From<ColumnDef> for Column {
 	fn from(column_def: ColumnDef) -> Self {
 		let ColumnDef {
@@ -67,49 +72,7 @@ impl From<ColumnDef> for Column {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
-enum ValueType {
-	Bool,
-	U64,
-	I64,
-	F64,
-	Str,
-	Timestamp,
-	Any,
-}
-impl Default for ValueType {
-	fn default() -> Self {
-		Self::Any
-	}
-}
-impl From<Value> for ValueType {
-	fn from(value: Value) -> Self {
-		match value {
-			Value::Bool(_) => ValueType::Bool,
-			Value::U64(_) => ValueType::U64,
-			Value::I64(_) => ValueType::I64,
-			Value::F64(_) => ValueType::F64,
-			Value::Str(_) => ValueType::Str,
-			Value::Timestamp(_) => ValueType::Timestamp,
-			_ => ValueType::Any,
-		}
-	}
-}
-impl From<DataType> for ValueType {
-	fn from(data_type: DataType) -> Self {
-		match data_type {
-			DataType::Boolean => ValueType::Bool,
-			DataType::UnsignedInt(_) => ValueType::U64,
-			DataType::Int(_) => ValueType::I64,
-			DataType::Float(_) => ValueType::F64,
-			DataType::Text => ValueType::Str,
-			DataType::Timestamp => ValueType::Timestamp,
-			_ => ValueType::Any,
-		}
-	}
-}
-
-#[derive(Clone, Serialize, Deserialize)]
-enum ValueDefault {
+pub enum ValueDefault {
 	Recipe(Expr), // TODO: Recipe serialisation
 	AutoIncrement(u64),
 }

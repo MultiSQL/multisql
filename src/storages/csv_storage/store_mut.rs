@@ -20,7 +20,7 @@ impl StoreMut for CSVStorage {
 		let header: Vec<String> = schema
 			.column_defs
 			.iter()
-			.map(|column_def| column_def.name.value.clone())
+			.map(|column_def| column_def.name.clone())
 			.collect();
 
 		writer

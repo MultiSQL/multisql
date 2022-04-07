@@ -1,8 +1,7 @@
 use {
-	crate::{result::Result, Ingredient, Method, Recipe, Row, StorageInner, Value},
+	crate::{result::Result, Ingredient, Method, Recipe, Row, StorageInner, Value, Column},
 	rayon::prelude::*,
 	serde::{Deserialize, Serialize},
-	sqlparser::ast::ColumnDef,
 	std::{cmp::Ordering, collections::HashMap},
 };
 
@@ -33,16 +32,16 @@ impl Index {
 		&self,
 		storage: &mut StorageInner,
 		table: &str,
-		column_defs: &[ColumnDef],
+		columns: &[Column],
 	) -> Result<()> {
 		let rows = storage
 			.scan_data(table)
 			.await?
 			.collect::<Result<Vec<(Value, Row)>>>()?;
-		let column_index: usize = column_defs
+		let column_index: usize = columns
 			.iter()
 			.enumerate()
-			.find_map(|(index, def)| (def.name.value == self.column).then(|| index))
+			.find_map(|(index, def)| (def.name == self.column).then(|| index))
 			.unwrap(); // TODO: Handle
 
 		let mut rows: Vec<(Value, Vec<Value>)> =
