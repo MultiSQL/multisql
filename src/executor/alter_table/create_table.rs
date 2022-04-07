@@ -1,5 +1,5 @@
 use {
-	super::{AlterError},
+	super::AlterError,
 	crate::{
 		data::{get_name, Schema},
 		Column, Result, StorageInner,

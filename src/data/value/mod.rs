@@ -198,7 +198,8 @@ impl Value {
 			| (ValueType::F64, Value::F64(_))
 			| (ValueType::Str, Value::Str(_))
 			| (ValueType::Timestamp, Value::Timestamp(_))
-			| (ValueType::Any, _) => Ok(()),
+			| (ValueType::Any, _)
+			| (_, Value::Null) => Ok(()),
 			(ValueType::F64, Value::I64(_)) => {
 				*self = Value::F64(self.clone().cast()?);
 				Ok(())

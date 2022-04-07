@@ -3,8 +3,6 @@ use {
 	serde::{Deserialize, Serialize},
 };
 
-
-
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Schema {
 	pub table_name: String,
