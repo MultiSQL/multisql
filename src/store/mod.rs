@@ -1,3 +1,6 @@
+mod store;
+mod store_mut;
+
 #[cfg(feature = "alter-table")]
 mod alter_table;
 #[cfg(feature = "alter-table")]
@@ -7,23 +10,19 @@ pub trait AlterTable {}
 
 #[cfg(feature = "auto-increment")]
 mod auto_increment;
-use crate::IndexFilter;
 #[cfg(feature = "auto-increment")]
 pub use auto_increment::AutoIncrement;
 #[cfg(not(feature = "auto-increment"))]
 pub trait AutoIncrement {}
 
 use {
-	crate::{
-		data::{Row, Schema},
-		result::Result,
-		Value,
-	},
-	async_trait::async_trait,
+	crate::{data::Row, result::Result, Value},
 	serde::{Deserialize, Serialize},
 	std::fmt::Debug,
 	thiserror::Error,
 };
+
+pub use {store::Store, store_mut::StoreMut};
 
 #[derive(Error, Serialize, Debug, PartialEq)]
 pub enum StorageError {
@@ -111,66 +110,3 @@ pub type StorageInner = dyn FullStorage;
 pub trait FullStorage: Store + StoreMut + AlterTable + AutoIncrement {}
 
 pub type RowIter = Box<dyn Iterator<Item = Result<(Value, Row)>>>;
-
-/// `Store` -> `SELECT`
-#[async_trait(?Send)]
-pub trait Store {
-	async fn fetch_schema(&self, _table_name: &str) -> Result<Option<Schema>> {
-		Err(StorageError::Unimplemented.into())
-	}
-	async fn scan_schemas(&self) -> Result<Vec<Schema>> {
-		Err(StorageError::Unimplemented.into())
-	}
-
-	async fn scan_data(&self, _table_name: &str) -> Result<RowIter> {
-		Err(StorageError::Unimplemented.into())
-	}
-
-	async fn scan_data_indexed(
-		&self,
-		_table_name: &str,
-		_index_filters: IndexFilter,
-	) -> Result<RowIter> {
-		Err(StorageError::Unimplemented.into())
-	}
-	async fn scan_index(
-		&self,
-		_table_name: &str,
-		_index_filter: IndexFilter,
-	) -> Result<Vec<Value>> {
-		Err(StorageError::Unimplemented.into())
-	}
-}
-
-/// `StoreMut` -> `INSERT`, `CREATE`, `DELETE`, `DROP`, `UPDATE`
-#[async_trait(?Send)]
-pub trait StoreMut {
-	async fn insert_schema(&mut self, _schema: &Schema) -> Result<()> {
-		Err(StorageError::Unimplemented.into())
-	}
-
-	async fn delete_schema(&mut self, _table_name: &str) -> Result<()> {
-		Err(StorageError::Unimplemented.into())
-	}
-
-	async fn insert_data(&mut self, _table_name: &str, _rows: Vec<Row>) -> Result<()> {
-		Err(StorageError::Unimplemented.into())
-	}
-
-	async fn update_data(&mut self, _rows: Vec<(Value, Row)>) -> Result<()> {
-		Err(StorageError::Unimplemented.into())
-	}
-
-	async fn delete_data(&mut self, _keys: Vec<Value>) -> Result<()> {
-		Err(StorageError::Unimplemented.into())
-	}
-
-	async fn update_index(
-		&mut self,
-		_index_name: &str,
-		_table_name: &str,
-		_keys: Vec<(Value, Value)>,
-	) -> Result<()> {
-		Err(StorageError::Unimplemented.into())
-	}
-}
