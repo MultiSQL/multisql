@@ -12,7 +12,7 @@ pub trait StoreMut {
 
 	async fn delete_schema(&mut self, _table_name: &str) -> Result<()> {
 		Err(StorageError::Unimplemented.into())
-	}
+	} // Shouldn't this be AlterTable?
 
 	async fn insert_data(&mut self, _table_name: &str, _rows: Vec<Row>) -> Result<()> {
 		Err(StorageError::Unimplemented.into())
