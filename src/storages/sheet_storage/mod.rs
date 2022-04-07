@@ -1,5 +1,6 @@
 mod store;
 mod store_mut;
+mod auto_increment;
 
 use {
 	crate::{store::*, Result},
@@ -39,25 +40,5 @@ impl SheetStorage {
 	pub(crate) fn save(&self) -> Result<()> {
 		writer::xlsx::write(&self.book, Path::new(&self.path))
 			.map_err(|_| SheetStorageError::FSError.into())
-	}
-}
-
-#[async_trait(?Send)]
-impl AutoIncrement for SheetStorage {
-	// TODO: Move
-	async fn generate_increment_values(
-		&mut self,
-		sheet_name: String,
-		columns: Vec<(usize, String, i64)>,
-	) -> Result<Vec<((usize, String), i64)>> {
-		let sheet = self
-			.book
-			.get_sheet_by_name_mut(sheet_name)
-			.map_err(|_| SheetError::FailedToGetSheet.into())?;
-		let row_init = sheet.get_row_dimensions().len();
-		Ok(columns
-			.into_iter()
-			.map(|(index, name, _)| ((index, name), row_init as i64))
-			.collect())
 	}
 }

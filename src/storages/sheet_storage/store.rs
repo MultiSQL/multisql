@@ -1,7 +1,7 @@
 use crate::StorageError;
 
 use {
-	crate::{Cast, Result, Row, RowIter, Schema, SheetStorage, Store, Value},
+	crate::{Cast, Result, Row, RowIter, Schema, SheetStorage, Store, Value, SheetStorageError},
 	async_trait::async_trait,
 	sqlparser::ast::{ColumnDef, ColumnOption, ColumnOptionDef, DataType, Ident},
 	std::convert::TryFrom,
@@ -11,23 +11,23 @@ use {
 #[async_trait(?Send)]
 impl Store for SheetStorage {
 	async fn fetch_schema(&self, sheet_name: &str) -> Result<Option<Schema>> {
-		Ok(if let Ok(sheet) = self.book.get_sheet_by_name(sheet_name) {
-			Some(schema_from_sheet(sheet))
+		if let Ok(sheet) = self.book.get_sheet_by_name(sheet_name) {
+			schema_from_sheet(sheet).map(Some)
 		} else {
-			None
-		})
+			Ok(None)
+		}
 	}
 	async fn scan_schemas(&self) -> Result<Vec<Schema>> {
-		Ok(self
+		self
 			.book
 			.get_sheet_collection()
 			.iter()
 			.map(schema_from_sheet)
-			.collect())
+			.collect()
 	}
 	async fn scan_data(&self, sheet_name: &str) -> Result<RowIter> {
 		let sheet = self.book.get_sheet_by_name(sheet_name).unwrap();
-		let Schema { column_defs, .. } = schema_from_sheet(&sheet);
+		let Schema { column_defs, .. } = schema_from_sheet(&sheet)?;
 
 		let rows: Vec<Result<(Value, Row)>> = sheet
 			.get_row_dimensions()
@@ -69,7 +69,7 @@ impl TryFrom<Cell> for Value {
 	}
 }
 
-fn schema_from_sheet(sheet: &Worksheet) -> Schema {
+fn schema_from_sheet(sheet: &Worksheet) -> Result<Schema> {
 	let mut column_defs: Vec<(_, ColumnDef)> = sheet
 		.get_comments()
 		.iter()
@@ -78,23 +78,23 @@ fn schema_from_sheet(sheet: &Worksheet) -> Schema {
 			if coordinate.get_row_num() == &1 {
 				let col = coordinate.get_col_num();
 				let text = comment.get_text().get_text();
-				let column_def: ColumnDef = serde_yaml::from_str(&text)
-					.map_err(|_| SheetError::FailedColumnParse.into())?;
-				Some((col, column_def))
+				let column_def: Result<ColumnDef> = serde_yaml::from_str(&text)
+					.map_err(|_| SheetStorageError::FailedColumnParse.into());
+				Some(column_def.map(|column_def|(col, column_def)))
 			} else {
 				None
 			}
 		})
-		.collect();
+		.collect::<Result<Vec<_>>>()?;
 	column_defs.sort_by(|(col_a, _), (col_b, _)| col_a.cmp(col_b));
 	let column_defs = column_defs
 		.into_iter()
 		.map(|(_, column_def)| column_def)
 		.collect();
 
-	Schema {
+	Ok(Schema {
 		table_name: sheet.get_title().to_string(),
 		column_defs,
 		indexes: vec![],
-	}
+	})
 }
