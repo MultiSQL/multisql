@@ -18,11 +18,11 @@ pub trait StoreMut {
 		Err(StorageError::Unimplemented.into())
 	}
 
-	async fn update_data(&mut self, _rows: Vec<(Value, Row)>) -> Result<()> {
+	async fn update_data(&mut self, _table_name: &str, _rows: Vec<(Value, Row)>) -> Result<()> {
 		Err(StorageError::Unimplemented.into())
 	}
 
-	async fn delete_data(&mut self, _keys: Vec<Value>) -> Result<()> {
+	async fn delete_data(&mut self, _table_name: &str, _keys: Vec<Value>) -> Result<()> {
 		Err(StorageError::Unimplemented.into())
 	}
 

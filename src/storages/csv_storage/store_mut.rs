@@ -90,8 +90,4 @@ impl StoreMut for CSVStorage {
 			.map_err(|error| WIPError::Debug(format!("{:?}", error)))?;
 		Ok(())
 	}
-
-	//async fn update_data(&mut self, rows: Vec<(Value, Row)>) -> Result<()>;
-
-	//async fn delete_data(&mut self, keys: Vec<Value>) -> Result<()>;
 }

@@ -64,7 +64,7 @@ pub async fn delete(
 
 	let result = storages[0]
 		.1
-		.delete_data(keys)
+		.delete_data(&table_name, keys)
 		.await
 		.map(|_| Payload::Delete(num_keys))?;
 
