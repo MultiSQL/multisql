@@ -1,9 +1,5 @@
 use {
-	super::AlterError,
-	crate::{
-		data::{get_name, schema::ColumnDefExt},
-		Result, StorageInner,
-	},
+	crate::{data::get_name, AlterError, Result, StorageInner, ValueDefault},
 	futures::stream::{self, TryStreamExt},
 	sqlparser::ast::ObjectName,
 };
@@ -17,9 +13,9 @@ pub async fn truncate(storage: &mut StorageInner, table_name: &ObjectName) -> Re
 		#[cfg(feature = "auto-increment")]
 		let result: Result<&mut StorageInner> = stream::iter(schema.column_defs.iter().map(Ok))
 			.try_fold(storage, |storage, column| async move {
-				if column.is_auto_incremented() {
+				if matches!(column.default, Some(ValueDefault::AutoIncrement(_))) {
 					storage
-						.set_increment_value(table_name, column.name.value.as_str(), 1_i64)
+						.set_increment_value(table_name, &column.name, 1_i64)
 						.await?;
 				}
 				Ok(storage)

@@ -170,7 +170,7 @@ impl Glue {
 				match location {
 					None => Err(ExecuteError::InvalidDatabaseLocation.into()), // TODO: Memory
 					Some(location) => {
-						let store = if location.ends_with("/") {
+						let store = if location.ends_with('/') {
 							Connection::Sled(location).try_into()?
 						} else if location.ends_with(".csv") {
 							Connection::CSV(location, CSVSettings::default()).try_into()?

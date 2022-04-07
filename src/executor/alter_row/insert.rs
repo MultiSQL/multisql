@@ -28,14 +28,14 @@ pub async fn insert(
 		.ok_or(ExecuteError::TableNotExists)?;
 
 	// TODO: Multi storage
-	let (labels, rows) = query(storages, context, source.clone()).await?;
+	let (labels, mut rows) = query(storages, context, source.clone()).await?;
 	let column_positions = columns_to_positions(&column_defs, columns)?;
 
-	let rows = validate(&column_defs, &column_positions, rows)?;
+	validate(&column_defs, &column_positions, &mut rows)?;
+	let mut rows: Vec<Row> = rows.into_iter().map(Row).collect();
 	#[cfg(feature = "auto-increment")]
-	let rows = auto_increment(storages[0].1, table_name, &column_defs, rows).await?;
+	auto_increment(storages[0].1, table_name, &column_defs, &mut rows).await?;
 	validate_unique(storages[0].1, table_name, &column_defs, &rows, None).await?;
-	let rows: Vec<Row> = rows.into_iter().map(Row).collect();
 
 	let num_rows = rows.len();
 

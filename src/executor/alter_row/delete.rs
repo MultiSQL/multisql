@@ -2,9 +2,10 @@ use {
 	crate::{
 		data::{get_name, Schema},
 		executor::types::ColumnInfo,
-		Context, ExecuteError, MetaRecipe, Payload, PlannedRecipe, Result, StorageInner, Value,
+		Column, Context, ExecuteError, MetaRecipe, Payload, PlannedRecipe, Result, StorageInner,
+		Value,
 	},
-	sqlparser::ast::{ColumnDef, Expr, ObjectName},
+	sqlparser::ast::{Expr, ObjectName},
 };
 
 pub async fn delete(
@@ -27,7 +28,7 @@ pub async fn delete(
 	let columns = column_defs
 		.clone()
 		.into_iter()
-		.map(|ColumnDef { name, .. }| ColumnInfo::of_name(name.value))
+		.map(|Column { name, .. }| ColumnInfo::of_name(name))
 		.collect::<Vec<ColumnInfo>>();
 	let filter = selection
 		.clone()
@@ -64,7 +65,7 @@ pub async fn delete(
 
 	let result = storages[0]
 		.1
-		.delete_data(&table_name, keys)
+		.delete_data(table_name, keys)
 		.await
 		.map(|_| Payload::Delete(num_keys))?;
 

@@ -1,8 +1,8 @@
 use {
-	super::{validate, AlterError},
+	super::AlterError,
 	crate::{
 		data::{get_name, Schema},
-		Result, StorageInner,
+		Column, Result, StorageInner,
 	},
 	sqlparser::ast::{ColumnDef, ObjectName},
 };
@@ -15,13 +15,9 @@ pub async fn create_table(
 ) -> Result<()> {
 	let schema = Schema {
 		table_name: get_name(name)?.to_string(),
-		column_defs: column_defs.to_vec(),
+		column_defs: column_defs.iter().cloned().map(Column::from).collect(),
 		indexes: vec![],
 	};
-
-	for column_def in &schema.column_defs {
-		validate(column_def)?;
-	}
 
 	if storage.fetch_schema(&schema.table_name).await?.is_some() {
 		if !if_not_exists {

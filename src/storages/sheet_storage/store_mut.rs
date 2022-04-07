@@ -18,14 +18,14 @@ impl StoreMut for SheetStorage {
 			.new_sheet(sheet_name)
 			.map_err(|_| SheetStorageError::FailedToCreateSheet)?;
 		column_defs
-			.into_iter()
+			.iter()
 			.enumerate()
 			.try_for_each::<_, Result<_>>(|(index, column_def)| {
 				let col = (index as u32) + 1;
 				let row = 1;
 				sheet
 					.get_cell_by_column_and_row_mut(col, row)
-					.set_value(column_def.name.value.clone());
+					.set_value(&column_def.name);
 				let mut comment_text_element = TextElement::default();
 				comment_text_element.set_text(
 					serde_yaml::to_string(&column_def)

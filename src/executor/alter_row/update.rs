@@ -3,10 +3,10 @@ use {
 	crate::{
 		data::{get_name, Schema},
 		executor::types::{ColumnInfo, Row as VecRow},
-		Context, ExecuteError, MetaRecipe, Payload, PlannedRecipe, RecipeUtilities, Result, Row,
-		StorageInner, Value,
+		Column, Context, ExecuteError, MetaRecipe, Payload, PlannedRecipe, RecipeUtilities, Result,
+		Row, StorageInner, Value,
 	},
-	sqlparser::ast::{Assignment, ColumnDef, Expr, TableFactor, TableWithJoins},
+	sqlparser::ast::{Assignment, Expr, TableFactor, TableWithJoins},
 };
 
 pub async fn update(
@@ -33,7 +33,7 @@ pub async fn update(
 	let columns = column_defs
 		.clone()
 		.into_iter()
-		.map(|ColumnDef { name, .. }| ColumnInfo::of_name(name.value))
+		.map(|Column { name, .. }| ColumnInfo::of_name(name))
 		.collect::<Vec<ColumnInfo>>();
 
 	let filter = selection
@@ -103,17 +103,18 @@ pub async fn update(
 		.collect::<Result<Vec<(Value, VecRow)>>>()?;
 
 	let column_positions = columns_to_positions(&column_defs, &[])?;
-	let (keys, rows): (Vec<Value>, Vec<VecRow>) = keyed_rows.into_iter().unzip();
-	let rows = validate(&column_defs, &column_positions, rows)?;
+	let (keys, mut rows): (Vec<Value>, Vec<VecRow>) = keyed_rows.into_iter().unzip();
+	validate(&column_defs, &column_positions, &mut rows)?;
 
 	let table = table.as_str();
+	let mut rows: Vec<Row> = rows.into_iter().map(Row).collect();
 	#[cfg(feature = "auto-increment")]
-	let rows = auto_increment(&mut *storage, table, &column_defs, rows).await?;
+	auto_increment(&mut *storage, table, &column_defs, &mut rows).await?;
 	validate_unique(&*storage, table, &column_defs, &rows, Some(&keys)).await?;
-	let keyed_rows: Vec<(Value, Row)> = keys.into_iter().zip(rows.into_iter().map(Row)).collect();
+	let keyed_rows: Vec<(Value, Row)> = keys.into_iter().zip(rows).collect();
 	let num_rows = keyed_rows.len();
 	let result = storage
-		.update_data(&table, keyed_rows)
+		.update_data(table, keyed_rows)
 		.await
 		.map(|_| Payload::Update(num_rows))?;
 

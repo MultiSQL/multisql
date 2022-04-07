@@ -1,9 +1,5 @@
 use {
-	super::ValidateError,
-	crate::{
-		data::schema::ColumnDefExt, executor::types::Row, NullOrd, Result, StorageInner, Value,
-	},
-	sqlparser::ast::ColumnDef,
+	crate::{Column, NullOrd, Result, Row, StorageInner, ValidateError, Value},
 	std::cmp::Ordering,
 };
 
@@ -27,7 +23,7 @@ macro_rules! some_or {
 pub async fn validate_unique(
 	storage: &StorageInner,
 	table_name: &str,
-	column_defs: &[ColumnDef],
+	column_defs: &[Column],
 	rows: &[Row],
 	ignore_keys: Option<&[Value]>,
 ) -> Result<()> {
@@ -35,7 +31,7 @@ pub async fn validate_unique(
 		.iter()
 		.enumerate()
 		.filter_map(|(index, column_def)| {
-			if column_def.is_unique() {
+			if column_def.is_unique {
 				Some(index)
 			} else {
 				None
@@ -76,7 +72,7 @@ pub async fn validate_unique(
 			.map(|(index, row_index)| {
 				new_values
 					.get_mut(index)?
-					.push(row.get(*row_index)?.clone());
+					.push(row.0.get(*row_index)?.clone());
 				Some(())
 			})
 			.collect::<Option<()>>()

@@ -1,8 +1,9 @@
 use crate::StorageError;
 use {
-	crate::{Cast, Result, Row, RowIter, Schema, SheetStorage, SheetStorageError, Store, Value},
+	crate::{
+		Cast, Column, Result, Row, RowIter, Schema, SheetStorage, SheetStorageError, Store, Value,
+	},
 	async_trait::async_trait,
-	sqlparser::ast::ColumnDef,
 	std::convert::TryFrom,
 	umya_spreadsheet::{Cell, Worksheet},
 };
@@ -25,7 +26,7 @@ impl Store for SheetStorage {
 	}
 	async fn scan_data(&self, sheet_name: &str) -> Result<RowIter> {
 		let sheet = self.book.get_sheet_by_name(sheet_name).unwrap();
-		let Schema { column_defs, .. } = schema_from_sheet(&sheet)?;
+		let Schema { column_defs, .. } = schema_from_sheet(sheet)?;
 
 		let rows: Vec<Result<(Value, Row)>> = sheet
 			.get_row_dimensions()
@@ -40,9 +41,9 @@ impl Store for SheetStorage {
 						.get_collection_by_row(key)
 						.into_iter()
 						.zip(&column_defs)
-						.map(|((_, cell), ColumnDef { data_type, .. })| {
+						.map(|((_, cell), Column { data_type, .. })| {
 							Ok(Value::Str(String::from(cell.get_value()))
-								.cast_datatype(data_type)
+								.cast_valuetype(data_type)
 								.unwrap_or(Value::Null))
 						})
 						.collect::<Result<Vec<_>>>()
@@ -68,7 +69,7 @@ impl TryFrom<Cell> for Value {
 }
 
 fn schema_from_sheet(sheet: &Worksheet) -> Result<Schema> {
-	let mut column_defs: Vec<(_, ColumnDef)> = sheet
+	let mut column_defs: Vec<(_, Column)> = sheet
 		.get_comments()
 		.iter()
 		.filter_map(|comment| {
@@ -76,7 +77,7 @@ fn schema_from_sheet(sheet: &Worksheet) -> Result<Schema> {
 			if coordinate.get_row_num() == &1 {
 				let col = coordinate.get_col_num();
 				let text = comment.get_text().get_text();
-				let column_def: Result<ColumnDef> = serde_yaml::from_str(&text)
+				let column_def: Result<Column> = serde_yaml::from_str(text)
 					.map_err(|_| SheetStorageError::FailedColumnParse.into());
 				Some(column_def.map(|column_def| (col, column_def)))
 			} else {

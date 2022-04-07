@@ -49,18 +49,18 @@ pub(crate) async fn explain(
 	let store = storages
 		.iter()
 		.find_map(|(name, store)| (name == &store_name).then(|| store))
-		.ok_or_else(|| ExecuteError::ObjectNotRecognised)?;
+		.ok_or(ExecuteError::ObjectNotRecognised)?;
 	if let Some(table_name) = opt_table_name {
 		let Schema { column_defs, .. } = store
 			.fetch_schema(&table_name)
 			.await?
-			.ok_or_else(|| ExecuteError::ObjectNotRecognised)?;
+			.ok_or(ExecuteError::ObjectNotRecognised)?;
 		let columns = column_defs
 			.iter()
-			.map(|column_def| {
+			.map(|column| {
 				(
-					column_def.name.value.clone().into(),
-					column_def.data_type.to_string().into(),
+					column.name.clone().into(),
+					column.data_type.to_string().into(),
 				)
 			})
 			.map(|(name, data_type)| Row(vec![name, data_type]))
@@ -72,7 +72,7 @@ pub(crate) async fn explain(
 	} else {
 		Ok(Payload::Select {
 			labels: vec![String::from("table")],
-			rows: get_tables(&store)
+			rows: get_tables(store)
 				.await?
 				.into_iter()
 				.map(|table| Row(vec![table]))

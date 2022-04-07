@@ -30,7 +30,7 @@ pub async fn alter_table(
 		AlterTableOperation::AddColumn { column_def } => {
 			validate(column_def).map_err(Error::from)?;
 
-			storage.add_column(table_name, column_def).await
+			storage.add_column(table_name, &column_def.into()).await
 		}
 		AlterTableOperation::DropColumn {
 			column_name,

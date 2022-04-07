@@ -45,7 +45,7 @@ pub async fn create_index(
 				schema
 					.column_defs
 					.iter()
-					.find(|column_def| &column_def.name.value == column)
+					.find(|column_def| &column_def.name == column)
 			})
 			.is_none()
 		{

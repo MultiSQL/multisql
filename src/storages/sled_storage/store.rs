@@ -19,7 +19,7 @@ impl Store for SledStorage {
 		fetch_schema(&self.tree, table_name).map(|(_, schema)| schema)
 	}
 	async fn scan_schemas(&self) -> Result<Vec<Schema>> {
-		let prefix = format!("schema/");
+		let prefix = "schema/".to_string();
 		self.tree
 			.scan_prefix(prefix.as_bytes())
 			.map(|item| {
