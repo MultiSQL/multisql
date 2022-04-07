@@ -1,11 +1,10 @@
 use crate::StorageError;
-
 use {
-	crate::{Cast, Result, Row, RowIter, Schema, SheetStorage, Store, Value, SheetStorageError},
+	crate::{Cast, Result, Row, RowIter, Schema, SheetStorage, SheetStorageError, Store, Value},
 	async_trait::async_trait,
-	sqlparser::ast::{ColumnDef, ColumnOption, ColumnOptionDef, DataType, Ident},
+	sqlparser::ast::ColumnDef,
 	std::convert::TryFrom,
-	umya_spreadsheet::{Cell, CellValue, Worksheet},
+	umya_spreadsheet::{Cell, Worksheet},
 };
 
 #[async_trait(?Send)]
@@ -18,8 +17,7 @@ impl Store for SheetStorage {
 		}
 	}
 	async fn scan_schemas(&self) -> Result<Vec<Schema>> {
-		self
-			.book
+		self.book
 			.get_sheet_collection()
 			.iter()
 			.map(schema_from_sheet)
@@ -80,7 +78,7 @@ fn schema_from_sheet(sheet: &Worksheet) -> Result<Schema> {
 				let text = comment.get_text().get_text();
 				let column_def: Result<ColumnDef> = serde_yaml::from_str(&text)
 					.map_err(|_| SheetStorageError::FailedColumnParse.into());
-				Some(column_def.map(|column_def|(col, column_def)))
+				Some(column_def.map(|column_def| (col, column_def)))
 			} else {
 				None
 			}

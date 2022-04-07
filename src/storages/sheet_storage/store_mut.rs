@@ -1,10 +1,8 @@
 use umya_spreadsheet::{Comment, RichText, TextElement};
 
 use {
-	crate::{Result, Row, Schema, SheetStorage, StoreMut, SheetStorageError},
+	crate::{Result, Row, Schema, SheetStorage, SheetStorageError, StoreMut},
 	async_trait::async_trait,
-	sqlparser::ast::{ColumnDef, DataType},
-	umya_spreadsheet::CellValue,
 };
 
 #[async_trait(?Send)]
@@ -15,7 +13,9 @@ impl StoreMut for SheetStorage {
 			table_name: sheet_name,
 			..
 		} = schema;
-		let sheet = self.book.new_sheet(sheet_name)
+		let sheet = self
+			.book
+			.new_sheet(sheet_name)
 			.map_err(|_| SheetStorageError::FailedToCreateSheet)?;
 		column_defs
 			.into_iter()
@@ -45,10 +45,7 @@ impl StoreMut for SheetStorage {
 		self.save()
 	}
 	async fn insert_data(&mut self, sheet_name: &str, rows: Vec<Row>) -> Result<()> {
-		let sheet = self
-			.book
-			.get_sheet_by_name_mut(sheet_name)
-			.map_err(|_| SheetStorageError::FailedToGetSheet)?;
+		let sheet = self.get_sheet_mut(sheet_name)?;
 		let row_init = sheet.get_row_dimensions().len() + 1; // TODO: Not this
 		rows.into_iter()
 			.enumerate()

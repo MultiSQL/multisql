@@ -40,11 +40,9 @@ pub trait AlterTable {
 	) -> Result<()> {
 		Err(StorageError::Unimplemented.into())
 	}
-
 	async fn add_column(&mut self, _table_name: &str, _column_def: &ColumnDef) -> Result<()> {
 		Err(StorageError::Unimplemented.into())
 	}
-
 	async fn drop_column(
 		&mut self,
 		_table_name: &str,
