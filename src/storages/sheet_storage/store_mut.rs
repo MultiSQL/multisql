@@ -15,7 +15,7 @@ impl StoreMut for SheetStorage {
 			table_name: sheet_name,
 			..
 		} = schema;
-		let sheet = self.book.new_sheet(sheet_name).unwrap();
+		let sheet = self.book.new_sheet(sheet_name).map_err();
 		column_defs
 			.into_iter()
 			.enumerate()
@@ -26,7 +26,10 @@ impl StoreMut for SheetStorage {
 					.get_cell_by_column_and_row_mut(col, row)
 					.set_value(column_def.name.value.clone());
 				let mut comment_text_element = TextElement::default();
-				comment_text_element.set_text(serde_yaml::to_string(&column_def).unwrap());
+				comment_text_element.set_text(
+					serde_yaml::to_string(&column_def)
+						.map_err(|_| SheetError::FailedColumnParse.into())?,
+				);
 				let mut comment_text = RichText::default();
 				comment_text.add_rich_text_elements(comment_text_element);
 				let mut comment = Comment::default();
@@ -40,7 +43,10 @@ impl StoreMut for SheetStorage {
 		self.save()
 	}
 	async fn insert_data(&mut self, sheet_name: &str, rows: Vec<Row>) -> Result<()> {
-		let sheet = self.book.get_sheet_by_name_mut(sheet_name).unwrap();
+		let sheet = self
+			.book
+			.get_sheet_by_name_mut(sheet_name)
+			.map_err(|_| SheetError::FailedToGetSheet.into())?;
 		let row_init = sheet.get_row_dimensions().len() + 1; // TODO: Not this
 		rows.into_iter()
 			.enumerate()

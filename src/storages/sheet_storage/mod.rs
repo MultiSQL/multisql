@@ -14,6 +14,12 @@ use {
 pub enum SheetStorageError {
 	#[error("FSError")]
 	FSError,
+	#[error("failed to parse column information")]
+	FailedColumnParse,
+	#[error("failed to create sheet")]
+	FailedToCreateSheet,
+	#[error("failed to get sheet")]
+	FailedToGetSheet,
 }
 
 pub struct SheetStorage {
@@ -42,18 +48,12 @@ impl AutoIncrement for SheetStorage {
 	async fn generate_increment_values(
 		&mut self,
 		sheet_name: String,
-		columns: Vec<(
-			usize,  /*index*/
-			String, /*name*/
-			i64,    /*row_count*/
-		) /*column*/>,
-	) -> Result<
-		Vec<(
-			/*column*/ (usize /*index*/, String /*name*/),
-			/*start_value*/ i64,
-		)>,
-	> {
-		let sheet = self.book.get_sheet_by_name_mut(sheet_name).unwrap();
+		columns: Vec<(usize, String, i64)>,
+	) -> Result<Vec<((usize, String), i64)>> {
+		let sheet = self
+			.book
+			.get_sheet_by_name_mut(sheet_name)
+			.map_err(|_| SheetError::FailedToGetSheet.into())?;
 		let row_init = sheet.get_row_dimensions().len();
 		Ok(columns
 			.into_iter()

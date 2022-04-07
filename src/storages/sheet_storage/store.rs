@@ -29,15 +29,13 @@ impl Store for SheetStorage {
 		let sheet = self.book.get_sheet_by_name(sheet_name).unwrap();
 		let Schema { column_defs, .. } = schema_from_sheet(&sheet);
 
-		// Skip header
 		let rows: Vec<Result<(Value, Row)>> = sheet
 			.get_row_dimensions()
 			.into_iter()
-			//.skip(1)
 			.filter_map(|row| {
 				let key = row.get_row_num();
 				if key == &1 {
-					return None;
+					return None; // Header
 				}
 				Some(
 					sheet
@@ -80,7 +78,8 @@ fn schema_from_sheet(sheet: &Worksheet) -> Schema {
 			if coordinate.get_row_num() == &1 {
 				let col = coordinate.get_col_num();
 				let text = comment.get_text().get_text();
-				let column_def: ColumnDef = serde_yaml::from_str(&text).unwrap();
+				let column_def: ColumnDef = serde_yaml::from_str(&text)
+					.map_err(|_| SheetError::FailedColumnParse.into())?;
 				Some((col, column_def))
 			} else {
 				None
