@@ -6,7 +6,7 @@ use {
 			types::{ColumnInfo, ComplexTableName},
 			MetaRecipe,
 		},
-		Context, JoinError, Result, StorageInner,
+		Context, JoinError, Result, StorageInner, Glue
 	},
 	std::cmp::Ordering,
 };
@@ -40,15 +40,14 @@ impl Ord for JoinPlan {
 impl JoinPlan {
 	pub async fn new<'a>(
 		join_manual: JoinManual,
-		storages: &[(String, &mut StorageInner)],
-		context: &Context,
+		glue: &Glue,
 	) -> Result<Self> {
 		let JoinManual {
 			table,
 			constraint,
 			join_type,
 		} = join_manual;
-		let columns = get_columns(storages, table.clone(), context).await?;
+		let columns = get_columns(glue, table.clone()).await?;
 		let ComplexTableName {
 			database,
 			name: table,
@@ -90,11 +89,10 @@ impl JoinPlan {
 }
 
 async fn get_columns(
-	storages: &[(String, &mut StorageInner)],
+	glue: &Glue,
 	table: ComplexTableName,
-	context: &Context,
 ) -> Result<Vec<ColumnInfo>> {
-	if let Some((context_table_labels, ..)) = context.tables.get(&table.name) {
+	if let Some((context_table_labels, ..)) = glue.get_context().tables.get(&table.name) {
 		Ok(context_table_labels
 			.iter()
 			.map(|name| ColumnInfo {
@@ -104,7 +102,7 @@ async fn get_columns(
 			})
 			.collect::<Vec<ColumnInfo>>())
 	} else {
-		let storage = storages
+		let storage = glue.get_storages()
 			.iter()
 			.find_map(|(name, storage)| {
 				if name == &table.database {

@@ -5,7 +5,7 @@ use {
 		other::explain,
 		query::query,
 	},
-	crate::{glue::Context, parse_sql::Query, Result, Row, StorageInner, Value},
+	crate::{Glue, glue::Context, parse_sql::Query, Result, Row, StorageInner, Value},
 	serde::Serialize,
 	sqlparser::ast::{SetVariableValue, Statement},
 	std::convert::TryInto,
@@ -61,9 +61,9 @@ pub enum Payload {
 	TruncateTable,
 }
 
-pub async fn execute(
-	mut storages: Vec<(String, &mut StorageInner)>,
-	context: &mut Context,
+impl Glue {
+pub async fn execute_query(
+	&mut self,
 	statement: &Query,
 ) -> Result<Payload> {
 	let Query(statement) = statement;
@@ -76,7 +76,7 @@ pub async fn execute(
 			columns,
 			if_not_exists,
 			..
-		} => create_table(storages[0].1, name, columns, *if_not_exists)
+		} => self.create_table(name, columns, *if_not_exists)
 			.await
 			.map(|_| Payload::Create),
 		Statement::Drop {
@@ -84,14 +84,14 @@ pub async fn execute(
 			names,
 			if_exists,
 			..
-		} => drop(storages[0].1, object_type, names, *if_exists)
+		} => self.drop(object_type, names, *if_exists)
 			.await
 			.map(|_| Payload::DropTable),
 		#[cfg(feature = "alter-table")]
-		Statement::AlterTable { name, operation } => alter_table(storages[0].1, name, operation)
+		Statement::AlterTable { name, operation } => self.alter_table(name, operation)
 			.await
 			.map(|_| Payload::AlterTable),
-		Statement::Truncate { table_name, .. } => truncate(storages[0].1, table_name)
+		Statement::Truncate { table_name, .. } => self.truncate(table_name)
 			.await
 			.map(|_| Payload::TruncateTable),
 		Statement::CreateIndex {
@@ -100,8 +100,7 @@ pub async fn execute(
 			columns,
 			unique,
 			if_not_exists,
-		} => create_index(
-			storages[0].1,
+		} => self.create_index(
 			table_name,
 			name,
 			columns,
@@ -117,22 +116,22 @@ pub async fn execute(
 			columns,
 			source,
 			..
-		} => insert(&mut storages, context, table_name, columns, source, false).await,
+		} => self.insert(table_name, columns, source, false).await,
 		Statement::Update {
 			table,
 			selection,
 			assignments,
 			// TODO
 			from: _,
-		} => update(storages[0].1, context, table, selection, assignments).await,
+		} => self.update(table, selection, assignments).await,
 		Statement::Delete {
 			table_name,
 			selection,
-		} => delete(&mut storages, context, table_name, selection).await,
+		} => self.delete(table_name, selection).await,
 
 		//- Selection
 		Statement::Query(query_value) => {
-			let result = query(&mut storages, context, *query_value.clone()).await?;
+			let result = self.query(*query_value.clone()).await?;
 			let (labels, rows) = result;
 			let rows = rows.into_iter().map(Row).collect(); // I don't like this. TODO
 			let payload = Payload::Select { labels, rows };
@@ -158,4 +157,5 @@ pub async fn execute(
 		Statement::CreateDatabase { .. } => unreachable!(), // Handled at Glue interface // TODO: Clean up somehow
 		_ => Err(ExecuteError::QueryNotSupported.into()),
 	}
+}
 }

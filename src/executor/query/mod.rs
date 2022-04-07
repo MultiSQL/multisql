@@ -4,6 +4,7 @@ mod set_expr;
 pub use select::{join::*, ManualError, PlanError, SelectError};
 use {
 	crate::{
+		Glue,
 		executor::types::LabelsAndRows, result::Result, Cast, Context, MetaRecipe, RecipeUtilities,
 		StorageInner, Value,
 	},
@@ -34,10 +35,10 @@ pub enum QueryError {
 	OperationColumnsMisaligned,
 }
 
+impl Glue {
 #[async_recursion(?Send)]
 pub async fn query(
-	storages: &mut Vec<(String, &mut StorageInner)>,
-	context: &mut Context,
+	&mut self,
 	query: Query,
 ) -> Result<LabelsAndRows> {
 	let Query {
@@ -50,6 +51,9 @@ pub async fn query(
 		fetch: _,
 		lock: _,
 	} = query;
+
+	let context = self.get_mut_context();
+
 	let limit: Option<usize> = limit
 		.map(|expression| {
 			MetaRecipe::new(expression)?
@@ -67,8 +71,6 @@ pub async fn query(
 		})
 		.transpose()?;
 
-	let mut context = context.clone();
-	let context = &mut context; // We don't actually want to pass on any changes from here
 	if let Some(with) = with {
 		let With {
 			recursive: _, // Recursive not currently supported
@@ -85,12 +87,12 @@ pub async fn query(
 				columns: _, // TODO: Columns - Check that number is same and then rename labels
 			} = alias;
 			let name = name.value;
-			let data = self::query(storages, context, query).await?;
+			let data = self.query(query).await?;
 			context.set_table(name, data);
 		}
 	}
 
-	let (mut labels, mut rows) = from_body(storages, context, body, order_by).await?;
+	let (mut labels, mut rows) = from_body(body, order_by).await?;
 
 	if let Some(offset) = offset {
 		rows.drain(0..offset);
@@ -116,4 +118,5 @@ pub async fn query(
 		};
 	}
 	Ok((labels, rows))
+}
 }
