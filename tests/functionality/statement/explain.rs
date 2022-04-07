@@ -32,8 +32,8 @@ crate::util_macros::testcase!(
 		crate::util_macros::assert_select!(glue, "
 			EXPLAIN main.simple
 		" => column = Str, data_type = Str:
-			(String::from("id"), String::from("INT")),
-			(String::from("val"), String::from("FLOAT"))
+			(String::from("id"), String::from("Signed Integer")),
+			(String::from("val"), String::from("Float"))
 		);
 
 		crate::util_macros::assert_select!(glue, "
