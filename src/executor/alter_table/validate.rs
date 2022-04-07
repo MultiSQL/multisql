@@ -1,5 +1,5 @@
 use {
-	crate::{Result, AlterError},
+	crate::{AlterError, Result},
 	sqlparser::ast::{ColumnDef, DataType},
 };
 

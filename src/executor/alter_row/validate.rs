@@ -1,7 +1,7 @@
 use {
 	crate::{
-		executor::types::Row, Ingredient, Recipe, RecipeUtilities,
-		Resolve, Result, SimplifyBy, Value, ValueType, Column, ValueDefault
+		executor::types::Row, Column, Ingredient, Recipe, RecipeUtilities, Resolve, Result,
+		SimplifyBy, Value, ValueDefault, ValueType,
 	},
 	rayon::prelude::*,
 	serde::Serialize,
@@ -45,11 +45,7 @@ pub fn columns_to_positions(column_defs: &[Column], columns: &[Ident]) -> Result
 	}
 }
 
-pub fn validate(
-	columns: &[Column],
-	stated_columns: &[usize],
-	rows: &mut Vec<Row>,
-) -> Result<()> {
+pub fn validate(columns: &[Column], stated_columns: &[usize], rows: &mut Vec<Row>) -> Result<()> {
 	if rows.iter().any(|row| row.len() != stated_columns.len()) {
 		return Err(ValidateError::WrongNumberOfValues.into());
 	}
@@ -74,7 +70,8 @@ pub fn validate(
 			Ok((index, failure_recipe, nullable, &column.data_type))
 		})
 		.collect::<Result<Vec<(Option<usize>, Option<Recipe>, bool, &ValueType)>>>()?;
-	*rows = rows.into_par_iter()
+	*rows = rows
+		.into_par_iter()
 		.map(|row| {
 			column_info
 				.iter()

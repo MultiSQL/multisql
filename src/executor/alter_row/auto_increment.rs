@@ -1,13 +1,11 @@
 #![cfg(feature = "auto-increment")]
-use {
-	crate::{Row, Result, StorageInner, Value, Column, ValueDefault},
-};
+use crate::{Column, Result, Row, StorageInner, Value, ValueDefault};
 
 pub async fn auto_increment(
 	storage: &mut StorageInner,
 	table_name: &str,
 	columns: &[Column],
-	rows: &mut[Row],
+	rows: &mut [Row],
 ) -> Result<()> {
 	let auto_increment_columns = columns
 		.iter()

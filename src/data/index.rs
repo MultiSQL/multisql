@@ -1,5 +1,5 @@
 use {
-	crate::{result::Result, Ingredient, Method, Recipe, Row, StorageInner, Value, Column},
+	crate::{result::Result, Column, Ingredient, Method, Recipe, Row, StorageInner, Value},
 	rayon::prelude::*,
 	serde::{Deserialize, Serialize},
 	std::{cmp::Ordering, collections::HashMap},

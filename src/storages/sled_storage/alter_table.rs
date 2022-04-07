@@ -2,9 +2,7 @@
 
 use {
 	super::{error::err_into, fetch_schema, SledStorage},
-	crate::{
-		AlterTable, AlterTableError, Column, Result, Row, Schema, Value,
-	},
+	crate::{AlterTable, AlterTableError, Column, Result, Row, Schema, Value},
 	async_trait::async_trait,
 	boolinator::Boolinator,
 	sqlparser::ast::Ident,

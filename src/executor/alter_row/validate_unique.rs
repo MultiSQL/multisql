@@ -1,7 +1,5 @@
 use {
-	crate::{
-		Row, NullOrd, Result, StorageInner, Value, Column, ValidateError
-	},
+	crate::{Column, NullOrd, Result, Row, StorageInner, ValidateError, Value},
 	std::cmp::Ordering,
 };
 

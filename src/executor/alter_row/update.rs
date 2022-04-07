@@ -2,10 +2,9 @@ use {
 	super::{auto_increment, columns_to_positions, validate, validate_unique},
 	crate::{
 		data::{get_name, Schema},
-		Column,
 		executor::types::{ColumnInfo, Row as VecRow},
-		Context, ExecuteError, MetaRecipe, Payload, PlannedRecipe, RecipeUtilities, Result, Row,
-		StorageInner, Value,
+		Column, Context, ExecuteError, MetaRecipe, Payload, PlannedRecipe, RecipeUtilities, Result,
+		Row, StorageInner, Value,
 	},
 	sqlparser::ast::{Assignment, Expr, TableFactor, TableWithJoins},
 };

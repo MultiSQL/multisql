@@ -1,9 +1,6 @@
 use {
 	super::AlterError,
-	crate::{
-		data::get_name,
-		Result, StorageInner, ValueDefault,
-	},
+	crate::{data::get_name, Result, StorageInner, ValueDefault},
 	futures::stream::{self, TryStreamExt},
 	sqlparser::ast::{ObjectName, ObjectType},
 };

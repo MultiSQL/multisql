@@ -1,8 +1,5 @@
 use {
-	crate::{
-		data::get_name,
-		Result, StorageInner, ValueDefault, AlterError
-	},
+	crate::{data::get_name, AlterError, Result, StorageInner, ValueDefault},
 	futures::stream::{self, TryStreamExt},
 	sqlparser::ast::ObjectName,
 };

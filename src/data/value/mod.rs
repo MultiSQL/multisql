@@ -192,19 +192,22 @@ impl Value {
 	}
 	pub fn is(&mut self, data_type: &ValueType) -> Result<()> {
 		match (data_type, &self) {
-			(ValueType::Bool, Value::Bool(_)) |
-			(ValueType::U64, Value::U64(_)) |
-			(ValueType::I64, Value::I64(_)) |
-			(ValueType::F64, Value::F64(_)) |
-			(ValueType::Str, Value::Str(_)) |
-			(ValueType::Timestamp, Value::Timestamp(_)) |
-			(ValueType::Any, _) => Ok(()),
-			(ValueType::F64, Value::I64(_)) => {*self = Value::F64(self.clone().cast()?); Ok(())},
+			(ValueType::Bool, Value::Bool(_))
+			| (ValueType::U64, Value::U64(_))
+			| (ValueType::I64, Value::I64(_))
+			| (ValueType::F64, Value::F64(_))
+			| (ValueType::Str, Value::Str(_))
+			| (ValueType::Timestamp, Value::Timestamp(_))
+			| (ValueType::Any, _) => Ok(()),
+			(ValueType::F64, Value::I64(_)) => {
+				*self = Value::F64(self.clone().cast()?);
+				Ok(())
+			}
 			_ => Err(ValueError::IncompatibleDataType {
 				data_type: data_type.to_string(),
 				value: format!("{:?}", self),
 			}
-			.into())
+			.into()),
 		}
 	}
 
