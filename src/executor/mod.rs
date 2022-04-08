@@ -14,4 +14,5 @@ pub use {
 	fetch::FetchError,
 	query::{JoinError, ManualError, PlanError, QueryError, SelectError},
 	recipe::*,
+	types::ComplexTableName,
 };
