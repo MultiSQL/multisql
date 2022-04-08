@@ -77,9 +77,8 @@ fn schema_from_sheet(sheet: &Worksheet) -> Result<Schema> {
 			if coordinate.get_row_num() == &1 {
 				let col = coordinate.get_col_num();
 				let text = comment.get_text().get_text();
-				let column_def: Result<Column> = serde_yaml::from_str(text)
-					.map_err(|_| SheetStorageError::FailedColumnParse.into());
-				Some(column_def.map(|column_def| (col, column_def)))
+				let column_def: Column = serde_yaml::from_str(text).unwrap_or_default();
+				Some(Ok((col, column_def)))
 			} else {
 				None
 			}
