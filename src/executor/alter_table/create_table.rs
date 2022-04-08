@@ -1,9 +1,6 @@
 use {
 	super::AlterError,
-	crate::{
-		data::{get_name, Schema},
-		Column, Glue, Result,
-	},
+	crate::{data::Schema, Column, ComplexTableName, Glue, Result},
 	sqlparser::ast::{ColumnDef, ObjectName},
 };
 
@@ -14,13 +11,19 @@ impl Glue {
 		column_defs: &[ColumnDef],
 		if_not_exists: bool,
 	) -> Result<()> {
+		let ComplexTableName {
+			name: table_name,
+			database,
+			..
+		} = name.try_into()?;
+
 		let schema = Schema {
-			table_name: get_name(name)?.to_string(),
+			table_name,
 			column_defs: column_defs.iter().cloned().map(Column::from).collect(),
 			indexes: vec![],
 		};
 
-		let database = &mut **self.get_mut_database(&None)?;
+		let database = &mut **self.get_mut_database(&database)?;
 		if database.fetch_schema(&schema.table_name).await?.is_some() {
 			if !if_not_exists {
 				Err(AlterError::TableAlreadyExists(schema.table_name.to_owned()).into())
