@@ -66,7 +66,7 @@ impl Glue {
 	/// Argument is: [Vec]<(Identifier, [Storage])>
 	pub fn new_multi(databases: HashMap<String, Storage>) -> Self {
 		let context = Mutex::new(Context::default());
-		let primary = databases.keys().next().cloned().unwrap_or_else(String::new);
+		let primary = databases.keys().next().cloned().unwrap_or_default();
 		Self {
 			databases,
 			context,
