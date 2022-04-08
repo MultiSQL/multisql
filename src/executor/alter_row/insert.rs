@@ -1,9 +1,6 @@
 use {
 	super::{columns_to_positions, validate},
-	crate::{
-		data::{get_name, Schema},
-		ExecuteError, Glue, Payload, Result, Row,
-	},
+	crate::{data::Schema, ComplexTableName, ExecuteError, Glue, Payload, Result, Row},
 	sqlparser::ast::{Ident, ObjectName, Query},
 };
 
@@ -15,14 +12,18 @@ impl Glue {
 		source: &Query,
 		expect_data: bool,
 	) -> Result<Payload> {
-		let table_name = get_name(table_name)?;
+		let ComplexTableName {
+			name: table_name,
+			database,
+			..
+		} = &table_name.try_into()?;
 		let Schema {
 			column_defs,
 			indexes,
 			..
 		} = self
-			.get_database(&None)?
-			.fetch_schema(table_name)
+			.get_database(&database)?
+			.fetch_schema(&table_name)
 			.await?
 			.ok_or(ExecuteError::TableNotExists)?;
 
@@ -33,16 +34,16 @@ impl Glue {
 		validate(&column_defs, &column_positions, &mut rows)?;
 		let mut rows: Vec<Row> = rows.into_iter().map(Row).collect();
 		#[cfg(feature = "auto-increment")]
-		self.auto_increment(table_name, &column_defs, &mut rows)
+		self.auto_increment(&database, &table_name, &column_defs, &mut rows)
 			.await?;
-		self.validate_unique(table_name, &column_defs, &rows, None)
+		self.validate_unique(&database, &table_name, &column_defs, &rows, None)
 			.await?;
 
 		let num_rows = rows.len();
 
-		let database = &mut **self.get_mut_database(&None)?;
+		let database = &mut **self.get_mut_database(&database)?;
 
-		let result = database.insert_data(table_name, rows.clone()).await;
+		let result = database.insert_data(&table_name, rows.clone()).await;
 
 		let result = result.map(|_| {
 			if expect_data {
@@ -54,7 +55,7 @@ impl Glue {
 
 		for index in indexes.iter() {
 			// TODO: Should definitely be just inserting an index record
-			index.reset(database, table_name, &column_defs).await?; // TODO: Not this; optimise
+			index.reset(database, &table_name, &column_defs).await?; // TODO: Not this; optimise
 		}
 
 		Ok(result)

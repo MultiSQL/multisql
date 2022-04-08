@@ -1,8 +1,7 @@
 use {
 	crate::{
-		data::{Schema},
-		executor::types::ColumnInfo,
-		Column, ExecuteError, Glue, MetaRecipe, Payload, PlannedRecipe, Result, Value, ComplexTableName
+		data::Schema, executor::types::ColumnInfo, Column, ComplexTableName, ExecuteError, Glue,
+		MetaRecipe, Payload, PlannedRecipe, Result, Value,
 	},
 	sqlparser::ast::{Expr, ObjectName},
 };
@@ -13,7 +12,11 @@ impl Glue {
 		table_name: &ObjectName,
 		selection: &Option<Expr>,
 	) -> Result<Payload> {
-		let ComplexTableName{name: table_name, database, ..} = table_name.try_into()?;
+		let ComplexTableName {
+			name: table_name,
+			database,
+			..
+		} = table_name.try_into()?;
 		let Schema {
 			column_defs,
 			indexes,

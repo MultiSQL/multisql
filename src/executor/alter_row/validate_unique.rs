@@ -23,6 +23,7 @@ macro_rules! some_or {
 impl Glue {
 	pub(crate) async fn validate_unique(
 		&self,
+		database: &Option<String>,
 		table_name: &str,
 		column_defs: &[Column],
 		rows: &[Row],
@@ -41,7 +42,7 @@ impl Glue {
 			.collect();
 		let mut existing_values: Vec<Vec<Value>> = vec![vec![]; unique_columns.len()];
 
-		self.get_database(&None)?
+		self.get_database(database)?
 			.scan_data(table_name)
 			.await?
 			.try_for_each::<_, Result<_>>(|result| {

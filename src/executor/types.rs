@@ -1,4 +1,9 @@
-use {sqlparser::ast::{TableFactor, ObjectName as AstObjectName}, crate::{Value, JoinError, Result}, serde::Serialize, std::fmt::Debug};
+use {
+	crate::{JoinError, Result, Value},
+	serde::Serialize,
+	sqlparser::ast::{ObjectName as AstObjectName, TableFactor},
+	std::fmt::Debug,
+};
 
 pub type Alias = Option<String>;
 pub type Label = String;
@@ -21,28 +26,27 @@ pub struct ComplexTableName {
 }
 impl TryFrom<&AstObjectName> for ComplexTableName {
 	type Error = crate::Error;
-	fn try_from (name: &AstObjectName) -> Result<Self> {
-
-			let name_parts = name.0.len();
-			if !(1..=2).contains(&name_parts) {
-				return Err(JoinError::UnimplementedNumberOfComponents.into());
-			}
-			let database = if name_parts == 2 {
-				Some(name.0.get(0).unwrap().value.clone())
-			} else {
-				None
-			};
-			let name = name.0.last().unwrap().value.clone();
-			Ok(Self {
-				database,
-				name,
-				alias: None,
-			})
+	fn try_from(name: &AstObjectName) -> Result<Self> {
+		let name_parts = name.0.len();
+		if !(1..=2).contains(&name_parts) {
+			return Err(JoinError::UnimplementedNumberOfComponents.into());
+		}
+		let database = if name_parts == 2 {
+			Some(name.0.get(0).unwrap().value.clone())
+		} else {
+			None
+		};
+		let name = name.0.last().unwrap().value.clone();
+		Ok(Self {
+			database,
+			name,
+			alias: None,
+		})
 	}
 }
 impl TryFrom<TableFactor> for ComplexTableName {
 	type Error = crate::Error;
-	fn try_from (table: TableFactor) -> Result<Self> {
+	fn try_from(table: TableFactor) -> Result<Self> {
 		match table {
 			TableFactor::Table { name, alias, .. } => {
 				let name_parts = name.0.len();
@@ -66,7 +70,6 @@ impl TryFrom<TableFactor> for ComplexTableName {
 		}
 	}
 }
-
 
 impl ColumnInfo {
 	pub fn of_name(name: String) -> Self {

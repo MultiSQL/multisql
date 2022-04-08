@@ -1,10 +1,10 @@
 use {
 	super::{columns_to_positions, validate},
 	crate::{
-		data::{get_name, Schema},
+		data::Schema,
 		executor::types::{ColumnInfo, Row as VecRow},
-		Column, ExecuteError, Glue, MetaRecipe, Payload, PlannedRecipe, RecipeUtilities, Result,
-		Row, Value,
+		Column, ComplexTableName, ExecuteError, Glue, MetaRecipe, Payload, PlannedRecipe,
+		RecipeUtilities, Result, Row, Value,
 	},
 	sqlparser::ast::{Assignment, Expr, TableFactor, TableWithJoins},
 };
@@ -17,8 +17,12 @@ impl Glue {
 		assignments: &[Assignment],
 	) -> Result<Payload> {
 		// TODO: Complex updates (joins)
-		let table = match &table.relation {
-			TableFactor::Table { name, .. } => get_name(name).cloned(),
+		let ComplexTableName {
+			name: table,
+			database,
+			..
+		} = match &table.relation {
+			TableFactor::Table { name, .. } => name.try_into(),
 			_ => Err(ExecuteError::QueryNotSupported.into()),
 		}?;
 		let Schema {
@@ -26,7 +30,7 @@ impl Glue {
 			indexes,
 			..
 		} = self
-			.get_database(&None)?
+			.get_database(&database)?
 			.fetch_schema(&table)
 			.await?
 			.ok_or(ExecuteError::TableNotExists)?;
@@ -111,13 +115,14 @@ impl Glue {
 		let table = table.as_str();
 		let mut rows: Vec<Row> = rows.into_iter().map(Row).collect();
 		#[cfg(feature = "auto-increment")]
-		self.auto_increment(table, &column_defs, &mut rows).await?;
-		self.validate_unique(table, &column_defs, &rows, Some(&keys))
+		self.auto_increment(&database, table, &column_defs, &mut rows)
+			.await?;
+		self.validate_unique(&database, table, &column_defs, &rows, Some(&keys))
 			.await?;
 		let keyed_rows: Vec<(Value, Row)> = keys.into_iter().zip(rows).collect();
 		let num_rows = keyed_rows.len();
 
-		let database = &mut **self.get_mut_database(&None)?;
+		let database = &mut **self.get_mut_database(&database)?;
 
 		let result = database
 			.update_data(table, keyed_rows)
