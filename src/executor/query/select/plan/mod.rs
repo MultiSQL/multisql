@@ -41,7 +41,7 @@ impl Plan {
 			constraint,
 			group_constraint,
 			groups,
-		} = Manual::new(select, glue.get_context())?;
+		} = Manual::new(select, glue.get_context()?)?;
 
 		let mut joins: Vec<JoinPlan> = join_all(
 			joins

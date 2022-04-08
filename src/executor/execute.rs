@@ -1,19 +1,10 @@
 use {
-	super::{
-		alter_row::{delete, insert, update},
-		alter_table::{create_index, create_table, drop, truncate},
-		other::explain,
-		query::query,
-	},
 	crate::{glue::Context, parse_sql::Query, Glue, Result, Row, StorageInner, Value},
 	serde::Serialize,
 	sqlparser::ast::{SetVariableValue, Statement},
 	std::convert::TryInto,
 	thiserror::Error as ThisError,
 };
-
-#[cfg(feature = "alter-table")]
-use super::alter_table::alter_table;
 
 #[derive(ThisError, Serialize, Debug, PartialEq)]
 pub enum ExecuteError {
@@ -144,11 +135,11 @@ impl Glue {
 					SetVariableValue::Literal(literal) => literal.try_into()?,
 				};
 				let name = variable.value.clone();
-				context.set_variable(name, value);
+				self.get_mut_context()?.set_variable(name, value);
 				Ok(Payload::Success)
 			}
 
-			Statement::ExplainTable { table_name, .. } => explain(&storages, table_name).await,
+			Statement::ExplainTable { table_name, .. } => self.explain(table_name).await,
 
 			Statement::CreateDatabase { .. } => unreachable!(), // Handled at Glue interface // TODO: Clean up somehow
 			_ => Err(ExecuteError::QueryNotSupported.into()),

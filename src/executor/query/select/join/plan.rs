@@ -86,7 +86,7 @@ impl JoinPlan {
 }
 
 async fn get_columns(glue: &Glue, table: ComplexTableName) -> Result<Vec<ColumnInfo>> {
-	if let Some((context_table_labels, ..)) = glue.get_context().tables.get(&table.name) {
+	if let Some((context_table_labels, ..)) = glue.get_context()?.tables.get(&table.name) {
 		Ok(context_table_labels
 			.iter()
 			.map(|name| ColumnInfo {
@@ -96,19 +96,6 @@ async fn get_columns(glue: &Glue, table: ComplexTableName) -> Result<Vec<ColumnI
 			})
 			.collect::<Vec<ColumnInfo>>())
 	} else {
-		let storage = glue
-			.get_storages()
-			.iter()
-			.find_map(|(name, storage)| {
-				if name == &table.database {
-					Some(&**storage)
-				} else {
-					None
-				}
-			})
-			.or_else(|| storages.get(0).map(|(_, storage)| &**storage))
-			.ok_or_else(|| JoinError::TableNotFound(table.clone()))?;
-
-		fetch_columns(storage, table).await
+		fetch_columns(glue.get_database(&Some(table.database.clone()))?, table).await
 	}
 }

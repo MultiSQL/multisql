@@ -9,7 +9,6 @@ use {
 	},
 	async_recursion::async_recursion,
 	serde::Serialize,
-	set_expr::from_body,
 	sqlparser::ast::{Cte, Query, TableAlias, With},
 	thiserror::Error as ThisError,
 };
@@ -48,7 +47,7 @@ impl Glue {
 			lock: _,
 		} = query;
 
-		let context = self.get_mut_context();
+		let context = self.get_mut_context()?;
 
 		let limit: Option<usize> = limit
 			.map(|expression| {
@@ -88,7 +87,7 @@ impl Glue {
 			}
 		}
 
-		let (mut labels, mut rows) = from_body(body, order_by).await?;
+		let (mut labels, mut rows) = self.from_body(body, order_by).await?;
 
 		if let Some(offset) = offset {
 			rows.drain(0..offset);

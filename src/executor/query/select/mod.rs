@@ -143,7 +143,7 @@ impl Glue {
 		order_by: Vec<OrderByExpr>,
 	) -> Result<LabelsAndRows> {
 		let plan = Plan::new(self, query, order_by).await?;
-		self.select(plan);
+		self.select(plan).await
 	}
 }
 

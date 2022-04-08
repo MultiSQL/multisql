@@ -1,10 +1,8 @@
 use {
-	super::{select::select, QueryError},
+	super::QueryError,
 	crate::{
-		executor::{alter_row::insert, types::LabelsAndRows},
-		macros::warning,
-		result::Result,
-		Context, Glue, MetaRecipe, Payload, RecipeUtilities, StorageInner, Value,
+		executor::types::LabelsAndRows, macros::warning, result::Result, Context, Glue, MetaRecipe,
+		Payload, RecipeUtilities, Value,
 	},
 	async_recursion::async_recursion,
 	sqlparser::ast::{OrderByExpr, SetExpr, SetOperator, Statement},
@@ -34,7 +32,7 @@ impl Glue {
 							.into_iter()
 							.map(|cell| {
 								MetaRecipe::new(cell)?
-									.simplify_by_context(self.get_context())?
+									.simplify_by_context(self.get_context()?)?
 									.confirm_or_err(QueryError::MissingComponentsForValues.into())
 							})
 							.collect::<Result<Vec<Value>>>()
