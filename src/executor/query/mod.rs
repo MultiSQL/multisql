@@ -47,12 +47,10 @@ impl Glue {
 			lock: _,
 		} = query;
 
-		let context = self.get_mut_context()?;
-
 		let limit: Option<usize> = limit
 			.map(|expression| {
 				MetaRecipe::new(expression)?
-					.simplify_by_context(context)?
+					.simplify_by_context(self.get_context()?)?
 					.confirm_or_err(QueryError::MissingComponentsForLimit.into())?
 					.cast()
 			})
@@ -60,7 +58,7 @@ impl Glue {
 		let offset: Option<usize> = offset
 			.map(|offset| {
 				MetaRecipe::new(offset.value)?
-					.simplify_by_context(context)?
+					.simplify_by_context(self.get_context()?)?
 					.confirm_or_err(QueryError::MissingComponentsForOffset.into())?
 					.cast()
 			})
@@ -83,7 +81,7 @@ impl Glue {
 				} = alias;
 				let name = name.value;
 				let data = self.query(query).await?;
-				context.set_table(name, data);
+				self.get_mut_context()?.set_table(name, data);
 			}
 		}
 

@@ -12,7 +12,7 @@ impl Glue {
 		names: &[ObjectName],
 		if_exists: bool,
 	) -> Result<()> {
-		let database = self.get_mut_database(&None)?;
+		let database = &mut **self.get_mut_database(&None)?;
 		if object_type != &ObjectType::Table {
 			return Err(AlterError::DropTypeNotSupported(object_type.to_string()).into());
 		}

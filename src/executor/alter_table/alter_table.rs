@@ -11,8 +11,8 @@ impl Glue {
 		operation: &AlterTableOperation,
 	) -> Result<()> {
 		let table_name = get_name(name).map_err(Error::from)?;
+		let database = &mut **self.get_mut_database(&None)?;
 
-		let database = self.get_mut_database(&None)?;
 		match operation {
 			AlterTableOperation::RenameTable {
 				table_name: new_table_name,

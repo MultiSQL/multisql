@@ -40,7 +40,7 @@ impl Glue {
 
 		let num_rows = rows.len();
 
-		let database = self.get_mut_database(&None)?;
+		let database = &mut **self.get_mut_database(&None)?;
 
 		let result = database.insert_data(table_name, rows.clone()).await;
 

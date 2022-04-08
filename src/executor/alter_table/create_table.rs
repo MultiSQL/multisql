@@ -20,7 +20,7 @@ impl Glue {
 			indexes: vec![],
 		};
 
-		let database = self.get_mut_database(&None)?;
+		let database = &mut **self.get_mut_database(&None)?;
 		if database.fetch_schema(&schema.table_name).await?.is_some() {
 			if !if_not_exists {
 				Err(AlterError::TableAlreadyExists(schema.table_name.to_owned()).into())

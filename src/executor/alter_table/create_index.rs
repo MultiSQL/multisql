@@ -20,8 +20,8 @@ impl Glue {
 			.clone();
 
 		let table_name = get_name(table)?;
+		let database = &mut **self.get_mut_database(&None)?;
 
-		let database = self.get_mut_database(&None)?;
 		let schema = database
 			.fetch_schema(table_name)
 			.await?

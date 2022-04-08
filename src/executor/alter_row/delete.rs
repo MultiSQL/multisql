@@ -19,7 +19,7 @@ impl Glue {
 			indexes,
 			..
 		} = self
-			.get_mut_database(&None)?
+			.get_database(&None)?
 			.fetch_schema(table_name)
 			.await?
 			.ok_or(ExecuteError::TableNotExists)?;
@@ -40,7 +40,7 @@ impl Glue {
 			.unwrap_or(Ok(PlannedRecipe::TRUE))?;
 
 		let keys = self
-			.get_mut_database(&None)?
+			.get_database(&None)?
 			.scan_data(table_name)
 			.await?
 			.filter_map(|row_result| {
@@ -62,16 +62,14 @@ impl Glue {
 
 		let num_keys = keys.len();
 
-		let result = self
-			.get_mut_database(&None)?
+		let database = &mut **self.get_mut_database(&None)?;
+		let result = database
 			.delete_data(table_name, keys)
 			.await
 			.map(|_| Payload::Delete(num_keys))?;
 
 		for index in indexes.iter() {
-			index
-				.reset(self.get_mut_database(&None)?, table_name, &column_defs)
-				.await?; // TODO: Not this; optimise
+			index.reset(database, table_name, &column_defs).await?; // TODO: Not this; optimise
 		}
 		Ok(result)
 	}

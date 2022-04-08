@@ -6,7 +6,7 @@ use {
 
 impl Glue {
 	pub async fn truncate(&mut self, table_name: &ObjectName) -> Result<()> {
-		let database = self.get_mut_database(&None)?;
+		let database = &mut **self.get_mut_database(&None)?;
 		let table_name = get_name(table_name)?;
 		let schema = database.fetch_schema(table_name).await?;
 

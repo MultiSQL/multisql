@@ -60,7 +60,7 @@ impl JoinExecute {
 			if let Some((.., context_table_rows)) = glue.get_context()?.tables.get(&self.table) {
 				Ok(context_table_rows.clone())
 			} else {
-				self.get_rows(glue.get_database(&Some(self.database.clone()))?)
+				self.get_rows(&**glue.get_database(&Some(self.database.clone()))?)
 					.await
 			}?;
 		self.method.run(

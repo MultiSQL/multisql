@@ -96,6 +96,6 @@ async fn get_columns(glue: &Glue, table: ComplexTableName) -> Result<Vec<ColumnI
 			})
 			.collect::<Vec<ColumnInfo>>())
 	} else {
-		fetch_columns(glue.get_database(&Some(table.database.clone()))?, table).await
+		fetch_columns(&**glue.get_database(&Some(table.database.clone()))?, table).await
 	}
 }

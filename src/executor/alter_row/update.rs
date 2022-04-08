@@ -116,16 +116,16 @@ impl Glue {
 			.await?;
 		let keyed_rows: Vec<(Value, Row)> = keys.into_iter().zip(rows).collect();
 		let num_rows = keyed_rows.len();
-		let result = self
-			.get_mut_database(&None)?
+
+		let database = &mut **self.get_mut_database(&None)?;
+
+		let result = database
 			.update_data(table, keyed_rows)
 			.await
 			.map(|_| Payload::Update(num_rows))?;
 
 		for index in indexes.iter() {
-			index
-				.reset(self.get_mut_database(&None)?, table, &column_defs)
-				.await?; // TODO: Not this; optimise
+			index.reset(database, table, &column_defs).await?; // TODO: Not this; optimise
 		}
 		Ok(result)
 	}
