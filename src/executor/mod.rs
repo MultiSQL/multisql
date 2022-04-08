@@ -10,7 +10,7 @@ mod types;
 pub use {
 	alter_row::ValidateError,
 	alter_table::AlterError,
-	execute::{execute, ExecuteError, Payload},
+	execute::{ExecuteError, Payload},
 	fetch::FetchError,
 	query::{JoinError, ManualError, PlanError, QueryError, SelectError},
 	recipe::*,

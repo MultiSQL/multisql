@@ -58,9 +58,9 @@ impl JoinManual {
 					return Err(JoinError::UnimplementedNumberOfComponents.into());
 				}
 				let database = if name_parts == 2 {
-					name.0.get(0).unwrap().value.clone()
+					Some(name.0.get(0).unwrap().value.clone())
 				} else {
-					String::new()
+					None
 				};
 				let name = name.0.last().unwrap().value.clone();
 				let alias = alias.map(|alias| alias.name.value);

@@ -3,6 +3,8 @@ mod store_mut;
 
 #[cfg(feature = "alter-table")]
 mod alter_table;
+use std::sync::{Mutex, MutexGuard};
+
 #[cfg(feature = "alter-table")]
 pub use alter_table::*;
 #[cfg(not(feature = "alter-table"))]
@@ -54,7 +56,7 @@ impl TryFrom<Connection> for Storage {
 			crate::{CSVStorage, SheetStorage, SledStorage},
 			Connection::*,
 		};
-		let storage: Option<Box<dyn FullStorage>> = Some(match &connection {
+		let storage: Mutex<Box<dyn FullStorage>> = Mutex::new(match &connection {
 			#[cfg(feature = "sled-storage")]
 			Sled(path) => Box::new(SledStorage::new(path)?),
 			#[cfg(feature = "csv-storage")]
@@ -72,30 +74,33 @@ impl TryFrom<Connection> for Storage {
 
 pub struct Storage {
 	source_connection: Connection,
-	storage: Option<Box<dyn FullStorage>>,
+	storage: Mutex<Box<dyn FullStorage>>,
 }
 impl Storage {
 	pub fn new(storage: Box<dyn FullStorage>) -> Self {
-		let storage = Some(storage);
+		let storage = Mutex::new(storage);
 		Self {
 			storage,
 			source_connection: Connection::default(),
 		}
 	}
-	pub fn replace(&mut self, storage: Box<dyn FullStorage>) {
+	/*pub fn replace(&mut self, storage: Box<dyn FullStorage>) {
 		self.storage.replace(storage);
 	}
 	pub fn take(&mut self) -> Box<dyn FullStorage> {
 		self.storage
 			.take()
 			.expect("Unreachable: Storage wasn't replaced!")
+	}*/
+	pub fn get(&self) -> MutexGuard<Box<dyn FullStorage>> {
+		self.storage
+			.lock()
+			.expect("Unreachable: Storage wasn't replaced!")
 	}
-	pub fn take_readable(&mut self) -> &StorageInner {
-		/*let storage = self.take();
-		let readable = &*storage;
-		self.replace(storage);
-		readable*/
-		unimplemented!()
+	pub fn get_mut(&mut self) -> &mut Box<dyn FullStorage> {
+		self.storage
+			.get_mut()
+			.expect("Unreachable: Storage wasn't replaced!")
 	}
 	pub fn into_source(self) -> Connection {
 		self.source_connection
