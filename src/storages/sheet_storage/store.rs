@@ -1,7 +1,7 @@
 use crate::StorageError;
 use {
 	crate::{
-		Cast, Column, Result, Row, RowIter, Schema, SheetStorage, SheetStorageError, Store, Value,
+		Cast, Column, Result, Row, RowIter, Schema, SheetStorage, Store, Value,
 	},
 	async_trait::async_trait,
 	std::convert::TryFrom,

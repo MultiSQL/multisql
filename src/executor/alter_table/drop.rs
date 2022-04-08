@@ -1,7 +1,6 @@
 use {
 	super::AlterError,
-	crate::{ComplexTableName, Glue, Result, StorageInner, ValueDefault},
-	futures::stream::{self, TryStreamExt},
+	crate::{ComplexTableName, Glue, Result, ValueDefault},
 	sqlparser::ast::{ObjectName, ObjectType},
 };
 
@@ -36,11 +35,9 @@ impl Glue {
 				}
 
 				database.delete_schema(&table_name).await?;
-			} else {
-				if !if_exists {
-					return Err(AlterError::TableNotFound(table_name.to_owned()).into());
-				}
-			}
+			} else if !if_exists {
+   					return Err(AlterError::TableNotFound(table_name.to_owned()).into());
+   				}
 		}
 		Ok(())
 	}
