@@ -29,12 +29,11 @@ crate::util_macros::testcase!(
 			CREATE DATABASE IF NOT EXISTS other LOCATION 'data/create_test_other_database/'
 		");
 
-		/* TODO: #48
 		crate::util_macros::assert_success!(glue, "
 			CREATE TABLE other.simple (
 				id INTEGER,
 				val FLOAT
 			)
-		");*/
+		");
 	})
 );

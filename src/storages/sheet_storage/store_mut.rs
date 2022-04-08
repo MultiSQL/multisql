@@ -1,5 +1,6 @@
-use umya_spreadsheet::{Comment, RichText, TextElement};
-
+use umya_spreadsheet::{
+	Border, Color, Comment, Fill, PatternFill, PatternValues, RichText, Style, TextElement,
+};
 use {
 	crate::{Cast, Result, Row, Schema, SheetStorage, SheetStorageError, StoreMut, Value},
 	async_trait::async_trait,
@@ -8,6 +9,24 @@ use {
 #[async_trait(?Send)]
 impl StoreMut for SheetStorage {
 	async fn insert_schema(&mut self, schema: &Schema) -> Result<()> {
+		let mut style = Style::default();
+		style
+			.get_fill_mut()
+			.get_pattern_fill_mut()
+			.set_pattern_type(PatternValues::Gray125);
+		style
+			.get_borders_mut()
+			.get_bottom_mut()
+			.set_border_style(Border::BORDER_MEDIUM);
+		style
+			.get_borders_mut()
+			.get_left_mut()
+			.set_border_style(Border::BORDER_THIN);
+		style
+			.get_borders_mut()
+			.get_right_mut()
+			.set_border_style(Border::BORDER_THIN);
+
 		let Schema {
 			column_defs,
 			table_name: sheet_name,
@@ -25,7 +44,8 @@ impl StoreMut for SheetStorage {
 				let row = 1;
 				sheet
 					.get_cell_by_column_and_row_mut(col, row)
-					.set_value(&column_def.name);
+					.set_value(&column_def.name)
+					.set_style(style.clone());
 				let mut comment_text_element = TextElement::default();
 				comment_text_element.set_text(
 					serde_yaml::to_string(&column_def)
