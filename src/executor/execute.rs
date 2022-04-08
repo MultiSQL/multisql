@@ -1,5 +1,5 @@
 use {
-	crate::{glue::Context, parse_sql::Query, Glue, Result, Row, StorageInner, Value},
+	crate::{parse_sql::Query, Glue, Result, Row, Value},
 	serde::Serialize,
 	sqlparser::ast::{SetVariableValue, Statement},
 	std::convert::TryInto,

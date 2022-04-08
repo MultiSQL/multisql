@@ -1,5 +1,5 @@
 use {
-	serde::{Deserialize, Serialize},
+	serde::{Serialize},
 	std::fmt::Debug,
 	thiserror::Error,
 };

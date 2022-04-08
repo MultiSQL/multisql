@@ -1,7 +1,7 @@
 use {
 	super::QueryError,
 	crate::{
-		executor::types::LabelsAndRows, macros::warning, result::Result, Context, Glue, MetaRecipe,
+		executor::types::LabelsAndRows, macros::warning, result::Result, Glue, MetaRecipe,
 		Payload, RecipeUtilities, Value,
 	},
 	async_recursion::async_recursion,

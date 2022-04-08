@@ -4,8 +4,7 @@ use {
 		Manual, Order, SelectItem,
 	},
 	crate::{
-		executor::{types::ColumnInfo, PlannedRecipe},
-		Context, Glue, Result, StorageInner,
+		executor::{types::ColumnInfo, PlannedRecipe}, Glue, Result,
 	},
 	futures::future::join_all,
 	serde::Serialize,

@@ -1,9 +1,9 @@
 use {
-	super::{auto_increment, columns_to_positions, validate, validate_unique},
+	super::{columns_to_positions, validate},
 	crate::{
 		data::{get_name, Schema},
 		executor::types::{ColumnInfo, Row as VecRow},
-		Column, Context, ExecuteError, Glue, MetaRecipe, Payload, PlannedRecipe, RecipeUtilities,
+		Column, ExecuteError, Glue, MetaRecipe, Payload, PlannedRecipe, RecipeUtilities,
 		Result, Row, Value,
 	},
 	sqlparser::ast::{Assignment, Expr, TableFactor, TableWithJoins},

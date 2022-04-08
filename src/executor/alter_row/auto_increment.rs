@@ -1,5 +1,5 @@
 #![cfg(feature = "auto-increment")]
-use crate::{Column, Glue, Result, Row, StorageInner, Value, ValueDefault};
+use crate::{Column, Glue, Result, Row, Value, ValueDefault};
 
 impl Glue {
 	pub async fn auto_increment(

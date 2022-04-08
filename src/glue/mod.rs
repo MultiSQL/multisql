@@ -1,8 +1,7 @@
 use crate::ExecuteError;
 use {
 	crate::{
-		parse, parse_single, CSVSettings, Connection, Payload, Query, Result, Row, Storage,
-		StorageInner, Value, WIPError,
+		parse, parse_single, CSVSettings, Connection, Payload, Query, Result, Storage, Value, WIPError,
 	},
 	futures::executor::block_on,
 	sqlparser::ast::{

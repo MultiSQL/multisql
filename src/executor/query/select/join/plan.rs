@@ -5,8 +5,7 @@ use {
 			fetch::fetch_columns,
 			types::{ColumnInfo, ComplexTableName},
 			MetaRecipe,
-		},
-		Context, Glue, JoinError, Result, StorageInner,
+		}, Glue, Result,
 	},
 	std::cmp::Ordering,
 };

@@ -4,8 +4,8 @@ mod set_expr;
 pub use select::{join::*, ManualError, PlanError, SelectError};
 use {
 	crate::{
-		executor::types::LabelsAndRows, result::Result, Cast, Context, Glue, MetaRecipe,
-		RecipeUtilities, StorageInner, Value,
+		executor::types::LabelsAndRows, result::Result, Cast, Glue, MetaRecipe,
+		RecipeUtilities, Value,
 	},
 	async_recursion::async_recursion,
 	serde::Serialize,

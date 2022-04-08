@@ -2,7 +2,7 @@ use {
 	crate::{
 		data::{get_name, Schema},
 		executor::types::ColumnInfo,
-		Column, Context, ExecuteError, Glue, MetaRecipe, Payload, PlannedRecipe, Result, Value,
+		Column, ExecuteError, Glue, MetaRecipe, Payload, PlannedRecipe, Result, Value,
 	},
 	sqlparser::ast::{Expr, ObjectName},
 };
