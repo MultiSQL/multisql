@@ -36,8 +36,8 @@ impl Glue {
 
 				database.delete_schema(&table_name).await?;
 			} else if !if_exists {
-   					return Err(AlterError::TableNotFound(table_name.to_owned()).into());
-   				}
+				return Err(AlterError::TableNotFound(table_name.to_owned()).into());
+			}
 		}
 		Ok(())
 	}
