@@ -12,9 +12,12 @@ use {
 	std::{collections::HashMap, fmt::Debug},
 };
 
-mod select;
 mod database;
+mod error;
 mod payload;
+mod select;
+
+pub use error::InterfaceError;
 
 pub(crate) type Variables = HashMap<String, Value>;
 
@@ -112,10 +115,10 @@ impl Glue {
 
 /// Internal: Modify
 impl Glue {
-	pub(crate) fn take_context(&mut self) -> Context {
+	pub(crate) fn take_context(&mut self) -> Result<Context> {
 		self.context
 			.take()
-			.expect("Unreachable: Context wasn't replaced!")
+			.ok_or(InterfaceError::ContextUnavailable.into())
 	}
 	pub(crate) fn replace_context(&mut self, context: Context) {
 		self.context.replace(context);
@@ -213,41 +216,15 @@ impl Glue {
 				.and_then(|name| name.0.get(0).map(|name| name.value.clone()))
 				.ok_or(ExecuteError::ObjectNotRecognised)?;
 
-			let index = self
-				.databases
-				.iter()
-				.enumerate()
-				.find_map(|(index, (name, _))| (name == &database_name).then(|| index));
-			if let Some(index) = index {
-				self.databases.remove(index);
+			if self.databases.contains_key(&database_name) {
+				self.databases.remove(&database_name);
 			} else if !if_exists {
 				return Err(ExecuteError::ObjectNotRecognised.into());
 			}
 			return Ok(Payload::Success);
 		}
 
-		let mut databases: Vec<(String, Box<StorageInner>)> = self
-			.databases
-			.iter_mut()
-			.map(|(name, storage)| (name.clone(), storage.take()))
-			.collect();
-		let give_storages: Vec<(String, &mut StorageInner)> = databases
-			.iter_mut()
-			.map(|(name, storage)| (name.clone(), &mut **storage))
-			.collect();
-
-		let mut context = self.take_context();
-
-		let result = block_on(self.execute_query(&query));
-
-		self.databases
-			.iter_mut()
-			.zip(databases)
-			.for_each(|((_name, storage), (_name_2, taken))| storage.replace(taken));
-
-		self.replace_context(context);
-
-		result
+		block_on(self.execute_query(&query))
 	}
 	/// Provides a parsed query to execute later.
 	/// Particularly useful if executing a small query many times as parsing is not (computationally) free.

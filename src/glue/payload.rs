@@ -1,4 +1,4 @@
-use crate::{Row, Payload};
+use crate::{Payload, Row};
 
 impl Payload {
 	pub fn unwrap_rows(self) -> Vec<Row> {

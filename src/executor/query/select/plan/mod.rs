@@ -5,7 +5,7 @@ use {
 	},
 	crate::{
 		executor::{types::ColumnInfo, PlannedRecipe},
-		Context, Result, StorageInner, Glue,
+		Context, Glue, Result, StorageInner,
 	},
 	futures::future::join_all,
 	serde::Serialize,
@@ -34,11 +34,7 @@ pub enum PlanError {
 }
 
 impl Plan {
-	pub async fn new(
-		glue: &Glue,
-		select: Select,
-		order_by: Vec<OrderByExpr>,
-	) -> Result<Plan> {
+	pub async fn new(glue: &Glue, select: Select, order_by: Vec<OrderByExpr>) -> Result<Plan> {
 		let Manual {
 			joins,
 			select_items,

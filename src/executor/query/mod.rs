@@ -4,9 +4,8 @@ mod set_expr;
 pub use select::{join::*, ManualError, PlanError, SelectError};
 use {
 	crate::{
-		Glue,
-		executor::types::LabelsAndRows, result::Result, Cast, Context, MetaRecipe, RecipeUtilities,
-		StorageInner, Value,
+		executor::types::LabelsAndRows, result::Result, Cast, Context, Glue, MetaRecipe,
+		RecipeUtilities, StorageInner, Value,
 	},
 	async_recursion::async_recursion,
 	serde::Serialize,
@@ -36,87 +35,84 @@ pub enum QueryError {
 }
 
 impl Glue {
-#[async_recursion(?Send)]
-pub async fn query(
-	&mut self,
-	query: Query,
-) -> Result<LabelsAndRows> {
-	let Query {
-		body,
-		order_by,
-		limit,
-		offset,
-		with,
-		// TODO (below)
-		fetch: _,
-		lock: _,
-	} = query;
+	#[async_recursion(?Send)]
+	pub async fn query(&mut self, query: Query) -> Result<LabelsAndRows> {
+		let Query {
+			body,
+			order_by,
+			limit,
+			offset,
+			with,
+			// TODO (below)
+			fetch: _,
+			lock: _,
+		} = query;
 
-	let context = self.get_mut_context();
+		let context = self.get_mut_context();
 
-	let limit: Option<usize> = limit
-		.map(|expression| {
-			MetaRecipe::new(expression)?
-				.simplify_by_context(context)?
-				.confirm_or_err(QueryError::MissingComponentsForLimit.into())?
-				.cast()
-		})
-		.transpose()?;
-	let offset: Option<usize> = offset
-		.map(|offset| {
-			MetaRecipe::new(offset.value)?
-				.simplify_by_context(context)?
-				.confirm_or_err(QueryError::MissingComponentsForOffset.into())?
-				.cast()
-		})
-		.transpose()?;
+		let limit: Option<usize> = limit
+			.map(|expression| {
+				MetaRecipe::new(expression)?
+					.simplify_by_context(context)?
+					.confirm_or_err(QueryError::MissingComponentsForLimit.into())?
+					.cast()
+			})
+			.transpose()?;
+		let offset: Option<usize> = offset
+			.map(|offset| {
+				MetaRecipe::new(offset.value)?
+					.simplify_by_context(context)?
+					.confirm_or_err(QueryError::MissingComponentsForOffset.into())?
+					.cast()
+			})
+			.transpose()?;
 
-	if let Some(with) = with {
-		let With {
-			recursive: _, // Recursive not currently supported
-			cte_tables,
-		} = with;
-		for cte in cte_tables.into_iter() {
-			let Cte {
-				alias,
-				query,
-				from: _, // What is `from` for?
-			} = cte;
-			let TableAlias {
-				name,
-				columns: _, // TODO: Columns - Check that number is same and then rename labels
-			} = alias;
-			let name = name.value;
-			let data = self.query(query).await?;
-			context.set_table(name, data);
+		if let Some(with) = with {
+			let With {
+				recursive: _, // Recursive not currently supported
+				cte_tables,
+			} = with;
+			for cte in cte_tables.into_iter() {
+				let Cte {
+					alias,
+					query,
+					from: _, // What is `from` for?
+				} = cte;
+				let TableAlias {
+					name,
+					columns: _, // TODO: Columns - Check that number is same and then rename labels
+				} = alias;
+				let name = name.value;
+				let data = self.query(query).await?;
+				context.set_table(name, data);
+			}
 		}
-	}
 
-	let (mut labels, mut rows) = from_body(body, order_by).await?;
+		let (mut labels, mut rows) = from_body(body, order_by).await?;
 
-	if let Some(offset) = offset {
-		rows.drain(0..offset);
+		if let Some(offset) = offset {
+			rows.drain(0..offset);
+		}
+		if let Some(limit) = limit {
+			rows.truncate(limit);
+		}
+		if ENSURE_SIZE {
+			let row_width = rows
+				.iter()
+				.map(|values_row| values_row.len())
+				.max()
+				.unwrap_or(0);
+			if row_width > 0 {
+				rows = rows
+					.into_iter()
+					.map(|mut row| {
+						row.resize(row_width, Value::Null);
+						row
+					})
+					.collect();
+				labels.resize(row_width, String::new())
+			};
+		}
+		Ok((labels, rows))
 	}
-	if let Some(limit) = limit {
-		rows.truncate(limit);
-	}
-	if ENSURE_SIZE {
-		let row_width = rows
-			.iter()
-			.map(|values_row| values_row.len())
-			.max()
-			.unwrap_or(0);
-		if row_width > 0 {
-			rows = rows
-				.into_iter()
-				.map(|mut row| {
-					row.resize(row_width, Value::Null);
-					row
-				})
-				.collect();
-			labels.resize(row_width, String::new())
-		};
-	}
-	Ok((labels, rows))
-}
 }

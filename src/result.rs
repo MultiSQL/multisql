@@ -2,8 +2,8 @@ use {
 	crate::{
 		data::{RowError, TableError, ValueError},
 		executor::{
-			AlterError, ExecuteError, FetchError, JoinError, ManualError, PlanError, QueryError,
-			RecipeError, SelectError, ValidateError,
+			AlterError, ExecuteError, FetchError, InterfaceError, JoinError, ManualError,
+			PlanError, QueryError, RecipeError, SelectError, ValidateError,
 		},
 		store::StorageError,
 		CSVStorageError, SheetStorageError,
@@ -68,6 +68,8 @@ pub enum Error {
 	CSVStorage(#[from] CSVStorageError),
 	#[error(transparent)]
 	SheetStorage(#[from] SheetStorageError),
+	#[error(transparent)]
+	Interface(#[from] InterfaceError),
 }
 
 unsafe impl Send for Error {}
@@ -100,6 +102,7 @@ impl PartialEq for Error {
 			(StorageImplementation(l), StorageImplementation(r)) => l == r,
 			(CSVStorage(l), CSVStorage(r)) => l == r,
 			(SheetStorage(l), SheetStorage(r)) => l == r,
+			(Interface(l), Interface(r)) => l == r,
 			_ => false,
 		}
 	}

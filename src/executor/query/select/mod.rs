@@ -5,13 +5,12 @@ mod plan;
 
 use {
 	crate::{
-		Glue,
 		executor::{
 			types::{LabelsAndRows, Row},
 			PlannedRecipe,
 		},
 		macros::try_option,
-		Context, RecipeUtilities, Result, StorageInner, Value,
+		Context, Glue, RecipeUtilities, Result, StorageInner, Value,
 	},
 	futures::stream::{self, StreamExt, TryStreamExt},
 	rayon::prelude::*,
@@ -45,14 +44,14 @@ pub enum SelectError {
 impl Glue {
 	pub async fn select(&mut self, plan: Plan) -> Result<LabelsAndRows> {
 		let Plan {
-		joins,
-		select_items,
-		constraint,
-		group_constraint,
-		groups,
-		order_by,
-		labels,
-	} = plan;
+			joins,
+			select_items,
+			constraint,
+			group_constraint,
+			groups,
+			order_by,
+			labels,
+		} = plan;
 		let rows = stream::iter(joins)
 			.map(Ok)
 			.try_fold(vec![], |rows, join| async {
@@ -103,10 +102,9 @@ impl Glue {
 						let groupers = try_option!(groups
 							.iter()
 							.map(|group| {
-								group
-									.clone()
-									.simplify_by_row(&row)?
-									.confirm_or_err(SelectError::GrouperMayNotContainAggregate.into())
+								group.clone().simplify_by_row(&row)?.confirm_or_err(
+									SelectError::GrouperMayNotContainAggregate.into(),
+								)
 							})
 							.collect::<Result<Vec<Value>>>());
 						Some(Ok((groupers, group_constraint, selected_row)))
@@ -140,16 +138,14 @@ impl Glue {
 		Ok((labels, final_rows))
 	}
 	pub async fn select_query(
-	&mut self,
-	query: Select,
-	order_by: Vec<OrderByExpr>,
-) -> Result<LabelsAndRows> {
+		&mut self,
+		query: Select,
+		order_by: Vec<OrderByExpr>,
+	) -> Result<LabelsAndRows> {
 		let plan = Plan::new(self, query, order_by).await?;
 		self.select(plan);
 	}
 }
-
-
 
 #[allow(clippy::type_complexity)] // TODO
 fn accumulate(
