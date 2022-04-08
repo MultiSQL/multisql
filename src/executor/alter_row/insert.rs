@@ -1,7 +1,8 @@
 use {
 	super::{columns_to_positions, validate},
 	crate::{
-		data::{get_name, Schema}, ExecuteError, Glue, Payload, Result, Row,
+		data::{get_name, Schema},
+		ExecuteError, Glue, Payload, Result, Row,
 	},
 	sqlparser::ast::{Ident, ObjectName, Query},
 };

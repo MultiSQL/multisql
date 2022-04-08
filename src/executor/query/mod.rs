@@ -4,8 +4,8 @@ mod set_expr;
 pub use select::{join::*, ManualError, PlanError, SelectError};
 use {
 	crate::{
-		executor::types::LabelsAndRows, result::Result, Cast, Glue, MetaRecipe,
-		RecipeUtilities, Value,
+		executor::types::LabelsAndRows, result::Result, Cast, Glue, MetaRecipe, RecipeUtilities,
+		Value,
 	},
 	async_recursion::async_recursion,
 	serde::Serialize,
@@ -50,7 +50,7 @@ impl Glue {
 		let limit: Option<usize> = limit
 			.map(|expression| {
 				MetaRecipe::new(expression)?
-					.simplify_by_context(self.get_context()?)?
+					.simplify_by_context(&*self.get_context()?)?
 					.confirm_or_err(QueryError::MissingComponentsForLimit.into())?
 					.cast()
 			})
@@ -58,7 +58,7 @@ impl Glue {
 		let offset: Option<usize> = offset
 			.map(|offset| {
 				MetaRecipe::new(offset.value)?
-					.simplify_by_context(self.get_context()?)?
+					.simplify_by_context(&*self.get_context()?)?
 					.confirm_or_err(QueryError::MissingComponentsForOffset.into())?
 					.cast()
 			})

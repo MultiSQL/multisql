@@ -5,14 +5,15 @@ use {
 			fetch::fetch_columns,
 			types::{ColumnInfo, ComplexTableName},
 			MetaRecipe,
-		}, Glue, Result,
+		},
+		Glue, Result,
 	},
 	std::cmp::Ordering,
 };
 
 #[derive(Debug)]
 pub struct JoinPlan {
-	pub database: String,
+	pub database: Option<String>,
 	pub table: String,
 	pub columns: Vec<ColumnInfo>,
 	pub join_type: JoinType,
@@ -95,6 +96,6 @@ async fn get_columns(glue: &Glue, table: ComplexTableName) -> Result<Vec<ColumnI
 			})
 			.collect::<Vec<ColumnInfo>>())
 	} else {
-		fetch_columns(&**glue.get_database(&Some(table.database.clone()))?, table).await
+		fetch_columns(&**glue.get_database(&table.database)?, table).await
 	}
 }

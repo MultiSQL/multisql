@@ -9,7 +9,7 @@ use {
 
 #[derive(Debug)]
 pub struct JoinExecute {
-	pub database: String,
+	pub database: Option<String>,
 	pub table: String,
 	pub method: JoinMethod,
 	pub join_type: JoinType,
@@ -60,8 +60,7 @@ impl JoinExecute {
 			if let Some((.., context_table_rows)) = glue.get_context()?.tables.get(&self.table) {
 				Ok(context_table_rows.clone())
 			} else {
-				self.get_rows(&**glue.get_database(&Some(self.database.clone()))?)
-					.await
+				self.get_rows(&**glue.get_database(&self.database)?).await
 			}?;
 		self.method.run(
 			&self.join_type,

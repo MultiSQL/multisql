@@ -4,8 +4,6 @@ use sqlparser::ast::ObjectName;
 
 impl Glue {
 	pub async fn explain(&self, object: &ObjectName) -> Result<Payload> {
-		let _database = self.get_database(&None)?;
-
 		let mut name_vec = object.0.clone();
 		let (store_name, opt_table_name) = match name_vec.len() {
 			2 => (

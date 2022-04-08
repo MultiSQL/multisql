@@ -3,8 +3,8 @@ use {
 	crate::{
 		data::{get_name, Schema},
 		executor::types::{ColumnInfo, Row as VecRow},
-		Column, ExecuteError, Glue, MetaRecipe, Payload, PlannedRecipe, RecipeUtilities,
-		Result, Row, Value,
+		Column, ExecuteError, Glue, MetaRecipe, Payload, PlannedRecipe, RecipeUtilities, Result,
+		Row, Value,
 	},
 	sqlparser::ast::{Assignment, Expr, TableFactor, TableWithJoins},
 };
@@ -41,7 +41,7 @@ impl Glue {
 			.clone()
 			.map(|selection| {
 				PlannedRecipe::new(
-					MetaRecipe::new(selection)?.simplify_by_context(self.get_context()?)?,
+					MetaRecipe::new(selection)?.simplify_by_context(&*self.get_context()?)?,
 					&columns,
 				)
 			})
@@ -61,7 +61,7 @@ impl Glue {
 					.position(|column| column == &column_compare)
 					.ok_or(ExecuteError::ColumnNotFound)?;
 				let recipe = PlannedRecipe::new(
-					MetaRecipe::new(value.clone())?.simplify_by_context(self.get_context()?)?,
+					MetaRecipe::new(value.clone())?.simplify_by_context(&*self.get_context()?)?,
 					&columns,
 				)?;
 				Ok((index, recipe))

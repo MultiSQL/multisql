@@ -4,7 +4,8 @@ use {
 		Manual, Order, SelectItem,
 	},
 	crate::{
-		executor::{types::ColumnInfo, PlannedRecipe}, Glue, Result,
+		executor::{types::ColumnInfo, PlannedRecipe},
+		Glue, Result,
 	},
 	futures::future::join_all,
 	serde::Serialize,
@@ -40,7 +41,7 @@ impl Plan {
 			constraint,
 			group_constraint,
 			groups,
-		} = Manual::new(select, glue.get_context()?)?;
+		} = Manual::new(select, &*glue.get_context()?)?;
 
 		let mut joins: Vec<JoinPlan> = join_all(
 			joins

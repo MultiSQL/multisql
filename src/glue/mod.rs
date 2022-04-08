@@ -1,7 +1,10 @@
+use std::sync::Mutex;
+
 use crate::ExecuteError;
 use {
 	crate::{
-		parse, parse_single, CSVSettings, Connection, Payload, Query, Result, Storage, Value, WIPError,
+		parse, parse_single, CSVSettings, Connection, Payload, Query, Result, Storage, Value,
+		WIPError,
 	},
 	futures::executor::block_on,
 	sqlparser::ast::{
@@ -46,8 +49,9 @@ impl Context {
 /// - [`Glue::select_as_string()`] -- Provides data, only for `SELECT` queries, as [String]s (rather than [Value]s).
 /// - [`Glue::select_as_json()`] -- Provides data, only for `SELECT` queries, as one big [String]; generally useful for webby interactions.
 pub struct Glue {
+	pub primary: String,
 	databases: HashMap<String, Storage>,
-	context: Option<Context>,
+	context: Mutex<Context>,
 }
 
 /// ## Creation of new interfaces
@@ -61,8 +65,13 @@ impl Glue {
 	/// Creates a [Glue] instance with access to all provided storages.
 	/// Argument is: [Vec]<(Identifier, [Storage])>
 	pub fn new_multi(databases: HashMap<String, Storage>) -> Self {
-		let context = Some(Context::default());
-		Self { databases, context }
+		let context = Mutex::new(Context::default());
+		let primary = databases.keys().next().cloned().unwrap_or_else(String::new);
+		Self {
+			databases,
+			context,
+			primary,
+		}
 	}
 	/// Merges existing [Glue] instances
 	pub fn new_multi_glue(glues: Vec<Glue>) -> Self {
@@ -114,17 +123,17 @@ impl Glue {
 
 /// Internal: Modify
 impl Glue {
-	pub(crate) fn take_context(&mut self) -> Result<Context> {
+	/*pub(crate) fn take_context(&mut self) -> Result<Context> {
 		self.context
 			.take()
 			.ok_or(InterfaceError::ContextUnavailable.into())
 	}
 	pub(crate) fn replace_context(&mut self, context: Context) {
 		self.context.replace(context);
-	}
+	}*/
 	#[allow(dead_code)]
 	fn set_context(&mut self, context: Context) {
-		self.context = Some(context);
+		self.context = Mutex::new(context);
 	}
 }
 

@@ -15,7 +15,7 @@ pub struct ColumnInfo {
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ComplexTableName {
-	pub database: String,
+	pub database: Option<String>,
 	pub alias: Alias,
 	pub name: String,
 }
@@ -23,7 +23,7 @@ impl ColumnInfo {
 	pub fn of_name(name: String) -> Self {
 		ColumnInfo {
 			table: ComplexTableName {
-				database: String::new(),
+				database: None,
 				name: String::new(),
 				alias: None,
 			},
