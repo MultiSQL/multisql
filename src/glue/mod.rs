@@ -187,6 +187,8 @@ impl Glue {
 							Connection::Sled(location).try_into()?
 						} else if location.ends_with(".csv") {
 							Connection::CSV(location, CSVSettings::default()).try_into()?
+						} else if location.ends_with(".xlsx") {
+							Connection::Sheet(location).try_into()?
 						} else {
 							return Err(ExecuteError::InvalidDatabaseLocation.into());
 						};
