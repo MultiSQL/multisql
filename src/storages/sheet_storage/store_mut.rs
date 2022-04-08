@@ -1,7 +1,7 @@
 use umya_spreadsheet::{Comment, RichText, TextElement};
 
 use {
-	crate::{Result, Row, Schema, SheetStorage, SheetStorageError, StoreMut},
+	crate::{Cast, Result, Row, Schema, SheetStorage, SheetStorageError, StoreMut, Value},
 	async_trait::async_trait,
 };
 
@@ -64,30 +64,24 @@ impl StoreMut for SheetStorage {
 
 	// umya: #47 async fn delete_schema(&mut self, sheet_name: &str) -> Result<()>
 
-	// Oh! Ick! Table not specified... oops. TODO: #99
-	/*async fn update_data(&mut self, rows: Vec<(Value, Row)>) -> Result<()> {
+	async fn update_data(&mut self, sheet_name: &str, rows: Vec<(Value, Row)>) -> Result<()> {
 		let sheet = self.get_sheet_mut(sheet_name)?;
-		rows.into_iter()
-			.try_for_each(|(key, Row(row))| {
-				let row: i64 = key.cast()?;
-				row.into_iter().enumerate().for_each(|(col_num, cell)| {
-					sheet
-						.get_cell_by_column_and_row_mut(
-							col_num as u32 + 1,
-							row as u32,
-						)
-						.set_value(cell);
-				});
-				Ok(())
-			})
+		rows.into_iter().try_for_each(|(key, Row(row))| {
+			let row_num: i64 = key.cast()?;
+			row.into_iter().enumerate().for_each(|(col_num, cell)| {
+				sheet
+					.get_cell_by_column_and_row_mut(col_num as u32 + 1, row_num as u32)
+					.set_value(cell);
+			});
+			Ok(())
+		})
 	}
 
-	async fn delete_data(&mut self, rows: Vec<Value>) -> Result<()> {
-		rows.into_iter()
-			.try_for_each(|(key, Row(row))| {
-				let row: i64 = key.cast()?;
-				self.book.remove_row(sheet_name, row, 1);
-				Ok(())
-			})
-	}*/
+	async fn delete_data(&mut self, sheet_name: &str, rows: Vec<Value>) -> Result<()> {
+		rows.into_iter().try_for_each(|key| {
+			let row_num: i64 = key.cast()?;
+			self.book.remove_row(sheet_name, row_num as u32, 1);
+			Ok(())
+		})
+	}
 }
