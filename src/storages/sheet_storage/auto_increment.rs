@@ -5,7 +5,6 @@ use {
 
 #[async_trait(?Send)]
 impl AutoIncrement for SheetStorage {
-	// TODO: Move
 	async fn generate_increment_values(
 		&mut self,
 		sheet_name: String,
@@ -21,4 +20,14 @@ impl AutoIncrement for SheetStorage {
 			.map(|(index, name, _)| ((index, name), row_init as i64))
 			.collect())
 	}
+
+	async fn set_increment_value(
+		&mut self,
+		_table_name: &str,
+		_column_name: &str,
+		_end: i64,
+	) -> Result<()> {
+		Ok(())
+	}
+
 }

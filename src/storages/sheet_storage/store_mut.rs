@@ -98,9 +98,9 @@ impl StoreMut for SheetStorage {
 	}
 
 	async fn delete_data(&mut self, sheet_name: &str, rows: Vec<Value>) -> Result<()> {
+		let sheet = self.get_sheet_mut(sheet_name)?;
 		rows.into_iter().try_for_each(|key| {
-			let row_num: i64 = key.cast()?;
-			let sheet = self.get_sheet_mut(sheet_name)?;
+			let row_num: u64 = key.cast()?;
 			sheet.remove_row(&(row_num as u32), &1);
 			Ok(())
 		})
