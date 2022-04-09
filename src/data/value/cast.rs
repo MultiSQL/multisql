@@ -125,7 +125,7 @@ impl Cast<String> for Value {
 // Utilities
 impl Cast<usize> for Value {
 	fn cast(self) -> Result<usize> {
-		let int: i64 = self.cast()?;
+		let int: u64 = self.cast()?;
 		int.try_into()
 			.map_err(|_| ValueError::ImpossibleCast.into())
 	}
