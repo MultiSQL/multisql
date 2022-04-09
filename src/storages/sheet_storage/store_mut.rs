@@ -41,7 +41,7 @@ impl StoreMut for SheetStorage {
 				let col = (index as u32) + 1;
 				let row = 1;
 				sheet
-					.get_cell_by_column_and_row_mut(col, row)
+					.get_cell_by_column_and_row_mut(&col, &row)
 					.set_value(&column_def.name)
 					.set_style(style.clone());
 				let mut comment_text_element = TextElement::default();
@@ -71,8 +71,8 @@ impl StoreMut for SheetStorage {
 				row.into_iter().enumerate().for_each(|(col_num, cell)| {
 					sheet
 						.get_cell_by_column_and_row_mut(
-							col_num as u32 + 1,
-							(row_num + row_init) as u32,
+							&(col_num as u32 + 1),
+							&((row_num + row_init) as u32),
 						)
 						.set_value(cell);
 				})
@@ -80,7 +80,9 @@ impl StoreMut for SheetStorage {
 		self.save()
 	}
 
-	// umya: #47 async fn delete_schema(&mut self, sheet_name: &str) -> Result<()>
+	async fn delete_schema(&mut self, sheet_name: &str) -> Result<()> {
+		self.book.remove_sheet_by_name(sheet_name).map_err(|_| SheetStorageError::FailedToGetSheet.into())
+	}
 
 	async fn update_data(&mut self, sheet_name: &str, rows: Vec<(Value, Row)>) -> Result<()> {
 		let sheet = self.get_sheet_mut(sheet_name)?;
@@ -88,7 +90,7 @@ impl StoreMut for SheetStorage {
 			let row_num: i64 = key.cast()?;
 			row.into_iter().enumerate().for_each(|(col_num, cell)| {
 				sheet
-					.get_cell_by_column_and_row_mut(col_num as u32 + 1, row_num as u32)
+					.get_cell_by_column_and_row_mut(&(col_num as u32 + 1), &(row_num as u32))
 					.set_value(cell);
 			});
 			Ok(())
@@ -98,7 +100,8 @@ impl StoreMut for SheetStorage {
 	async fn delete_data(&mut self, sheet_name: &str, rows: Vec<Value>) -> Result<()> {
 		rows.into_iter().try_for_each(|key| {
 			let row_num: i64 = key.cast()?;
-			self.book.remove_row(sheet_name, row_num as u32, 1);
+			let sheet = self.get_sheet_mut(sheet_name)?;
+			sheet.remove_row(&(row_num as u32), &1);
 			Ok(())
 		})
 	}

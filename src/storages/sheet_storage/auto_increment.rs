@@ -13,7 +13,7 @@ impl AutoIncrement for SheetStorage {
 	) -> Result<Vec<((usize, String), i64)>> {
 		let sheet = self
 			.book
-			.get_sheet_by_name_mut(sheet_name)
+			.get_sheet_by_name_mut(&sheet_name)
 			.map_err(|_| SheetStorageError::FailedToGetSheet)?;
 		let row_init = sheet.get_row_dimensions().len();
 		Ok(columns

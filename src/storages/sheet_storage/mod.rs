@@ -8,7 +8,7 @@ use {
 	serde::Serialize,
 	std::{fmt::Debug, path::Path},
 	thiserror::Error,
-	umya_spreadsheet::{new_file, reader, writer, Spreadsheet, Worksheet},
+	umya_spreadsheet::{new_file_empty_worksheet, reader, writer, Spreadsheet, Worksheet},
 };
 
 #[derive(Error, Serialize, Debug, PartialEq)]
@@ -32,7 +32,7 @@ impl FullStorage for SheetStorage {}
 
 impl SheetStorage {
 	pub fn new(path: &str) -> Result<Self> {
-		let book = reader::xlsx::lazy_read(Path::new(path)).unwrap_or_else(|_| new_file());
+		let book = reader::xlsx::lazy_read(Path::new(path)).unwrap_or_else(|_| new_file_empty_worksheet());
 		let path = path.to_string();
 		Ok(Self { book, path })
 	}

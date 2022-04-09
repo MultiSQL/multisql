@@ -26,30 +26,35 @@ impl Store for SheetStorage {
 		let sheet = self.book.get_sheet_by_name(sheet_name).unwrap();
 		let Schema { column_defs, .. } = schema_from_sheet(sheet)?;
 
-		let rows: Vec<Result<(Value, Row)>> = sheet
-			.get_row_dimensions()
+		let row_count = sheet.get_highest_row();
+		let col_count = sheet.get_highest_column();
+
+		let rows = vec![vec![None; col_count as usize]; (row_count as usize)-1];
+		let rows = sheet
+			.get_collection_to_hashmap()
 			.into_iter()
-			.filter_map(|row| {
-				let key = row.get_row_num();
-				if key == &1 {
-					return None; // Header
-				}
-				Some(
-					sheet
-						.get_collection_by_row(key)
-						.into_iter()
-						.zip(&column_defs)
-						.map(|((_, cell), Column { data_type, .. })| {
-							Ok(Value::Str(String::from(cell.get_value()))
-								.cast_valuetype(data_type)
-								.unwrap_or(Value::Null))
-						})
-						.collect::<Result<Vec<_>>>()
-						.map(|row| (Value::I64((*key).into()), Row(row))),
-				)
-			})
-			.collect();
-		Ok(Box::new(rows.into_iter()))
+			.filter(|((row, _col), _)| row != &1)
+			.fold(rows, |mut rows, ((row_num, col_num), cell)| {
+				rows[(row_num-2) as usize][(col_num-1) as usize] = Some(cell.clone());
+				rows
+			});
+		
+		let rows = rows
+			.into_iter()
+			.enumerate()
+			.map(|(pk, row)| 
+				(Value::U64((pk + 2) as u64), Row(row
+					.into_iter()
+					.zip(&column_defs)
+					.map(|(cell, Column { data_type, .. })| {
+						Value::Str(cell.map(|cell| cell.get_value().to_string()).unwrap_or_default())
+							.cast_valuetype(&data_type)
+							.unwrap_or(Value::Null)
+					}).collect()))
+			).map(Ok).collect::<Vec<Result<(Value, Row)>>>().into_iter();
+			
+
+		Ok(Box::new(rows))
 	}
 }
 
@@ -89,7 +94,7 @@ fn schema_from_sheet(sheet: &Worksheet) -> Result<Schema> {
 		.collect();
 
 	Ok(Schema {
-		table_name: sheet.get_title().to_string(),
+		table_name: sheet.get_name().to_string(),
 		column_defs,
 		indexes: vec![],
 	})

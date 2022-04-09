@@ -31,6 +31,15 @@ impl Convert<bool> for Value {
 	}
 }
 
+impl Convert<u64> for Value {
+	fn convert(self) -> Result<u64> {
+		Ok(match self {
+			Value::U64(inner) => inner,
+			other => return Err(ValueError::CannotConvert(other, "UINTEGER").into()),
+		})
+	}
+}
+
 impl Convert<i64> for Value {
 	fn convert(self) -> Result<i64> {
 		Ok(match self {
