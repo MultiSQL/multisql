@@ -1,8 +1,7 @@
 pub fn memory(_name: &str) -> multisql::Glue {
-	use {multisql::*};
+	use multisql::*;
 
-	let storage = Connection::Memory.try_into()
-		.expect("Create Storage");
+	let storage = Connection::Memory.try_into().expect("Create Storage");
 
 	Glue::new(String::from("main"), storage)
 }

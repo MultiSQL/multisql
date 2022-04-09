@@ -1,5 +1,8 @@
 use {
-	crate::{IndexFilter, Result, RowIter, Schema, StorageError, MemoryStorageError, Value, MemoryStorage, Store},
+	crate::{
+		IndexFilter, MemoryStorage, MemoryStorageError, Result, RowIter, Schema, StorageError,
+		Store, Value,
+	},
 	async_trait::async_trait,
 };
 
@@ -13,7 +16,11 @@ impl Store for MemoryStorage {
 	}
 
 	async fn scan_data(&self, table_name: &str) -> Result<RowIter> {
-		let rows = self.data.get(&table_name.to_string()).cloned().ok_or(MemoryStorageError::TableNotFound)?;
+		let rows = self
+			.data
+			.get(&table_name.to_string())
+			.cloned()
+			.ok_or(MemoryStorageError::TableNotFound)?;
 		Ok(Box::new(rows.into_iter().map(Ok)))
 	}
 }

@@ -2,7 +2,11 @@ use {
 	crate::result::Result,
 	serde::{Deserialize, Serialize},
 	sqlparser::ast::DataType,
-	std::{cmp::Ordering, fmt::Debug, hash::{Hash, Hasher}},
+	std::{
+		cmp::Ordering,
+		fmt::Debug,
+		hash::{Hash, Hasher},
+	},
 };
 
 mod big_endian;

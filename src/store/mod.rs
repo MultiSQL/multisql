@@ -55,7 +55,7 @@ impl TryFrom<Connection> for Storage {
 	type Error = crate::Error;
 	fn try_from(connection: Connection) -> Result<Storage> {
 		use {
-			crate::{CSVStorage, SheetStorage, SledStorage, MemoryStorage},
+			crate::{CSVStorage, MemoryStorage, SheetStorage, SledStorage},
 			Connection::*,
 		};
 		let storage: Mutex<Box<dyn FullStorage>> = Mutex::new(match &connection {

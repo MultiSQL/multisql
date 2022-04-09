@@ -1,8 +1,8 @@
 use {
 	crate::{
 		AlterError, CSVStorageError, ExecuteError, FetchError, InterfaceError, JoinError,
-		ManualError, PlanError, QueryError, RecipeError, RowError, SelectError, SheetStorageError,
-		StorageError, TableError, ValidateError, ValueError, MemoryStorageError,
+		ManualError, MemoryStorageError, PlanError, QueryError, RecipeError, RowError, SelectError,
+		SheetStorageError, StorageError, TableError, ValidateError, ValueError,
 	},
 	serde::Serialize,
 	std::marker::{Send, Sync},

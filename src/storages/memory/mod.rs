@@ -4,16 +4,16 @@ mod store;
 mod store_mut;
 
 use {
-	crate::{store::*, Value, Schema, Row},
+	crate::{store::*, Row, Schema, Value},
 	serde::Serialize,
-	std::{fmt::Debug, collections::HashMap},
+	std::{collections::HashMap, fmt::Debug},
 	thiserror::Error,
 };
 
 #[derive(Error, Serialize, Debug, PartialEq)]
 pub enum MemoryStorageError {
 	#[error("table not found")]
-	TableNotFound
+	TableNotFound,
 }
 
 #[derive(Default, Clone)]
