@@ -16,91 +16,106 @@ pub trait CastWithRules<Output> {
 // Cores
 impl Cast<bool> for Value {
 	fn cast(self) -> Result<bool> {
-		self.clone().convert().or_else(|_| {
-			Ok(match self {
-				Value::Bool(value) => value,
-				Value::I64(value) => match value {
-					1 => true,
-					0 => false,
-					_ => return Err(ValueError::ImpossibleCast.into()),
-				},
-				Value::F64(value) => {
-					if value.eq(&1.0) {
-						true
-					} else if value.eq(&0.0) {
-						false
-					} else {
-						return Err(ValueError::ImpossibleCast.into());
-					}
+		Ok(match self {
+			Value::Bool(value) => value,
+			Value::I64(value) => match value {
+				1 => true,
+				0 => false,
+				_ => return Err(ValueError::ImpossibleCast.into()),
+			},
+			Value::F64(value) => {
+				if value.eq(&1.0) {
+					true
+				} else if value.eq(&0.0) {
+					false
+				} else {
+					return Err(ValueError::ImpossibleCast.into());
 				}
-				Value::Str(value) => match value.to_uppercase().as_str() {
-					"TRUE" => true,
-					"FALSE" => false,
-					_ => return Err(ValueError::ImpossibleCast.into()),
-				},
-				Value::Null => return Err(ValueError::ImpossibleCast.into()),
-				_ => unimplemented!(),
-			})
+			}
+			Value::Str(value) => match value.to_uppercase().as_str() {
+				"TRUE" => true,
+				"FALSE" => false,
+				_ => return Err(ValueError::ImpossibleCast.into()),
+			},
+			Value::Null => return Err(ValueError::ImpossibleCast.into()),
+			_ => unimplemented!(),
+		})
+	}
+}
+
+impl Cast<u64> for Value {
+	fn cast(self) -> Result<u64> {
+		Ok(match self {
+			Value::Bool(value) => {
+				if value {
+					1
+				} else {
+					0
+				}
+			}
+			Value::U64(value) => value,
+			Value::I64(value) => value.try_into().map_err(|_| ValueError::ImpossibleCast)?,
+			Value::F64(value) => (value.trunc() as i64)
+				.try_into()
+				.map_err(|_| ValueError::ImpossibleCast)?,
+			Value::Str(value) => lexical::parse(value).map_err(|_| ValueError::ImpossibleCast)?,
+			Value::Null => return Err(ValueError::ImpossibleCast.into()),
+			_ => unimplemented!(),
 		})
 	}
 }
 
 impl Cast<i64> for Value {
 	fn cast(self) -> Result<i64> {
-		self.clone().convert().or_else(|_| {
-			Ok(match self {
-				Value::Bool(value) => {
-					if value {
-						1
-					} else {
-						0
-					}
+		Ok(match self {
+			Value::Bool(value) => {
+				if value {
+					1
+				} else {
+					0
 				}
-				Value::I64(value) => value,
-				Value::F64(value) => value.trunc() as i64,
-				Value::Str(value) => {
-					lexical::parse(value).map_err(|_| ValueError::ImpossibleCast)?
-				}
-				Value::Null => return Err(ValueError::ImpossibleCast.into()),
-				_ => unimplemented!(),
-			})
+			}
+			Value::U64(value) => value.try_into().map_err(|_| ValueError::ImpossibleCast)?,
+			Value::I64(value) => value,
+			Value::F64(value) => value.trunc() as i64,
+			Value::Str(value) => lexical::parse(value).map_err(|_| ValueError::ImpossibleCast)?,
+			Value::Null => return Err(ValueError::ImpossibleCast.into()),
+			_ => unimplemented!(),
 		})
 	}
 }
 
 impl Cast<f64> for Value {
 	fn cast(self) -> Result<f64> {
-		self.clone().convert().or_else(|_| {
-			Ok(match self {
-				Value::Bool(value) => {
-					if value {
-						1.0
-					} else {
-						0.0
-					}
+		Ok(match self {
+			Value::Bool(value) => {
+				if value {
+					1.0
+				} else {
+					0.0
 				}
-				Value::I64(value) => (value as f64).trunc(),
-				Value::F64(value) => value,
-				Value::Str(value) => {
-					fast_float::parse(value).map_err(|_| ValueError::ImpossibleCast)?
-				}
-				Value::Null => return Err(ValueError::ImpossibleCast.into()),
-				_ => unimplemented!(),
-			})
+			}
+			Value::U64(value) => (value as f64).trunc(),
+			Value::I64(value) => (value as f64).trunc(),
+			Value::F64(value) => value,
+			Value::Str(value) => {
+				fast_float::parse(value).map_err(|_| ValueError::ImpossibleCast)?
+			}
+			Value::Null => return Err(ValueError::ImpossibleCast.into()),
+			_ => unimplemented!(),
 		})
 	}
 }
 impl Cast<String> for Value {
 	fn cast(self) -> Result<String> {
-		self.clone().convert().or_else(|_| {
-			Ok(match self {
-				Value::Bool(value) => (if value { "TRUE" } else { "FALSE" }).to_string(),
-				Value::I64(value) => lexical::to_string(value),
-				Value::F64(value) => lexical::to_string(value),
-				Value::Str(value) => value,
-				Value::Null => String::from("NULL"),
-				_ => unimplemented!(),
-			})
+		Ok(match self {
+			Value::Bool(value) => (if value { "TRUE" } else { "FALSE" }).to_string(),
+			Value::U64(value) => lexical::to_string(value),
+			Value::I64(value) => lexical::to_string(value),
+			Value::F64(value) => lexical::to_string(value),
+			Value::Str(value) => value,
+			Value::Null => String::from("NULL"),
+			_ => unimplemented!(),
 		})
 	}
 }
@@ -108,7 +123,7 @@ impl Cast<String> for Value {
 // Utilities
 impl Cast<usize> for Value {
 	fn cast(self) -> Result<usize> {
-		let int: i64 = self.cast()?;
+		let int: u64 = self.cast()?;
 		int.try_into()
 			.map_err(|_| ValueError::ImpossibleCast.into())
 	}

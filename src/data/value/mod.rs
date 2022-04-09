@@ -66,7 +66,7 @@ pub enum Value {
 	Null,
 
 	Bool(bool),
-	U64(i64),
+	U64(u64),
 	I64(i64),
 	F64(f64),
 	Str(String),
