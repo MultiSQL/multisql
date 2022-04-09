@@ -131,7 +131,7 @@ impl Glue {
 		database_path: String,
 	) -> Result<bool> {
 		if self.databases.contains_key(&database_name) {
-			return Ok(false)
+			return Ok(false);
 		}
 		let connection = if database_path.ends_with('/') {
 			Connection::Sled(database_path)
