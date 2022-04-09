@@ -8,7 +8,7 @@ use {
 	},
 	futures::executor::block_on,
 	sqlparser::ast::{
-		Expr, Ident, ObjectName, ObjectType, Query as AstQuery, SetExpr, Statement,
+		Expr, Ident, ObjectName, Query as AstQuery, SetExpr, Statement,
 		Value as AstValue, Values,
 	},
 	std::{collections::HashMap, fmt::Debug},

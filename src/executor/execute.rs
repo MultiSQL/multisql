@@ -1,9 +1,8 @@
 use {
 	super::types::get_first_name,
-	crate::{parse_sql::Query, Glue, Result, Row, Value},
+	crate::{parse_sql::Query, Glue, Result, Row},
 	serde::Serialize,
-	sqlparser::ast::{Expr, ObjectType, SetVariableValue, Statement, Value as AstValue},
-	std::convert::TryInto,
+	sqlparser::ast::{ObjectType, Statement},
 	thiserror::Error as ThisError,
 };
 
