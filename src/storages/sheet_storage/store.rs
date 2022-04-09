@@ -32,7 +32,7 @@ impl Store for SheetStorage {
 		let rows = vec![vec![None; col_count as usize]; (row_count as usize) - 1];
 		let rows = sheet
 			.get_collection_to_hashmap()
-			.into_iter()
+			.iter()
 			.filter(|((row, _col), _)| row != &1)
 			.fold(rows, |mut rows, ((row_num, col_num), cell)| {
 				rows[(row_num - 2) as usize][(col_num - 1) as usize] = Some(cell.clone());
@@ -53,7 +53,7 @@ impl Store for SheetStorage {
 								cell.map(|cell| cell.get_value().to_string())
 									.unwrap_or_default(),
 							)
-							.cast_valuetype(&data_type)
+							.cast_valuetype(data_type)
 							.unwrap_or(Value::Null)
 						})
 						.collect()),
