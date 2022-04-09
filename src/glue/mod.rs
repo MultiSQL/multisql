@@ -124,11 +124,15 @@ impl Glue {
 
 	/// Extend using a ~~[Path]~~ [String] which represents a path
 	/// Guesses the type of database based on the extension
+	/// Returns [bool] of whether action was taken
 	pub fn try_extend_from_path(
 		&mut self,
 		database_name: String,
 		database_path: String,
 	) -> Result<bool> {
+		if self.databases.contains_key(&database_name) {
+			return Ok(false)
+		}
 		let connection = if database_path.ends_with('/') {
 			Connection::Sled(database_path)
 		} else if database_path.ends_with(".csv") {
@@ -143,6 +147,7 @@ impl Glue {
 	}
 
 	/// Extend [Glue] by single database
+	/// Returns [bool] of whether action was taken
 	pub fn extend(&mut self, database_name: String, database: Storage) -> bool {
 		let database_present = self.databases.contains_key(&database_name);
 		if !database_present {
@@ -152,7 +157,7 @@ impl Glue {
 	}
 
 	/// Opposite of [Glue::extend], removes database
-	/// Returns [bool] of whether the database was present
+	/// Returns [bool] of whether action was taken
 	pub fn reduce(&mut self, database_name: &String) -> bool {
 		let database_present = self.databases.contains_key(database_name);
 		if database_present {
