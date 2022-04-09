@@ -12,3 +12,8 @@ pub use csv_storage::{CSVSettings, CSVStorage, CSVStorageError};
 mod sheet_storage;
 #[cfg(feature = "sheet-storage")]
 pub use sheet_storage::{SheetStorage, SheetStorageError};
+
+#[cfg(feature = "memory-storage")]
+mod memory;
+#[cfg(feature = "memory-storage")]
+pub use memory::{MemoryStorage, MemoryStorageError};

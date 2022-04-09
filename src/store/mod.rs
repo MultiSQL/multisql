@@ -37,6 +37,8 @@ pub enum StorageError {
 #[derive(Serialize, Deserialize)]
 pub enum Connection {
 	Unknown,
+	#[cfg(feature = "memory-storage")]
+	Memory,
 	#[cfg(feature = "sled-storage")]
 	Sled(String),
 	#[cfg(feature = "csv-storage")]
@@ -53,10 +55,12 @@ impl TryFrom<Connection> for Storage {
 	type Error = crate::Error;
 	fn try_from(connection: Connection) -> Result<Storage> {
 		use {
-			crate::{CSVStorage, SheetStorage, SledStorage},
+			crate::{CSVStorage, SheetStorage, SledStorage, MemoryStorage},
 			Connection::*,
 		};
 		let storage: Mutex<Box<dyn FullStorage>> = Mutex::new(match &connection {
+			#[cfg(feature = "memory-storage")]
+			Memory => Box::new(MemoryStorage::new()),
 			#[cfg(feature = "sled-storage")]
 			Sled(path) => Box::new(SledStorage::new(path)?),
 			#[cfg(feature = "csv-storage")]
