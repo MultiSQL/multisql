@@ -81,28 +81,34 @@ impl StoreMut for SheetStorage {
 	}
 
 	async fn delete_schema(&mut self, sheet_name: &str) -> Result<()> {
-		self.book.remove_sheet_by_name(sheet_name).map_err(|_| SheetStorageError::FailedToGetSheet.into())
+		self.book
+			.remove_sheet_by_name(sheet_name)
+			.map_err(|_| SheetStorageError::FailedToGetSheet)?;
+		self.save()
 	}
 
 	async fn update_data(&mut self, sheet_name: &str, rows: Vec<(Value, Row)>) -> Result<()> {
 		let sheet = self.get_sheet_mut(sheet_name)?;
-		rows.into_iter().try_for_each(|(key, Row(row))| {
-			let row_num: i64 = key.cast()?;
-			row.into_iter().enumerate().for_each(|(col_num, cell)| {
-				sheet
-					.get_cell_by_column_and_row_mut(&(col_num as u32 + 1), &(row_num as u32))
-					.set_value(cell);
-			});
-			Ok(())
-		})
+		rows.into_iter()
+			.try_for_each::<_, Result<()>>(|(key, Row(row))| {
+				let row_num: i64 = key.cast()?;
+				row.into_iter().enumerate().for_each(|(col_num, cell)| {
+					sheet
+						.get_cell_by_column_and_row_mut(&(col_num as u32 + 1), &(row_num as u32))
+						.set_value(cell);
+				});
+				Ok(())
+			})?;
+		self.save()
 	}
 
 	async fn delete_data(&mut self, sheet_name: &str, rows: Vec<Value>) -> Result<()> {
 		let sheet = self.get_sheet_mut(sheet_name)?;
-		rows.into_iter().try_for_each(|key| {
+		rows.into_iter().try_for_each::<_, Result<()>>(|key| {
 			let row_num: u64 = key.cast()?;
 			sheet.remove_row(&(row_num as u32), &1);
 			Ok(())
-		})
+		})?;
+		self.save()
 	}
 }

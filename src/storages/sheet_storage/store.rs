@@ -29,30 +29,39 @@ impl Store for SheetStorage {
 		let row_count = sheet.get_highest_row();
 		let col_count = sheet.get_highest_column();
 
-		let rows = vec![vec![None; col_count as usize]; (row_count as usize)-1];
+		let rows = vec![vec![None; col_count as usize]; (row_count as usize) - 1];
 		let rows = sheet
 			.get_collection_to_hashmap()
 			.into_iter()
 			.filter(|((row, _col), _)| row != &1)
 			.fold(rows, |mut rows, ((row_num, col_num), cell)| {
-				rows[(row_num-2) as usize][(col_num-1) as usize] = Some(cell.clone());
+				rows[(row_num - 2) as usize][(col_num - 1) as usize] = Some(cell.clone());
 				rows
 			});
-		
+
 		let rows = rows
 			.into_iter()
 			.enumerate()
-			.map(|(pk, row)| 
-				(Value::U64((pk + 2) as u64), Row(row
-					.into_iter()
-					.zip(&column_defs)
-					.map(|(cell, Column { data_type, .. })| {
-						Value::Str(cell.map(|cell| cell.get_value().to_string()).unwrap_or_default())
+			.map(|(pk, row)| {
+				(
+					Value::U64((pk + 2) as u64),
+					Row(row
+						.into_iter()
+						.zip(&column_defs)
+						.map(|(cell, Column { data_type, .. })| {
+							Value::Str(
+								cell.map(|cell| cell.get_value().to_string())
+									.unwrap_or_default(),
+							)
 							.cast_valuetype(&data_type)
 							.unwrap_or(Value::Null)
-					}).collect()))
-			).map(Ok).collect::<Vec<Result<(Value, Row)>>>().into_iter();
-			
+						})
+						.collect()),
+				)
+			})
+			.map(Ok)
+			.collect::<Vec<Result<(Value, Row)>>>()
+			.into_iter();
 
 		Ok(Box::new(rows))
 	}

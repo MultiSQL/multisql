@@ -32,7 +32,8 @@ impl FullStorage for SheetStorage {}
 
 impl SheetStorage {
 	pub fn new(path: &str) -> Result<Self> {
-		let book = reader::xlsx::read(Path::new(path)).unwrap_or_else(|_| new_file_empty_worksheet());
+		let book =
+			reader::xlsx::read(Path::new(path)).unwrap_or_else(|_| new_file_empty_worksheet());
 		let path = path.to_string();
 		Ok(Self { book, path })
 	}
