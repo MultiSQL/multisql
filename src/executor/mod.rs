@@ -3,8 +3,10 @@ mod alter_table;
 mod execute;
 mod fetch;
 mod other;
+mod procedure;
 mod query;
 mod recipe;
+mod set_variable;
 mod types;
 
 pub use {

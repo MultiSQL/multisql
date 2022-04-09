@@ -1,5 +1,5 @@
 use {
-	crate::{JoinError, Result, Value},
+	crate::{ExecuteError, JoinError, Result, Value},
 	serde::Serialize,
 	sqlparser::ast::{ObjectName as AstObjectName, TableFactor},
 	std::fmt::Debug,
@@ -16,6 +16,13 @@ pub struct ColumnInfo {
 	pub table: ComplexTableName,
 	pub name: String,
 	pub index: Option<String>,
+}
+
+pub(crate) fn get_first_name(names: &[AstObjectName]) -> Result<String> {
+	names
+		.get(0)
+		.and_then(|name| name.0.get(0).map(|name| name.value.clone()))
+		.ok_or(ExecuteError::ObjectNotRecognised.into())
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
