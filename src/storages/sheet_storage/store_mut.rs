@@ -98,25 +98,11 @@ impl StoreMut for SheetStorage {
 	}
 
 	async fn delete_data(&mut self, sheet_name: &str, rows: Vec<Value>) -> Result<()> {
-		let mut rows = rows.into_iter().map(|pk| pk.cast()).collect::<Result<Vec<usize>>>()?;
-		rows.sort();
-		let rows = rows.into_iter().fold(vec![], |mut delete_sets: Vec<(usize, usize)>, pk| {
-			let last = delete_sets.last_mut();
-			if let Some(last) = last {
-				if (last.0 + last.1) == pk {
-					last.1 += 1;
-				} else {
-					delete_sets.push((pk, 1)); // TODO: Share with other else
-				}
-			} else {
-				delete_sets.push((pk, 1));
-			}
-			delete_sets
-		}); // Optimisation: Group sets of consecutive deletions
-		let sheet = self.get_sheet_mut(sheet_name)?;
-		rows.into_iter().for_each(|(start, len)| {
-			sheet.remove_row(&(start as u32), &(len as u32));
-		});
-		Ok(())
+		rows.into_iter().try_for_each(|key| {
+			let row_num: i64 = key.cast()?;
+			let sheet = self.get_sheet_mut(sheet_name)?;
+			sheet.remove_row(&(row_num as u32), &1);
+			Ok(())
+		})
 	}
 }
