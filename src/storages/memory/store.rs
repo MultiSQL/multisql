@@ -16,19 +16,4 @@ impl Store for MemoryStorage {
 		let rows = self.data.get(&table_name.to_string()).cloned().ok_or(MemoryStorageError::TableNotFound)?;
 		Ok(Box::new(rows.into_iter().map(Ok)))
 	}
-
-	async fn scan_data_indexed(
-		&self,
-		_table_name: &str,
-		_index_filters: IndexFilter,
-	) -> Result<RowIter> {
-		Err(StorageError::Unimplemented.into())
-	}
-	async fn scan_index(
-		&self,
-		_table_name: &str,
-		_index_filter: IndexFilter,
-	) -> Result<Vec<Value>> {
-		Err(StorageError::Unimplemented.into())
-	}
 }

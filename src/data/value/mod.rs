@@ -2,7 +2,7 @@ use {
 	crate::result::Result,
 	serde::{Deserialize, Serialize},
 	sqlparser::ast::DataType,
-	std::{cmp::Ordering, fmt::Debug},
+	std::{cmp::Ordering, fmt::Debug, hash::{Hash, Hasher}},
 };
 
 mod big_endian;
@@ -76,6 +76,13 @@ pub enum Value {
 
 	Internal(i64),
 }
+
+impl Hash for Value {
+	fn hash<H: Hasher>(&self, state: &mut H) {
+		self.to_be_bytes().hash(state)
+	}
+}
+impl Eq for Value {}
 
 impl From<bool> for Value {
 	fn from(from: bool) -> Value {

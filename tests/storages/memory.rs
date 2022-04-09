@@ -1,5 +1,5 @@
-pub fn memory(name: &str) -> multisql::Glue {
-	use {fstrings::*, multisql::*};
+pub fn memory(_name: &str) -> multisql::Glue {
+	use {multisql::*};
 
 	let storage = Connection::Memory.try_into()
 		.expect("Create Storage");
