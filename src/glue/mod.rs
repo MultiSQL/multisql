@@ -104,10 +104,10 @@ impl Glue {
 	///   .expect("Storage Creation Failed");
 	/// let mut other_glue = Glue::new(String::from("other"), other_storage);
 	///
-	/// glue.extend(vec![other_glue]);
+	/// glue.extend_many_glues(vec![other_glue]);
 	/// ```
 	///
-	pub fn extend(&mut self, glues: Vec<Glue>) {
+	pub fn extend_many_glues(&mut self, glues: Vec<Glue>) {
 		self.databases.extend(
 			glues
 				.into_iter()
@@ -118,6 +118,48 @@ impl Glue {
 				.unwrap()
 				.databases,
 		)
+	}
+	pub fn extend_glue(&mut self, glue: Glue) {
+		self.databases.extend(glue.databases)
+	}
+
+	/// Extend using a ~~[Path]~~ [String] which represents a path
+	/// Guesses the type of database based on the extension
+	pub fn try_extend_from_path(
+		&mut self,
+		database_name: String,
+		database_path: String,
+	) -> Result<bool> {
+		let connection = if database_path.ends_with('/') {
+			Connection::Sled(database_path)
+		} else if database_path.ends_with(".csv") {
+			Connection::CSV(database_path, CSVSettings::default())
+		} else if database_path.ends_with(".xlsx") {
+			Connection::Sheet(database_path)
+		} else {
+			return Err(ExecuteError::InvalidDatabaseLocation.into());
+		};
+		let database = connection.try_into()?;
+		Ok(self.extend(database_name, database))
+	}
+
+	/// Extend [Glue] by single database
+	pub fn extend(&mut self, database_name: String, database: Storage) -> bool {
+		let database_present = self.databases.contains_key(&database_name);
+		if !database_present {
+			self.databases.insert(database_name, database);
+		}
+		database_present
+	}
+
+	/// Opposite of [Glue::extend], removes database
+	/// Returns [bool] of whether the database was present
+	pub fn reduce(&mut self, database_name: &String) -> bool {
+		let database_present = self.databases.contains_key(database_name);
+		if database_present {
+			self.databases.remove(database_name);
+		}
+		database_present
 	}
 }
 
@@ -165,75 +207,6 @@ impl Glue {
 	}
 	/// Will execute a pre-parsed query (see [Glue::pre_parse()] for more).
 	pub fn execute_parsed(&mut self, query: Query) -> Result<Payload> {
-		if let Query(Statement::CreateDatabase {
-			db_name,
-			if_not_exists,
-			location,
-			..
-		}) = query
-		{
-			let store_name = db_name.0[0].value.clone();
-			return if self.databases.iter().any(|(store, _)| store == &store_name) {
-				if if_not_exists {
-					Ok(Payload::Success)
-				} else {
-					Err(ExecuteError::DatabaseExists(store_name).into())
-				}
-			} else {
-				match location {
-					None => Err(ExecuteError::InvalidDatabaseLocation.into()), // TODO: Memory
-					Some(location) => {
-						let store = if location.ends_with('/') {
-							Connection::Sled(location).try_into()?
-						} else if location.ends_with(".csv") {
-							Connection::CSV(location, CSVSettings::default()).try_into()?
-						} else if location.ends_with(".xlsx") {
-							Connection::Sheet(location).try_into()?
-						} else {
-							return Err(ExecuteError::InvalidDatabaseLocation.into());
-						};
-						self.extend(vec![Glue::new(store_name, store)]);
-						Ok(Payload::Success)
-					}
-				}
-			};
-		} else if let Query(Statement::Execute { name, parameters }) = query {
-			return match name.value.as_str() {
-				"FILE" => {
-					if let Some(Ok(query)) = parameters.get(0).map(|path| {
-						if let Expr::Value(AstValue::SingleQuotedString(path)) = path {
-							std::fs::read_to_string(path).map_err(|_| ())
-						} else {
-							Err(())
-						}
-					}) {
-						self.execute(&query)
-					} else {
-						Err(ExecuteError::InvalidFileLocation.into())
-					}
-				}
-				_ => Err(ExecuteError::Unimplemented.into()),
-			};
-		} else if let Query(Statement::Drop {
-			object_type: ObjectType::Schema, // FOR NOW! // TODO: sqlparser-rs#454
-			if_exists,
-			names,
-			..
-		}) = query
-		{
-			let database_name = names
-				.get(0)
-				.and_then(|name| name.0.get(0).map(|name| name.value.clone()))
-				.ok_or(ExecuteError::ObjectNotRecognised)?;
-
-			if self.databases.contains_key(&database_name) {
-				self.databases.remove(&database_name);
-			} else if !if_exists {
-				return Err(ExecuteError::ObjectNotRecognised.into());
-			}
-			return Ok(Payload::Success);
-		}
-
 		block_on(self.execute_query(&query))
 	}
 	/// Provides a parsed query to execute later.

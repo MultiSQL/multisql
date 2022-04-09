@@ -1,7 +1,8 @@
 use {
+	super::types::get_first_name,
 	crate::{parse_sql::Query, Glue, Result, Row, Value},
 	serde::Serialize,
-	sqlparser::ast::{SetVariableValue, Statement},
+	sqlparser::ast::{Expr, ObjectType, SetVariableValue, Statement, Value as AstValue},
 	std::convert::TryInto,
 	thiserror::Error as ThisError,
 };
@@ -57,6 +58,24 @@ impl Glue {
 		let Query(statement) = statement;
 
 		match statement {
+			Statement::CreateDatabase {
+				db_name,
+				if_not_exists,
+				location,
+				..
+			} => {
+				if !self.try_extend_from_path(
+					db_name.0[0].value.clone(),
+					location
+						.clone()
+						.ok_or(ExecuteError::InvalidDatabaseLocation)?,
+				)? && !if_not_exists
+				{
+					Err(ExecuteError::DatabaseExists(db_name.0[0].value.clone()).into())
+				} else {
+					Ok(Payload::Success)
+				}
+			}
 			//- Modification
 			//-- Tables
 			Statement::CreateTable {
@@ -73,10 +92,20 @@ impl Glue {
 				names,
 				if_exists,
 				..
-			} => self
-				.drop(object_type, names, *if_exists)
-				.await
-				.map(|_| Payload::DropTable),
+			} => match object_type {
+				ObjectType::Schema => {
+					// Schema for now // TODO: sqlparser-rs#454
+					if !self.reduce(&get_first_name(names)?) && !if_exists {
+						Err(ExecuteError::ObjectNotRecognised.into())
+					} else {
+						Ok(Payload::Success)
+					}
+				}
+				object_type => self
+					.drop(object_type, names, *if_exists)
+					.await
+					.map(|_| Payload::DropTable),
+			},
 			#[cfg(feature = "alter-table")]
 			Statement::AlterTable { name, operation } => self
 				.alter_table(name, operation)
@@ -128,20 +157,14 @@ impl Glue {
 			//- Context
 			Statement::SetVariable {
 				variable, value, ..
-			} => {
-				let first_value = value.get(0).unwrap(); // Why might one want anything else?
-				let value: Value = match first_value {
-					SetVariableValue::Ident(..) => unimplemented!(),
-					SetVariableValue::Literal(literal) => literal.try_into()?,
-				};
-				let name = variable.value.clone();
-				self.get_mut_context()?.set_variable(name, value);
-				Ok(Payload::Success)
-			}
+			} => self
+				.set_variable(variable, value)
+				.await
+				.map(|_| Payload::Success),
 
 			Statement::ExplainTable { table_name, .. } => self.explain(table_name).await,
 
-			Statement::CreateDatabase { .. } => unreachable!(), // Handled at Glue interface // TODO: Clean up somehow
+			Statement::Execute { name, parameters } => self.procedure(name, parameters).await,
 			_ => Err(ExecuteError::QueryNotSupported.into()),
 		}
 	}
