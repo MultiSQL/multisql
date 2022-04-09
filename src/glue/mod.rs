@@ -153,7 +153,7 @@ impl Glue {
 		if !database_present {
 			self.databases.insert(database_name, database);
 		}
-		database_present
+		!database_present
 	}
 
 	/// Opposite of [Glue::extend], removes database
