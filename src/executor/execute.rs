@@ -64,7 +64,7 @@ impl Glue {
 				location,
 				..
 			} => {
-				if !self.try_extend_from_path(
+				if self.try_extend_from_path(
 					db_name.0[0].value.clone(),
 					location
 						.clone()
