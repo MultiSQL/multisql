@@ -152,7 +152,7 @@ impl StoreMut for SledStorage {
 			use SchemaChange::*;
 			match change {
 				RenameTable(new_name) => self.rename_table(table_name, new_name),
-				ColumnUpdate(..) => Ok(()), // Which changes do we need to action upon?
+				ColumnUpdate(..) | IndexAdd(..) => Ok(()), // Which changes do we need to action upon?
 				_ => Err(StorageError::Unimplemented.into()),
 				// TODO: Column remove & add: manipulate all rows
 				// TODO: Index remove, add and update: rebuild
