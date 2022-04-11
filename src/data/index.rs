@@ -1,5 +1,5 @@
 use {
-	crate::{result::Result, Column, Ingredient, Method, Recipe, StorageInner, Value},
+	crate::{result::Result, Column, Ingredient, Method, Recipe, DatabaseInner, Value},
 	rayon::prelude::*,
 	serde::{Deserialize, Serialize},
 	std::{cmp::Ordering, collections::HashMap},
@@ -30,7 +30,7 @@ impl Index {
 	}
 	pub async fn reset(
 		&self,
-		storage: &mut StorageInner,
+		storage: &mut DatabaseInner,
 		table: &str,
 		columns: &[Column],
 	) -> Result<()> {

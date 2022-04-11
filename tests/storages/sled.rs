@@ -1,4 +1,4 @@
-pub fn sled_storage(name: &str) -> multisql::Glue {
+pub fn sled_database(name: &str) -> multisql::Glue {
 	use {fstrings::*, multisql::*};
 
 	let path = f!("data/sled_{name}");
@@ -10,12 +10,12 @@ pub fn sled_storage(name: &str) -> multisql::Glue {
 		}
 	}
 
-	let storage = SledStorage::new(&path)
-		.map(Storage::new_sled)
-		.expect("Create Storage");
+	let database = SledDatabase::new(&path)
+		.map(Database::new_sled)
+		.expect("Create Database");
 
-	Glue::new(String::from("main"), storage)
+	Glue::new(String::from("main"), database)
 }
 
-crate::util_macros::run!(sled_storage, functionality);
-crate::util_macros::run!(sled_storage, original);
+crate::util_macros::run!(sled_database, functionality);
+crate::util_macros::run!(sled_database, original);

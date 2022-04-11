@@ -1,5 +1,5 @@
 use {
-	crate::{data::get_name, AlterError, Glue, Result, StorageInner, ValueDefault},
+	crate::{data::get_name, AlterError, Glue, Result, DatabaseInner, ValueDefault},
 	futures::stream::{self, TryStreamExt},
 	sqlparser::ast::ObjectName,
 };
@@ -13,7 +13,7 @@ impl Glue {
 		if let Some(schema) = schema {
 			// TODO: We should be deleting the entry
 			#[cfg(feature = "auto-increment")]
-			let result: Result<&mut StorageInner> = stream::iter(schema.column_defs.iter().map(Ok))
+			let result: Result<&mut DatabaseInner> = stream::iter(schema.column_defs.iter().map(Ok))
 				.try_fold(database, |database, column| async move {
 					if matches!(column.default, Some(ValueDefault::AutoIncrement(_))) {
 						database

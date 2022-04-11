@@ -1,9 +1,9 @@
 mod auto_increment;
-mod store;
-mod store_mut;
+mod base;
+mod mutable;
 
 use {
-	crate::{store::*, Row, Schema, Value},
+	crate::{database::*, Row, Schema, Value},
 	serde::Serialize,
 	std::{
 		collections::{BTreeMap, HashMap},
@@ -13,21 +13,21 @@ use {
 };
 
 #[derive(Error, Serialize, Debug, PartialEq)]
-pub enum MemoryStorageError {
+pub enum MemoryDatabaseError {
 	#[error("table not found")]
 	TableNotFound,
 }
 
 #[derive(Default, Clone)]
-pub struct MemoryStorage {
+pub struct MemoryDatabase {
 	tables: HashMap<String, Schema>,
 	data: HashMap<String, HashMap<Value, Row>>,
 	indexes: HashMap<String, HashMap<String, BTreeMap<Value, Value>>>,
 }
 
-impl FullStorage for MemoryStorage {}
+impl DBFull for MemoryDatabase {}
 
-impl MemoryStorage {
+impl MemoryDatabase {
 	pub fn new() -> Self {
 		Self::default()
 	}

@@ -28,17 +28,15 @@
 //! - [SledStorage] -- Most common type of storage/backend
 //! - [Value] -- Value wrapper
 
-pub use sqlparser as parser;
-
 mod data;
+mod database;
+mod databases;
 mod executor;
 mod glue;
 mod parse_sql;
 mod result;
-mod storages;
-mod store;
 mod utils;
 
-pub use {data::*, executor::*, glue::*, parse_sql::*, result::*, storages::*, store::*};
+pub use {data::*, database::*, databases::*, executor::*, glue::*, parse_sql::*, result::*};
 
 pub(crate) use utils::*;

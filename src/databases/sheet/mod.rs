@@ -1,9 +1,9 @@
 mod auto_increment;
-mod store;
-mod store_mut;
+mod base;
+mod mutable;
 
 use {
-	crate::{store::*, Result},
+	crate::{database::*, Result},
 	serde::Serialize,
 	std::{fmt::Debug, path::Path},
 	thiserror::Error,
@@ -11,7 +11,7 @@ use {
 };
 
 #[derive(Error, Serialize, Debug, PartialEq)]
-pub enum SheetStorageError {
+pub enum SheetDatabaseError {
 	#[error("FSError")]
 	FSError,
 	#[error("failed to parse column information")]
@@ -22,14 +22,14 @@ pub enum SheetStorageError {
 	FailedToGetSheet,
 }
 
-pub struct SheetStorage {
+pub struct SheetDatabase {
 	book: Spreadsheet,
 	path: String,
 }
 
-impl FullStorage for SheetStorage {}
+impl DBFull for SheetDatabase {}
 
-impl SheetStorage {
+impl SheetDatabase {
 	pub fn new(path: &str) -> Result<Self> {
 		let book =
 			reader::xlsx::read(Path::new(path)).unwrap_or_else(|_| new_file_empty_worksheet());
@@ -38,12 +38,12 @@ impl SheetStorage {
 	}
 	pub(crate) fn save(&self) -> Result<()> {
 		writer::xlsx::write(&self.book, Path::new(&self.path))
-			.map_err(|_| SheetStorageError::FSError.into())
+			.map_err(|_| SheetDatabaseError::FSError.into())
 	}
 
 	pub(crate) fn get_sheet_mut(&mut self, sheet_name: &str) -> Result<&mut Worksheet> {
 		self.book
 			.get_sheet_by_name_mut(sheet_name)
-			.map_err(|_| SheetStorageError::FailedToGetSheet.into())
+			.map_err(|_| SheetDatabaseError::FailedToGetSheet.into())
 	}
 }

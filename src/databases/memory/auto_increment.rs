@@ -1,10 +1,10 @@
 use {
-	crate::{AutoIncrement, MemoryStorage, Result},
+	crate::{AutoIncrement, MemoryDatabase, Result},
 	async_trait::async_trait,
 };
 
 #[async_trait(?Send)]
-impl AutoIncrement for MemoryStorage {
+impl AutoIncrement for MemoryDatabase {
 	async fn generate_increment_values(
 		&mut self,
 		table_name: String,

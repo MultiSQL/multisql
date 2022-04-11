@@ -1,10 +1,10 @@
 mod auto_increment;
-mod store;
-mod store_mut;
+mod base;
+mod mutable;
 mod utils;
 
 use {
-	crate::{data::Schema, Column, FullStorage, Result, Storage, ValueType, WIPError},
+	crate::{data::Schema, Column, DBFull, Database, Result, ValueType, WIPError},
 	csv::ReaderBuilder,
 	serde::{Deserialize, Serialize},
 	std::{
@@ -16,12 +16,12 @@ use {
 };
 
 #[derive(Error, Serialize, Debug, PartialEq)]
-pub enum CSVStorageError {
+pub enum CSVDatabaseError {
 	#[error("CSV storages only support one table at a time")]
 	OnlyOneTableAllowed,
 }
 
-pub struct CSVStorage {
+pub struct CSVDatabase {
 	schema: Option<Schema>,
 	path: String,
 	pub csv_settings: CSVSettings,
@@ -40,14 +40,14 @@ impl Default for CSVSettings {
 	}
 }
 
-impl FullStorage for CSVStorage {}
+impl DBFull for CSVDatabase {}
 
-impl Storage {
-	pub fn new_csv(storage: CSVStorage) -> Self {
+impl Database {
+	pub fn new_csv(storage: CSVDatabase) -> Self {
 		Self::new(Box::new(storage))
 	}
 }
-impl CSVStorage {
+impl CSVDatabase {
 	pub fn new(path: &str) -> Result<Self> {
 		Self::new_with_settings(path, CSVSettings::default())
 	}

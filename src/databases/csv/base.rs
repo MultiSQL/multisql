@@ -1,11 +1,11 @@
 use {
-	super::{utils::csv_reader, CSVStorage},
-	crate::{Plane, Result, Row, Schema, Store, Value, WIPError},
+	super::{utils::csv_reader, CSVDatabase},
+	crate::{Plane, Result, Row, Schema, DBBase, Value, WIPError},
 	async_trait::async_trait,
 };
 
 #[async_trait(?Send)]
-impl Store for CSVStorage {
+impl DBBase for CSVDatabase {
 	async fn fetch_schema(&self, _table_name: &str) -> Result<Option<Schema>> {
 		Ok(self.schema.clone())
 	}

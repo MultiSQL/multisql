@@ -1,5 +1,5 @@
 #[allow(unused_must_use)]
-pub fn csv_storage(name: &str) -> multisql::Glue {
+pub fn csv_database(name: &str) -> multisql::Glue {
 	use {fstrings::*, multisql::*};
 
 	let path = f!("data/csv_{name}.csv");
@@ -13,13 +13,13 @@ pub fn csv_storage(name: &str) -> multisql::Glue {
 
 	std::fs::create_dir("data");
 
-	let storage = CSVStorage::new(&path)
-		.map(Storage::new_csv)
-		.expect("Create Storage");
+	let database = CSVDatabase::new(&path)
+		.map(Database::new_csv)
+		.expect("Create Database");
 
-	Glue::new(String::from("main"), storage)
+	Glue::new(String::from("main"), database)
 }
 
-crate::util_macros::run!(csv_storage, functionality::statement::create::table);
-crate::util_macros::run!(csv_storage, functionality::statement::simple_insert);
-crate::util_macros::run!(csv_storage, functionality::statement::data_query);
+crate::util_macros::run!(csv_database, functionality::statement::create::table);
+crate::util_macros::run!(csv_database, functionality::statement::simple_insert);
+crate::util_macros::run!(csv_database, functionality::statement::data_query);

@@ -1,13 +1,13 @@
-use crate::StorageError;
+use crate::DatabaseError;
 use {
-	crate::{Cast, Column, Plane, Result, Row, Schema, SheetStorage, Store, Value},
+	crate::{Cast, Column, Plane, Result, Row, Schema, SheetDatabase, DBBase, Value},
 	async_trait::async_trait,
 	std::convert::TryFrom,
 	umya_spreadsheet::{Cell, Worksheet},
 };
 
 #[async_trait(?Send)]
-impl Store for SheetStorage {
+impl DBBase for SheetDatabase {
 	async fn fetch_schema(&self, sheet_name: &str) -> Result<Option<Schema>> {
 		if let Ok(sheet) = self.book.get_sheet_by_name(sheet_name) {
 			schema_from_sheet(sheet).map(Some)
@@ -71,7 +71,7 @@ impl TryFrom<Cell> for Value {
 			Cell::TYPE_BOOL => Value::Bool(Value::Str(cell.get_value().to_string()).cast()?),
 			Cell::TYPE_NUMERIC => Value::F64(Value::Str(cell.get_value().to_string()).cast()?),
 			Cell::TYPE_NULL => Value::Null,
-			_ => return Err(StorageError::Unimplemented.into()),
+			_ => return Err(DatabaseError::Unimplemented.into()),
 		})
 	}
 }

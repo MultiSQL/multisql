@@ -1,39 +1,39 @@
 mod auto_increment;
+mod base;
 mod error;
-mod store;
-mod store_mut;
+mod mutable;
 mod util;
 #[cfg(not(feature = "alter-table"))]
-impl crate::AlterTable for SledStorage {}
+impl crate::AlterTable for SledDatabase {}
 #[cfg(not(feature = "auto-increment"))]
-impl crate::AutoIncrement for SledStorage {}
+impl crate::AutoIncrement for SledDatabase {}
 
 use {
-	crate::{Error, FullStorage, Result, Schema, Storage},
+	crate::{DBFull, Database, Error, Result, Schema},
 	error::err_into,
 	sled::{self, Config, Db},
 	std::convert::TryFrom,
 };
 
 #[derive(Debug, Clone)]
-pub struct SledStorage {
+pub struct SledDatabase {
 	tree: Db,
 }
-impl FullStorage for SledStorage {}
-impl SledStorage {
+impl DBFull for SledDatabase {}
+impl SledDatabase {
 	pub fn new(filename: &str) -> Result<Self> {
 		let tree = sled::open(filename).map_err(err_into)?;
 		Ok(Self { tree })
 	}
 }
 
-impl Storage {
-	pub fn new_sled(sled: SledStorage) -> Self {
+impl Database {
+	pub fn new_sled(sled: SledDatabase) -> Self {
 		Self::new(Box::new(sled))
 	}
 }
 
-impl TryFrom<Config> for SledStorage {
+impl TryFrom<Config> for SledDatabase {
 	type Error = Error;
 
 	fn try_from(config: Config) -> Result<Self> {

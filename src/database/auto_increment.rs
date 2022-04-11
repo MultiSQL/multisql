@@ -1,4 +1,4 @@
-use {super::StorageError, crate::Result, async_trait::async_trait};
+use {crate::{Result, DatabaseError}, async_trait::async_trait};
 
 #[async_trait(?Send)]
 pub trait AutoIncrement {
@@ -16,7 +16,7 @@ pub trait AutoIncrement {
 			/*start_value*/ i64,
 		)>,
 	> {
-		Err(StorageError::Unimplemented.into())
+		Err(DatabaseError::Unimplemented.into())
 	}
 
 	async fn set_increment_value(
@@ -25,6 +25,6 @@ pub trait AutoIncrement {
 		_column_name: &str,
 		_end: i64,
 	) -> Result<()> {
-		Err(StorageError::Unimplemented.into())
+		Err(DatabaseError::Unimplemented.into())
 	}
 }

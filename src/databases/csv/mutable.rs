@@ -1,16 +1,16 @@
 use {
-	super::{CSVStorage, CSVStorageError},
-	crate::{Cast, Result, Row, Schema, StoreMut, WIPError},
+	super::{CSVDatabase, CSVDatabaseError},
+	crate::{Cast, Result, Row, Schema, DBMut, WIPError},
 	async_trait::async_trait,
 	csv::WriterBuilder,
 	std::{fs::OpenOptions, io::Write},
 };
 
 #[async_trait(?Send)]
-impl StoreMut for CSVStorage {
+impl DBMut for CSVDatabase {
 	async fn insert_schema(&mut self, schema: &Schema) -> Result<()> {
 		if self.schema.is_some() {
-			return Err(CSVStorageError::OnlyOneTableAllowed.into());
+			return Err(CSVDatabaseError::OnlyOneTableAllowed.into());
 		}
 
 		let mut writer = WriterBuilder::new()

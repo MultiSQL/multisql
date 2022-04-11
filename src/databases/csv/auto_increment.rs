@@ -1,12 +1,12 @@
 use {
-	super::CSVStorage,
+	super::CSVDatabase,
 	crate::{AutoIncrement, Result, WIPError},
 	async_trait::async_trait,
 	linecount::count_lines,
 };
 
 #[async_trait(?Send)]
-impl AutoIncrement for CSVStorage {
+impl AutoIncrement for CSVDatabase {
 	async fn generate_increment_values(
 		&mut self,
 		_table_name: String,

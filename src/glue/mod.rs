@@ -3,7 +3,7 @@ use std::sync::Mutex;
 use crate::ExecuteError;
 use {
 	crate::{
-		parse, parse_single, CSVSettings, Connection, Payload, Query, Result, Storage, Value,
+		parse, parse_single, CSVSettings, Connection, Payload, Query, Result, Database, Value,
 		WIPError,
 	},
 	futures::executor::block_on,
@@ -49,21 +49,21 @@ impl Context {
 /// - [`Glue::select_as_json()`] -- Provides data, only for `SELECT` queries, as one big [String]; generally useful for webby interactions.
 pub struct Glue {
 	pub primary: String,
-	databases: HashMap<String, Storage>,
+	databases: HashMap<String, Database>,
 	context: Mutex<Context>,
 }
 
 /// ## Creation of new interfaces
 impl Glue {
-	/// Creates a [Glue] instance with just one [Storage].
-	pub fn new(name: String, database: Storage) -> Self {
+	/// Creates a [Glue] instance with just one [Database].
+	pub fn new(name: String, database: Database) -> Self {
 		let mut databases = HashMap::new();
 		databases.insert(name, database);
 		Self::new_multi(databases)
 	}
 	/// Creates a [Glue] instance with access to all provided storages.
-	/// Argument is: [Vec]<(Identifier, [Storage])>
-	pub fn new_multi(databases: HashMap<String, Storage>) -> Self {
+	/// Argument is: [Vec]<(Identifier, [Database])>
+	pub fn new_multi(databases: HashMap<String, Database>) -> Self {
 		let context = Mutex::new(Context::default());
 		let primary = databases.keys().next().cloned().unwrap_or_default();
 		Self {
@@ -85,10 +85,10 @@ impl Glue {
 	/// Merge existing [Glue] with [Vec] of other [Glue]s
 	/// For example:
 	/// ```
-	/// use multisql::{SledStorage, Storage, Glue};
-	/// let storage = SledStorage::new("data/example_location/example")
-	///   .map(Storage::new_sled)
-	///   .expect("Storage Creation Failed");
+	/// use multisql::{SledDatabase, Database, Glue};
+	/// let storage = SledDatabase::new("data/example_location/example")
+	///   .map(Database::new_sled)
+	///   .expect("Database Creation Failed");
 	/// let mut glue = Glue::new(String::from("main"), storage);
 	///
 	/// glue.execute_many("
@@ -98,9 +98,9 @@ impl Glue {
 	///   SELECT * FROM test WHERE id > 1;
 	/// ");
 	///
-	/// let other_storage = SledStorage::new("data/example_location/example_other")
-	///   .map(Storage::new_sled)
-	///   .expect("Storage Creation Failed");
+	/// let other_storage = SledDatabase::new("data/example_location/example_other")
+	///   .map(Database::new_sled)
+	///   .expect("Database Creation Failed");
 	/// let mut other_glue = Glue::new(String::from("other"), other_storage);
 	///
 	/// glue.extend_many_glues(vec![other_glue]);
@@ -148,7 +148,7 @@ impl Glue {
 
 	/// Extend [Glue] by single database
 	/// Returns [bool] of whether action was taken
-	pub fn extend(&mut self, database_name: String, database: Storage) -> bool {
+	pub fn extend(&mut self, database_name: String, database: Database) -> bool {
 		let database_present = self.databases.contains_key(&database_name);
 		if !database_present {
 			self.databases.insert(database_name, database);

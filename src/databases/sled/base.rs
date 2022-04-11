@@ -1,10 +1,10 @@
 use {
 	super::{
 		err_into, fetch_schema,
-		store_mut::{index_prefix, indexed_key},
-		SledStorage,
+		mutable::{index_prefix, indexed_key},
+		SledDatabase,
 	},
-	crate::{join_iters, IndexFilter, JoinType, NullOrd, Plane, Result, Row, Schema, Store, Value},
+	crate::{join_iters, IndexFilter, JoinType, NullOrd, Plane, Result, Row, Schema, DBBase, Value},
 	async_trait::async_trait,
 	rayon::slice::ParallelSliceMut,
 	sled::IVec,
@@ -12,7 +12,7 @@ use {
 };
 
 #[async_trait(?Send)]
-impl Store for SledStorage {
+impl DBBase for SledDatabase {
 	async fn fetch_schema(&self, table_name: &str) -> Result<Option<Schema>> {
 		fetch_schema(&self.tree, table_name).map(|(_, schema)| schema)
 	}

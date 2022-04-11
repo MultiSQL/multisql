@@ -1,11 +1,11 @@
 use {
-	super::CSVStorage,
+	super::CSVDatabase,
 	crate::{Result, WIPError},
 	csv::{Reader, ReaderBuilder},
 	std::fs::File,
 };
 
-pub(crate) fn csv_reader(store: &CSVStorage) -> Result<Reader<File>> {
+pub(crate) fn csv_reader(store: &CSVDatabase) -> Result<Reader<File>> {
 	let reader = ReaderBuilder::new()
 		.delimiter(store.csv_settings.delimiter)
 		.quoting(store.csv_settings.quoting)
@@ -15,7 +15,7 @@ pub(crate) fn csv_reader(store: &CSVStorage) -> Result<Reader<File>> {
 	Ok(reader)
 }
 
-/*pub(crate) fn csv_writer<T: Write>(store: &CSVStorage, init: T) -> Result<Writer<T>> {
+/*pub(crate) fn csv_writer<T: Write>(store: &CSVDatabase, init: T) -> Result<Writer<T>> {
 	let writer = WriterBuilder::new().delimiter(store.csv_settings.delimiter).from_writer(init);
 
 	Ok(writer)

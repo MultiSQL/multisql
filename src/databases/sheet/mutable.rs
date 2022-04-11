@@ -1,14 +1,14 @@
 use umya_spreadsheet::{Border, Comment, PatternValues, RichText, Style, TextElement};
 use {
 	crate::{
-		Cast, Result, Row, Schema, SchemaChange, SchemaDiff, SheetStorage, SheetStorageError,
-		StorageError, StoreMut, Value,
+		Cast, DatabaseError, Result, Row, Schema, SchemaChange, SchemaDiff, SheetDatabase,
+		SheetDatabaseError, DBMut, Value,
 	},
 	async_trait::async_trait,
 };
 
 #[async_trait(?Send)]
-impl StoreMut for SheetStorage {
+impl DBMut for SheetDatabase {
 	async fn insert_schema(&mut self, schema: &Schema) -> Result<()> {
 		let mut style = Style::default();
 		style
@@ -36,7 +36,7 @@ impl StoreMut for SheetStorage {
 		let sheet = self
 			.book
 			.new_sheet(sheet_name)
-			.map_err(|_| SheetStorageError::FailedToCreateSheet)?;
+			.map_err(|_| SheetDatabaseError::FailedToCreateSheet)?;
 		column_defs
 			.iter()
 			.enumerate()
@@ -50,7 +50,7 @@ impl StoreMut for SheetStorage {
 				let mut comment_text_element = TextElement::default();
 				comment_text_element.set_text(
 					serde_yaml::to_string(&column_def)
-						.map_err(|_| SheetStorageError::FailedColumnParse)?,
+						.map_err(|_| SheetDatabaseError::FailedColumnParse)?,
 				);
 				let mut comment_text = RichText::default();
 				comment_text.add_rich_text_elements(comment_text_element);
@@ -86,7 +86,7 @@ impl StoreMut for SheetStorage {
 	async fn delete_schema(&mut self, sheet_name: &str) -> Result<()> {
 		self.book
 			.remove_sheet_by_name(sheet_name)
-			.map_err(|_| SheetStorageError::FailedToGetSheet)?;
+			.map_err(|_| SheetDatabaseError::FailedToGetSheet)?;
 		self.save()
 	}
 
@@ -124,7 +124,7 @@ impl StoreMut for SheetStorage {
 				RenameTable(new_name) => {
 					sheet.set_name(new_name);
 				}
-				_ => return Err(StorageError::Unimplemented.into()),
+				_ => return Err(DatabaseError::Unimplemented.into()),
 				// TODO
 			};
 		}
