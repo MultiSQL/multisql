@@ -21,6 +21,22 @@ impl From<StorageError> for Error {
 		}
 	}
 }
+impl From<sled::Error> for Error {
+	fn from(e: sled::Error) -> Error {
+		Error::Storage(Box::new(e))
+	}
+}
+impl From<bincode::Error> for Error {
+	fn from(e: bincode::Error) -> Error {
+		Error::Storage(Box::new(e))
+	}
+}
+
+impl From<str::Utf8Error> for Error {
+	fn from(e: str::Utf8Error) -> Error {
+		Error::Storage(Box::new(e))
+	}
+}
 
 impl From<TransactionError<Error>> for Error {
 	fn from(error: TransactionError<Error>) -> Error {
