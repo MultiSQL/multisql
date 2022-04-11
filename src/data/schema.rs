@@ -128,3 +128,57 @@ impl From<Schema> for SchemaDiff {
 		}
 	}
 }
+
+pub enum SchemaChange {
+	RenameTable(String),
+
+	ColumnUpdate(usize, Column),
+	ColumnAdd(Column),
+	ColumnRemove(usize),
+
+	IndexUpdate(usize, Column),
+	IndexAdd(Column),
+	IndexRemove(usize),
+}
+impl SchemaDiff {
+	pub fn get_changes(&self) -> Vec<SchemaChange> {
+		use SchemaChange::*;
+		let mut changes = Vec::new();
+		if let Some(table_name) = self.table_name {
+			changes.push(RenameTable(table_name.clone()))
+		}
+		if let Some(column_defs) = self.column_defs {
+			for (index, column_def) in column_defs.into_iter() {
+				match (index, column_def) {
+					(None, None) => (),
+					(Some(index), Some(column_def)) => {
+						changes.push(ColumnUpdate(index, column_def));
+					}
+					(None, Some(column_def)) => {
+						changes.push(ColumnAdd(column_def));
+					}
+					(Some(index), None) => {
+						changes.push(ColumnRemove(index));
+					}
+				}
+			}
+		}
+		if let Some(indexes) = self.indexes {
+			for (index, index_def) in indexes.into_iter() {
+				match (index, index_def) {
+					(None, None) => (),
+					(Some(index), Some(index_def)) => {
+						changes.push(IndexUpdate(index, index_def));
+					}
+					(None, Some(index_def)) => {
+						changes.push(IndexAdd(index_def));
+					}
+					(Some(index), None) => {
+						changes.push(IndexRemove(index));
+					}
+				}
+			}
+		}
+		changes
+	}
+}

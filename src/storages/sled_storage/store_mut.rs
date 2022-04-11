@@ -1,6 +1,6 @@
 use {
 	super::{err_into, fetch_schema, SledStorage},
-	crate::{BigEndian, Result, Row, Schema, SchemaDiff, StorageError, StoreMut, Value},
+	crate::{BigEndian, Result, Row, Schema, SchemaDiff, StorageError, StoreMut, Value, SchemaChange},
 	async_trait::async_trait,
 	rayon::prelude::*,
 	sled::IVec,
@@ -145,11 +145,48 @@ impl StoreMut for SledStorage {
 	}
 
 	async fn alter_table(&mut self, table_name: &str, schema_diff: SchemaDiff) -> Result<()> {
+		let changes = schema_diff.get_changes();
+		for change in changes.into_iter() {
+			use SchemaChange::*;
+			match change {
+				RenameTable(new_name) => self.rename_table(table_name, new_name)
+				_ => Err(StorageError::Unimplemented.into())
+			}
+		}
+
+
 		let (key, schema) = fetch_schema(&self.tree, table_name)?;
 		let schema = schema.ok_or(StorageError::TableNotFound)?;
 		let schema = schema_diff.merge(schema);
 		let schema_value = bincode::serialize(&schema).map_err(err_into)?;
 		self.tree.insert(key, schema_value).map_err(err_into)?;
+
+		Ok(())
+	}
+}
+
+impl SledStorage {
+	pub fn rename_table(&mut self, old_name: &str, new_name: String) -> Result<()> {
+		let (key, schema) = fetch_schema(&self.tree, old_name)?;
+		let schema = schema.ok_or(StorageError::TableNotFound)?;
+		tree.remove(key).map_err(err_into)?;
+
+		let value = bincode::serialize(&schema).map_err(err_into)?;
+		let key = format!("schema/{}", new_name);
+		let key = key.as_bytes();
+		self.tree.insert(key, value).map_err(err_into)?;
+
+		let prefix = format!("data/{}/", old_name);
+
+		for item in tree.scan_prefix(prefix.as_bytes()) {
+			let (key, value) = item.map_err(err_into)?;
+
+			let new_key = str::from_utf8(key.as_ref()).map_err(err_into)?;
+			let new_key = new_key.replace(old_name, new_name);
+			tree.insert(new_key, value).map_err(err_into)?;
+
+			tree.remove(key).map_err(err_into)?;
+		}
 
 		Ok(())
 	}
