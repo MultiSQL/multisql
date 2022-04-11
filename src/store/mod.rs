@@ -1,14 +1,10 @@
-mod alter_table;
 mod store;
 mod store_mut;
-
-use std::sync::{Mutex, MutexGuard};
-
-pub use alter_table::*;
 mod auto_increment;
 
 pub use auto_increment::AutoIncrement;
 
+use std::sync::{Mutex, MutexGuard};
 use {
 	crate::Result,
 	serde::{Deserialize, Serialize},
@@ -80,14 +76,6 @@ impl Storage {
 			source_connection: Connection::default(),
 		}
 	}
-	/*pub fn replace(&mut self, storage: Box<dyn FullStorage>) {
-		self.storage.replace(storage);
-	}
-	pub fn take(&mut self) -> Box<dyn FullStorage> {
-		self.storage
-			.take()
-			.expect("Unreachable: Storage wasn't replaced!")
-	}*/
 	pub fn get(&self) -> MutexGuard<Box<dyn FullStorage>> {
 		self.storage
 			.lock()
@@ -108,4 +96,4 @@ impl Storage {
 
 pub type StorageInner = dyn FullStorage;
 
-pub trait FullStorage: Store + StoreMut + AlterTable + AutoIncrement {}
+pub trait FullStorage: Store + StoreMut + AutoIncrement {}

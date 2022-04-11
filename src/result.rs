@@ -9,9 +9,6 @@ use {
 	thiserror::Error as ThisError,
 };
 
-#[cfg(feature = "alter-table")]
-use crate::store::AlterTableError;
-
 #[derive(ThisError, Serialize, Debug, PartialEq)]
 pub enum WIPError {
 	#[error("TODO")]
@@ -22,10 +19,6 @@ pub enum WIPError {
 
 #[derive(ThisError, Serialize, Debug)]
 pub enum Error {
-	#[cfg(feature = "alter-table")]
-	#[error(transparent)]
-	AlterTable(#[from] AlterTableError),
-
 	#[error(transparent)]
 	#[serde(with = "stringify")]
 	Storage(#[from] Box<dyn std::error::Error>),
@@ -81,8 +74,6 @@ impl PartialEq for Error {
 		use Error::*;
 
 		match (self, other) {
-			#[cfg(feature = "alter-table")]
-			(AlterTable(l), AlterTable(r)) => l == r,
 			(Execute(l), Execute(r)) => l == r,
 			(Alter(l), Alter(r)) => l == r,
 			(Fetch(l), Fetch(r)) => l == r,
