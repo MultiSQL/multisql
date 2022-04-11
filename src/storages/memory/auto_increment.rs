@@ -10,7 +10,11 @@ impl AutoIncrement for MemoryStorage {
 		table_name: String,
 		columns: Vec<(usize, String, i64)>,
 	) -> Result<Vec<((usize, String), i64)>> {
-		let row_init = self.data.get(&table_name).map(|rows| rows.len() + 1).unwrap_or(1);
+		let row_init = self
+			.data
+			.get(&table_name)
+			.map(|rows| rows.len() + 1)
+			.unwrap_or(1);
 		Ok(columns
 			.into_iter()
 			.map(|(index, name, _)| ((index, name), row_init as i64))

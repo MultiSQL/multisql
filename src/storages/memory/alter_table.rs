@@ -1,5 +1,5 @@
 use {
-	crate::{AlterTable, Column, MemoryStorage, Result, Schema, StorageError},
+	crate::{AlterTable, MemoryStorage, Result, Schema},
 	async_trait::async_trait,
 };
 
@@ -15,17 +15,20 @@ impl AlterTable for MemoryStorage {
 
 		self.data.insert(new_table_name.clone(), data);
 		self.tables.insert(new_table_name, schema);
-		
+
 		Ok(())
 	}
 	async fn replace_schema(&mut self, table_name: &str, schema: Schema) -> Result<()> {
 		self.tables.remove(&table_name.to_string());
-		let data = self.data.remove(&table_name.to_string()).unwrap_or_default();
+		let data = self
+			.data
+			.remove(&table_name.to_string())
+			.unwrap_or_default();
 
 		let table_name = schema.table_name.clone();
 		self.data.insert(table_name.clone(), data);
 		self.tables.insert(table_name, schema);
 
 		Ok(())
-	}	
+	}
 }

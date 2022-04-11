@@ -1,12 +1,9 @@
 use std::collections::{BTreeMap, HashMap};
 
-use crate::{JoinType, Row, join_iters};
+use crate::{join_iters, JoinType, Row};
 
 use {
-	crate::{
-		IndexFilter, MemoryStorage, MemoryStorageError, Result, Plane, Schema, StorageError,
-		Store, Value,
-	},
+	crate::{IndexFilter, MemoryStorage, MemoryStorageError, Plane, Result, Schema, Store, Value},
 	async_trait::async_trait,
 };
 
@@ -20,8 +17,7 @@ impl Store for MemoryStorage {
 	}
 
 	async fn scan_data(&self, table_name: &str) -> Result<Plane> {
-		self
-			.data
+		self.data
 			.get(&table_name.to_string())
 			.cloned()
 			.ok_or(MemoryStorageError::TableNotFound.into())
@@ -36,9 +32,10 @@ impl Store for MemoryStorage {
 		let index_results = self.scan_index(table_name, index_filter).await?;
 		let default = HashMap::new();
 		let rows = self.data.get(&table_name.to_string()).unwrap_or(&default);
-		Ok(index_results.into_iter().filter_map(|pk| {
-			rows.get(&pk).map(|row| (pk.clone(), row.clone()))
-		}).collect::<Vec<(Value, Row)>>())
+		Ok(index_results
+			.into_iter()
+			.filter_map(|pk| rows.get(&pk).map(|row| (pk.clone(), row.clone())))
+			.collect::<Vec<(Value, Row)>>())
 	}
 
 	async fn scan_index(&self, table_name: &str, index_filter: IndexFilter) -> Result<Vec<Value>> {
@@ -46,12 +43,18 @@ impl Store for MemoryStorage {
 		match index_filter.clone() {
 			LessThan(index_name, ..) | MoreThan(index_name, ..) => {
 				let default = BTreeMap::new();
-				let index = self.indexes.get(&table_name.to_string()).and_then(|indexes| indexes.get(&index_name)).unwrap_or(&default);
+				let index = self
+					.indexes
+					.get(&table_name.to_string())
+					.and_then(|indexes| indexes.get(&index_name))
+					.unwrap_or(&default);
 				let index_results = match index_filter {
 					LessThan(_, max) => index.range(..max),
 					MoreThan(_, min) => index.range(min..),
 					_ => unreachable!(),
-				}.map(|(_, pk)|pk.clone()).collect();
+				}
+				.map(|(_, pk)| pk.clone())
+				.collect();
 				Ok(index_results)
 			}
 			Inner(left, right) => {

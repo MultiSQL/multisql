@@ -6,7 +6,10 @@ mod store_mut;
 use {
 	crate::{store::*, Row, Schema, Value},
 	serde::Serialize,
-	std::{collections::{HashMap, BTreeMap}, fmt::Debug},
+	std::{
+		collections::{BTreeMap, HashMap},
+		fmt::Debug,
+	},
 	thiserror::Error,
 };
 
