@@ -1,24 +1,16 @@
+mod alter_table;
 mod store;
 mod store_mut;
 
-#[cfg(feature = "alter-table")]
-mod alter_table;
 use std::sync::{Mutex, MutexGuard};
 
-#[cfg(feature = "alter-table")]
 pub use alter_table::*;
-#[cfg(not(feature = "alter-table"))]
-pub trait AlterTable {}
-
-#[cfg(feature = "auto-increment")]
 mod auto_increment;
-#[cfg(feature = "auto-increment")]
+
 pub use auto_increment::AutoIncrement;
-#[cfg(not(feature = "auto-increment"))]
-pub trait AutoIncrement {}
 
 use {
-	crate::{data::Row, result::Result, Value},
+	crate::Result,
 	serde::{Deserialize, Serialize},
 	std::fmt::Debug,
 	thiserror::Error,
@@ -117,5 +109,3 @@ impl Storage {
 pub type StorageInner = dyn FullStorage;
 
 pub trait FullStorage: Store + StoreMut + AlterTable + AutoIncrement {}
-
-pub type RowIter = Box<dyn Iterator<Item = Result<(Value, Row)>>>;

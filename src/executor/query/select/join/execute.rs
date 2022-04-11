@@ -51,9 +51,13 @@ impl JoinExecute {
 		} else {
 			storage.scan_data(self.table.as_str())
 		}
-		.await?
-		.map(|result| result.map(|(_, row)| row.0))
-		.collect::<Result<Vec<Row>>>()
+		.await
+		.map(|plane| {
+			plane
+				.into_iter()
+				.map(|(_, row)| row.0)
+				.collect::<Vec<Row>>()
+		})
 	}
 	pub async fn execute<'a>(self, glue: &Glue, plane_rows: Vec<Row>) -> Result<Vec<Row>> {
 		let rows =

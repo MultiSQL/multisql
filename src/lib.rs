@@ -41,4 +41,4 @@ mod utils;
 
 pub use {data::*, executor::*, glue::*, parse_sql::*, result::*, storages::*, store::*};
 
-pub(crate) use utils::macros;
+pub(crate) use utils::*;
