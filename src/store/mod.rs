@@ -1,6 +1,6 @@
+mod auto_increment;
 mod store;
 mod store_mut;
-mod auto_increment;
 
 pub use auto_increment::AutoIncrement;
 
@@ -20,6 +20,8 @@ pub enum StorageError {
 	Unimplemented,
 	#[error("tried to connect to an unknown storage")]
 	UnknownConnection,
+	#[error("table not found")]
+	TableNotFound,
 }
 
 #[derive(Serialize, Deserialize)]

@@ -1,6 +1,6 @@
 use {
 	super::{validate, AlterError},
-	crate::{SchemaDiff, data::get_name, Error, Glue, Result},
+	crate::{data::get_name, Error, Glue, Result, SchemaDiff},
 	sqlparser::ast::{AlterTableOperation, ObjectName},
 };
 
@@ -25,8 +25,19 @@ impl Glue {
 				old_column_name,
 				new_column_name,
 			} => {
-				let schema = database.fetch_schema(table_name).await?.ok_or(AlterError::TableNotFound(table_name.clone()))?;
-				let (column_index, column) = schema.column_defs.into_iter().enumerate().find(|(_, column)| column.name == old_column_name.value).ok_or(AlterError::ColumnNotFound(table_name.clone(), old_column_name.value.clone()))?;
+				let schema = database
+					.fetch_schema(table_name)
+					.await?
+					.ok_or(AlterError::TableNotFound(table_name.clone()))?;
+				let (column_index, column) = schema
+					.column_defs
+					.into_iter()
+					.enumerate()
+					.find(|(_, column)| column.name == old_column_name.value)
+					.ok_or(AlterError::ColumnNotFound(
+						table_name.clone(),
+						old_column_name.value.clone(),
+					))?;
 				SchemaDiff::new_rename_column(column_index, column, new_column_name.value.clone())
 			}
 			AlterTableOperation::AddColumn { column_def } => {
@@ -39,12 +50,27 @@ impl Glue {
 				if_exists,
 				..
 			} => {
-				let schema = database.fetch_schema(table_name).await?.ok_or(AlterError::TableNotFound(table_name.clone()))?;
-				let (column_index, _) = schema.column_defs.into_iter().enumerate().find(|(_, column)| column.name == column_name.value).ok_or(AlterError::ColumnNotFound(table_name.clone(), column_name.value.clone()))?;
+				let schema = database
+					.fetch_schema(table_name)
+					.await?
+					.ok_or(AlterError::TableNotFound(table_name.clone()))?;
+				let (column_index, _) = schema
+					.column_defs
+					.into_iter()
+					.enumerate()
+					.find(|(_, column)| column.name == column_name.value)
+					.ok_or(AlterError::ColumnNotFound(
+						table_name.clone(),
+						column_name.value.clone(),
+					))?;
 
 				SchemaDiff::new_remove_column(column_index)
 			}
-			_ => return Err(AlterError::UnsupportedAlterTableOperation(operation.to_string()).into()),
+			_ => {
+				return Err(
+					AlterError::UnsupportedAlterTableOperation(operation.to_string()).into(),
+				)
+			}
 		};
 		database.alter_table(table_name, diff).await
 	}

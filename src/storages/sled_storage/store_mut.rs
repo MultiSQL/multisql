@@ -1,6 +1,6 @@
 use {
-	super::{err_into, SledStorage},
-	crate::{BigEndian, Result, Row, Schema, StoreMut, Value},
+	super::{err_into, fetch_schema, SledStorage},
+	crate::{BigEndian, Result, Row, Schema, SchemaDiff, StorageError, StoreMut, Value},
 	async_trait::async_trait,
 	rayon::prelude::*,
 	sled::IVec,
@@ -142,6 +142,16 @@ impl StoreMut for SledStorage {
 			});
 
 		self.tree.apply_batch(batch).map_err(err_into)
+	}
+
+	async fn alter_table(&mut self, table_name: &str, schema_diff: SchemaDiff) -> Result<()> {
+		let (key, schema) = fetch_schema(&self.tree, table_name)?;
+		let schema = schema.ok_or(StorageError::TableNotFound)?;
+		let schema = schema_diff.merge(schema);
+		let schema_value = bincode::serialize(&schema).map_err(err_into)?;
+		self.tree.insert(key, schema_value).map_err(err_into)?;
+
+		Ok(())
 	}
 }
 

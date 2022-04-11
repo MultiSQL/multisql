@@ -62,7 +62,9 @@ impl Glue {
 				index
 					.reset(database, table_name, &schema.column_defs)
 					.await?;
-				database.alter_table(table_name, SchemaDiff::new_add_index(index)).await
+				database
+					.alter_table(table_name, SchemaDiff::new_add_index(index))
+					.await
 			} else {
 				unreachable!()
 			}

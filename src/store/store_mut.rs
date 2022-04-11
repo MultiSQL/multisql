@@ -1,5 +1,5 @@
 use {
-	crate::{Result, Row, Schema, StorageError, Value, SchemaDiff},
+	crate::{Result, Row, Schema, SchemaDiff, StorageError, Value},
 	async_trait::async_trait,
 };
 
@@ -35,11 +35,7 @@ pub trait StoreMut {
 		Err(StorageError::Unimplemented.into())
 	}
 
-	async fn alter_table(
-		&mut self,
-		_table_name: &str,
-		_schema_diff: SchemaDiff,
-	) -> Result<()> {
+	async fn alter_table(&mut self, _table_name: &str, _schema_diff: SchemaDiff) -> Result<()> {
 		Err(StorageError::Unimplemented.into())
 	}
 }
