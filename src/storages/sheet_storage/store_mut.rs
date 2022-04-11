@@ -1,6 +1,9 @@
 use umya_spreadsheet::{Border, Comment, PatternValues, RichText, Style, TextElement};
 use {
-	crate::{Cast, Result, Row, Schema, SheetStorage, SheetStorageError, StoreMut, Value, SchemaDiff, SchemaChange, StorageError},
+	crate::{
+		Cast, Result, Row, Schema, SchemaChange, SchemaDiff, SheetStorage, SheetStorageError,
+		StorageError, StoreMut, Value,
+	},
 	async_trait::async_trait,
 };
 
