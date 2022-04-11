@@ -4,7 +4,7 @@ use crate::{JoinType, Row, join_iters};
 
 use {
 	crate::{
-		IndexFilter, MemoryStorage, MemoryStorageError, Result, RowIter, Schema, StorageError,
+		IndexFilter, MemoryStorage, MemoryStorageError, Result, Plane, Schema, StorageError,
 		Store, Value,
 	},
 	async_trait::async_trait,
@@ -19,28 +19,26 @@ impl Store for MemoryStorage {
 		Ok(self.tables.values().cloned().collect())
 	}
 
-	async fn scan_data(&self, table_name: &str) -> Result<RowIter> {
-		let rows = self
+	async fn scan_data(&self, table_name: &str) -> Result<Plane> {
+		self
 			.data
 			.get(&table_name.to_string())
 			.cloned()
-			.ok_or(MemoryStorageError::TableNotFound)?;
-		Ok(Box::new(rows.into_iter().map(Ok)))
+			.ok_or(MemoryStorageError::TableNotFound.into())
+			.map(|rows| rows.into_iter().collect())
 	}
 
 	async fn scan_data_indexed(
 		&self,
 		table_name: &str,
 		index_filter: IndexFilter,
-	) -> Result<RowIter> {
+	) -> Result<Plane> {
 		let index_results = self.scan_index(table_name, index_filter).await?;
 		let default = HashMap::new();
 		let rows = self.data.get(&table_name.to_string()).unwrap_or(&default);
-		let row_results = index_results.into_iter().filter_map(|pk| {
+		Ok(index_results.into_iter().filter_map(|pk| {
 			rows.get(&pk).map(|row| (pk.clone(), row.clone()))
-		}).map(Ok).collect::<Vec<Result<(Value, Row)>>>().into_iter();
-
-		Ok(Box::new(row_results))
+		}).collect::<Vec<(Value, Row)>>())
 	}
 
 	async fn scan_index(&self, table_name: &str, index_filter: IndexFilter) -> Result<Vec<Value>> {
