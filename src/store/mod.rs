@@ -6,11 +6,11 @@ use std::sync::{Mutex, MutexGuard};
 
 pub use alter_table::*;
 mod auto_increment;
-use crate::IndexFilter;
+
 pub use auto_increment::AutoIncrement;
 
 use {
-	crate::{Row, Result, Value, Schema},
+	crate::{Result},
 	serde::{Deserialize, Serialize},
 	std::fmt::Debug,
 	thiserror::Error,
