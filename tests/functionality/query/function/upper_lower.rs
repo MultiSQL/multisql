@@ -1,11 +1,11 @@
 crate::util_macros::testcase!(
 	(|mut glue: multisql::Glue| {
 
-		crate::util_macros::assert_error!(glue,
+		crate::util_macros::assert_success!(glue,
 			"CREATE TABLE Item (name TEXT, opt_name TEXT NULL)",
 			multisql::Payload::Create
 		);
-		crate::util_macros::assert_error!(glue,
+		crate::util_macros::assert_success!(glue,
 			"INSERT INTO Item VALUES ('abcd', 'efgi'), ('Abcd', NULL), ('ABCD', 'EfGi')",
 			multisql::Payload::Insert(3)
 		);

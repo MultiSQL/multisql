@@ -1,8 +1,8 @@
 use {
 	crate::{
 		AlterError, CSVStorageError, ExecuteError, FetchError, InterfaceError, JoinError,
-		ManualError, PlanError, QueryError, RecipeError, RowError, SelectError, SheetStorageError,
-		StorageError, TableError, ValidateError, ValueError,
+		ManualError, MemoryStorageError, PlanError, QueryError, RecipeError, RowError, SelectError,
+		SheetStorageError, StorageError, TableError, ValidateError, ValueError,
 	},
 	serde::Serialize,
 	std::marker::{Send, Sync},
@@ -65,6 +65,8 @@ pub enum Error {
 	#[error(transparent)]
 	SheetStorage(#[from] SheetStorageError),
 	#[error(transparent)]
+	MemoryStorage(#[from] MemoryStorageError),
+	#[error(transparent)]
 	Interface(#[from] InterfaceError),
 }
 
@@ -99,6 +101,7 @@ impl PartialEq for Error {
 			(CSVStorage(l), CSVStorage(r)) => l == r,
 			(SheetStorage(l), SheetStorage(r)) => l == r,
 			(Interface(l), Interface(r)) => l == r,
+			(MemoryStorage(l), MemoryStorage(r)) => l == r,
 			_ => false,
 		}
 	}

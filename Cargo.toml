@@ -16,6 +16,7 @@
 		"sled-storage",
 		"csv-storage",
 		"sheet-storage",
+		"memory-storage",
 		# Functionality
 		"alter-table",
 		"auto-increment",
@@ -27,6 +28,7 @@
 		sled-storage = ["sled", "bincode"]
 		csv-storage = ["csv", "linecount"]
 		sheet-storage = ["umya-spreadsheet"]
+		memory-storage = []
 
 	# Functionality
 		alter-table = []
