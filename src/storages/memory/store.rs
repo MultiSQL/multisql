@@ -1,3 +1,7 @@
+use std::collections::{BTreeMap, HashMap};
+
+use crate::{JoinType, Row, join_iters};
+
 use {
 	crate::{
 		IndexFilter, MemoryStorage, MemoryStorageError, Result, RowIter, Schema, StorageError,
@@ -22,5 +26,52 @@ impl Store for MemoryStorage {
 			.cloned()
 			.ok_or(MemoryStorageError::TableNotFound)?;
 		Ok(Box::new(rows.into_iter().map(Ok)))
+	}
+
+	async fn scan_data_indexed(
+		&self,
+		table_name: &str,
+		index_filter: IndexFilter,
+	) -> Result<RowIter> {
+		let index_results = self.scan_index(table_name, index_filter).await?;
+		let default = HashMap::new();
+		let rows = self.data.get(&table_name.to_string()).unwrap_or(&default);
+		let row_results = index_results.into_iter().filter_map(|pk| {
+			rows.get(&pk).map(|row| (pk.clone(), row.clone()))
+		}).map(Ok).collect::<Vec<Result<(Value, Row)>>>().into_iter();
+
+		Ok(Box::new(row_results))
+	}
+
+	async fn scan_index(&self, table_name: &str, index_filter: IndexFilter) -> Result<Vec<Value>> {
+		use IndexFilter::*;
+		match index_filter.clone() {
+			LessThan(index_name, ..) | MoreThan(index_name, ..) => {
+				let default = BTreeMap::new();
+				let index = self.indexes.get(&table_name.to_string()).and_then(|indexes| indexes.get(&index_name)).unwrap_or(&default);
+				let index_results = match index_filter {
+					LessThan(_, max) => index.range(..max),
+					MoreThan(_, min) => index.range(min..),
+					_ => unreachable!(),
+				}.map(|(_, pk)|pk.clone()).collect();
+				Ok(index_results)
+			}
+			Inner(left, right) => {
+				let (left, right) = (
+					self.scan_index(table_name, *left),
+					self.scan_index(table_name, *right),
+				);
+				let (left, right) = (left.await?, right.await?);
+				Ok(join_iters(JoinType::Inner, left, right))
+			}
+			Outer(left, right) => {
+				let (left, right) = (
+					self.scan_index(table_name, *left),
+					self.scan_index(table_name, *right),
+				);
+				let (left, right) = (left.await?, right.await?);
+				Ok(join_iters(JoinType::Outer, left, right))
+			}
+		}
 	}
 }

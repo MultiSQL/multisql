@@ -6,7 +6,7 @@ mod store_mut;
 use {
 	crate::{store::*, Row, Schema, Value},
 	serde::Serialize,
-	std::{collections::HashMap, fmt::Debug},
+	std::{collections::{HashMap, BTreeMap}, fmt::Debug},
 	thiserror::Error,
 };
 
@@ -20,6 +20,7 @@ pub enum MemoryStorageError {
 pub struct MemoryStorage {
 	tables: HashMap<String, Schema>,
 	data: HashMap<String, HashMap<Value, Row>>,
+	indexes: HashMap<String, HashMap<String, BTreeMap<Value, Value>>>,
 }
 
 impl FullStorage for MemoryStorage {}

@@ -87,6 +87,11 @@ impl Hash for Value {
 	}
 }
 impl Eq for Value {}
+impl Ord for Value {
+	fn cmp(&self, other: &Self) -> Ordering {
+		self.partial_cmp(other).unwrap_or(Ordering::Equal)
+	}
+}
 
 impl From<bool> for Value {
 	fn from(from: bool) -> Value {
