@@ -1,7 +1,9 @@
-#![cfg(feature = "sled-storage")]
+use std::sync::Mutex;
+
+use crate::ExecuteError;
 use {
 	crate::{
-		execute, parse, parse_single, Payload, Query, Result, Row, Storage, StorageInner, Value,
+		parse, parse_single, CSVSettings, Connection, Payload, Query, Result, Storage, Value,
 		WIPError,
 	},
 	futures::executor::block_on,
@@ -11,7 +13,12 @@ use {
 	std::{collections::HashMap, fmt::Debug},
 };
 
+mod database;
+mod error;
+mod payload;
 mod select;
+
+pub use error::InterfaceError;
 
 pub(crate) type Variables = HashMap<String, Value>;
 
@@ -41,47 +48,147 @@ impl Context {
 /// - [`Glue::select_as_string()`] -- Provides data, only for `SELECT` queries, as [String]s (rather than [Value]s).
 /// - [`Glue::select_as_json()`] -- Provides data, only for `SELECT` queries, as one big [String]; generally useful for webby interactions.
 pub struct Glue {
-	storages: Vec<(String, Storage)>,
-	context: Option<Context>,
+	pub primary: String,
+	databases: HashMap<String, Storage>,
+	context: Mutex<Context>,
 }
 
 /// ## Creation of new interfaces
 impl Glue {
 	/// Creates a [Glue] instance with just one [Storage].
-	pub fn new(name: String, storage: Storage) -> Self {
-		Self::new_multi(vec![(name, storage)])
+	pub fn new(name: String, database: Storage) -> Self {
+		let mut databases = HashMap::new();
+		databases.insert(name, database);
+		Self::new_multi(databases)
 	}
 	/// Creates a [Glue] instance with access to all provided storages.
 	/// Argument is: [Vec]<(Identifier, [Storage])>
-	pub fn new_multi(storages: Vec<(String, Storage)>) -> Self {
-		let context = Some(Context::default());
-		Self { storages, context }
+	pub fn new_multi(databases: HashMap<String, Storage>) -> Self {
+		let context = Mutex::new(Context::default());
+		let primary = databases.keys().next().cloned().unwrap_or_default();
+		Self {
+			databases,
+			context,
+			primary,
+		}
 	}
 	/// Merges existing [Glue] instances
 	pub fn new_multi_glue(glues: Vec<Glue>) -> Self {
 		glues
 			.into_iter()
 			.reduce(|mut main, other| {
-				main.storages.extend(other.storages);
+				main.databases.extend(other.databases);
 				main
 			})
 			.unwrap()
+	}
+	/// Merge existing [Glue] with [Vec] of other [Glue]s
+	/// For example:
+	/// ```
+	/// use multisql::{SledStorage, Storage, Glue};
+	/// let storage = SledStorage::new("data/example_location/example")
+	///   .map(Storage::new_sled)
+	///   .expect("Storage Creation Failed");
+	/// let mut glue = Glue::new(String::from("main"), storage);
+	///
+	/// glue.execute_many("
+	///   DROP TABLE IF EXISTS test;
+	///   CREATE TABLE test (id INTEGER);
+	///   INSERT INTO test VALUES (1),(2);
+	///   SELECT * FROM test WHERE id > 1;
+	/// ");
+	///
+	/// let other_storage = SledStorage::new("data/example_location/example_other")
+	///   .map(Storage::new_sled)
+	///   .expect("Storage Creation Failed");
+	/// let mut other_glue = Glue::new(String::from("other"), other_storage);
+	///
+	/// glue.extend_many_glues(vec![other_glue]);
+	/// ```
+	///
+	pub fn extend_many_glues(&mut self, glues: Vec<Glue>) {
+		self.databases.extend(
+			glues
+				.into_iter()
+				.reduce(|mut main, other| {
+					main.databases.extend(other.databases);
+					main
+				})
+				.unwrap()
+				.databases,
+		)
+	}
+	pub fn extend_glue(&mut self, glue: Glue) {
+		self.databases.extend(glue.databases)
+	}
+
+	/// Extend using a ~~[Path]~~ [String] which represents a path
+	/// Guesses the type of database based on the extension
+	/// Returns [bool] of whether action was taken
+	pub fn try_extend_from_path(
+		&mut self,
+		database_name: String,
+		database_path: String,
+	) -> Result<bool> {
+		if self.databases.contains_key(&database_name) {
+			return Ok(false);
+		}
+		let connection = if database_path.ends_with('/') {
+			Connection::Sled(database_path)
+		} else if database_path.ends_with(".csv") {
+			Connection::CSV(database_path, CSVSettings::default())
+		} else if database_path.ends_with(".xlsx") {
+			Connection::Sheet(database_path)
+		} else {
+			return Err(ExecuteError::InvalidDatabaseLocation.into());
+		};
+		let database = connection.try_into()?;
+		Ok(self.extend(database_name, database))
+	}
+
+	/// Extend [Glue] by single database
+	/// Returns [bool] of whether action was taken
+	pub fn extend(&mut self, database_name: String, database: Storage) -> bool {
+		let database_present = self.databases.contains_key(&database_name);
+		if !database_present {
+			self.databases.insert(database_name, database);
+		}
+		!database_present
+	}
+
+	/// Opposite of [Glue::extend], removes database
+	/// Returns [bool] of whether action was taken
+	pub fn reduce(&mut self, database_name: &String) -> bool {
+		let database_present = self.databases.contains_key(database_name);
+		if database_present {
+			self.databases.remove(database_name);
+		}
+		database_present
 	}
 }
 
 /// Internal: Modify
 impl Glue {
-	pub(crate) fn take_context(&mut self) -> Context {
+	/*pub(crate) fn take_context(&mut self) -> Result<Context> {
 		self.context
 			.take()
-			.expect("Unreachable: Context wasn't replaced!")
+			.ok_or(InterfaceError::ContextUnavailable.into())
 	}
 	pub(crate) fn replace_context(&mut self, context: Context) {
 		self.context.replace(context);
-	}
+	}*/
 	#[allow(dead_code)]
 	fn set_context(&mut self, context: Context) {
-		self.context = Some(context);
+		self.context = Mutex::new(context);
+	}
+}
+
+impl Glue {
+	pub fn into_connections(self) -> Vec<(String, Connection)> {
+		self.databases
+			.into_iter()
+			.map(|(name, storage)| (name, storage.into_source()))
+			.collect()
 	}
 }
 
@@ -104,28 +211,7 @@ impl Glue {
 	}
 	/// Will execute a pre-parsed query (see [Glue::pre_parse()] for more).
 	pub fn execute_parsed(&mut self, query: Query) -> Result<Payload> {
-		let mut storages: Vec<(String, Box<StorageInner>)> = self
-			.storages
-			.iter_mut()
-			.map(|(name, storage)| (name.clone(), storage.take()))
-			.collect();
-		let give_storages: Vec<(String, &mut StorageInner)> = storages
-			.iter_mut()
-			.map(|(name, storage)| (name.clone(), &mut **storage))
-			.collect();
-
-		let mut context = self.take_context();
-
-		let result = block_on(execute(give_storages, &mut context, &query));
-
-		self.storages
-			.iter_mut()
-			.zip(storages)
-			.for_each(|((_name, storage), (_name_2, taken))| storage.replace(taken));
-
-		self.replace_context(context);
-
-		result
+		block_on(self.execute_query(&query))
 	}
 	/// Provides a parsed query to execute later.
 	/// Particularly useful if executing a small query many times as parsing is not (computationally) free.
@@ -194,232 +280,3 @@ impl Glue {
 		self.execute_parsed(query)
 	}
 }
-
-impl Payload {
-	// TODO: Move
-	pub fn unwrap_rows(self) -> Vec<Row> {
-		if let Payload::Select { rows, .. } = self {
-			rows
-		} else {
-			panic!("Expected Select!")
-		}
-	}
-}
-
-// TODO: Move
-/*
-#[cfg(test)]
-mod tests {
-	use {
-		crate::{CSVStorage, Glue, Payload, Row, SledStorage, Storage, Value},
-		std::convert::TryFrom,
-	};
-	#[test]
-	fn eq() {
-		std::fs::remove_dir_all("data").unwrap();
-		std::fs::create_dir("data").unwrap();
-		let config = sled::Config::default()
-			.path("data/using_config")
-			.temporary(true);
-
-		let sled = SledStorage::try_from(config).unwrap();
-		let mut glue = Glue::new(String::from("sled"), Storage::new(Box::new(sled.clone())));
-		assert_eq!(
-			glue.execute(
-					"CREATE TABLE api_test (id INTEGER PRIMARY KEY, name TEXT, nullable TEXT NULL, is BOOLEAN)",
-			),
-			Ok(Payload::Create)
-		);
-		assert_eq!(
-			glue.execute("INSERT INTO api_test (id, name, nullable, is) VALUES (1, 'test1', 'not null', TRUE), (2, 'test2', NULL, FALSE)"),
-			Ok(Payload::Insert(2))
-		);
-
-		assert_eq!(
-			glue.execute("SELECT id, name, is FROM api_test"), // Not selecting NULL because NULL != NULL. TODO: Expand this test so that NULL == NULL
-			Ok(Payload::Select {
-				labels: vec![String::from("id"), String::from("name"), String::from("is")],
-				rows: vec![
-					Row(vec![
-						Value::I64(1),
-						Value::Str(String::from("test1")),
-						Value::Bool(true)
-					]),
-					Row(vec![
-						Value::I64(2),
-						Value::Str(String::from("test2")),
-						Value::Bool(false)
-					])
-				]
-			})
-		);
-		#[cfg(feature = "expanded-api")]
-		assert_eq!(
-			glue.select_as_string("SELECT * FROM api_test"),
-			Ok(vec![
-				vec![
-					String::from("id"),
-					String::from("name"),
-					String::from("nullable"),
-					String::from("is")
-				],
-				vec![
-					String::from("1"),
-					String::from("test1"),
-					String::from("not null"),
-					String::from("TRUE")
-				],
-				vec![
-					String::from("2"),
-					String::from("test2"),
-					String::from("NULL"),
-					String::from("FALSE")
-				]
-			])
-		);
-
-		#[cfg(feature = "expanded-api")]
-		assert_eq!(
-			glue.select_as_json("SELECT * FROM api_test"),
-			Ok(String::from(
-				r#"[{"id":1,"is":true,"name":"test1","nullable":"not null"},{"id":2,"is":false,"name":"test2","nullable":null}]"#
-			))
-		);
-
-		use crate::Cast;
-
-		let test_value: Result<String, _> = Value::Str(String::from("test")).cast();
-		assert_eq!(test_value, Ok(String::from("test")));
-		let test_value: Result<String, _> = (Value::Str(String::from("test")).clone()).cast();
-		assert_eq!(test_value, Ok(String::from("test")));
-		let test_value: Result<String, _> = Value::I64(1).cast();
-		assert_eq!(test_value, Ok(String::from("1")));
-		let test_value: Result<String, _> = (Value::I64(1).clone()).cast();
-		assert_eq!(test_value, Ok(String::from("1")));
-
-		assert_eq!(
-			glue.execute("CREATE TABLE api_insert_vec (name TEXT, rating FLOAT)"),
-			Ok(Payload::Create)
-		);
-
-		#[cfg(feature = "expanded-api")]
-		assert_eq!(
-			glue.insert_vec(
-				String::from("api_insert_vec"),
-				vec![String::from("name"), String::from("rating")],
-				vec![vec![Value::Str(String::from("test")), Value::F64(1.2)]]
-			),
-			Ok(Payload::Insert(1))
-		);
-
-		assert_eq!(
-			glue.execute("SELECT * FROM api_insert_vec"),
-			Ok(Payload::Select {
-				labels: vec![String::from("name"), String::from("rating")],
-				rows: vec![Row(vec![Value::Str(String::from("test")), Value::F64(1.2)])]
-			})
-		);
-
-		#[cfg(feature = "expanded-api")]
-		assert_eq!(
-			glue.insert_vec(
-				String::from("api_insert_vec"),
-				vec![String::from("name"), String::from("rating")],
-				vec![
-					vec![Value::Str(String::from("test2")), Value::F64(1.3)],
-					vec![Value::Str(String::from("test3")), Value::F64(1.0)],
-					vec![Value::Str(String::from("test4")), Value::F64(100000.94)]
-				]
-			),
-			Ok(Payload::Insert(3))
-		);
-
-		assert_eq!(
-			glue.execute("SELECT * FROM api_insert_vec"),
-			Ok(Payload::Select {
-				labels: vec![String::from("name"), String::from("rating")],
-				rows: vec![
-					Row(vec![Value::Str(String::from("test")), Value::F64(1.2)]),
-					Row(vec![Value::Str(String::from("test2")), Value::F64(1.3)]),
-					Row(vec![Value::Str(String::from("test3")), Value::F64(1.0)]),
-					Row(vec![
-						Value::Str(String::from("test4")),
-						Value::F64(100000.94)
-					])
-				]
-			})
-		);
-
-		// Multi Glue
-		let csv_a = CSVStorage::new("data/using_config_a.csv").unwrap();
-		let csv_b = CSVStorage::new("data/using_config_b.csv").unwrap();
-		let _multi_glue_type_one = Glue::new_multi(vec![
-			(String::from("sled"), Storage::new(Box::new(sled.clone()))),
-			(String::from("csv"), Storage::new(Box::new(csv_a))),
-		]);
-		let mut csv_glue = Glue::new(String::from("csv"), Storage::new(Box::new(csv_b)));
-
-		assert_eq!(
-			csv_glue.execute("CREATE TABLE data (name TEXT, rating TEXT)"),
-			Ok(Payload::Create)
-		);
-
-		assert_eq!(
-			csv_glue.execute(
-				r#"
-				INSERT INTO
-					data (
-						name,
-						rating
-					)
-				VALUES (
-					'test2',
-					'30.1'
-				), (
-					'test3',
-					'0.1'
-				)
-			"#
-			),
-			Ok(Payload::Insert(2))
-		);
-
-		let mut multi_glue = Glue::new_multi_glue(vec![glue, csv_glue]);
-
-		assert_eq!(
-			multi_glue.execute(
-				r#"
-				SELECT
-					*
-				FROM
-					sled.api_insert_vec
-					INNER JOIN csv.data
-						ON sled.api_insert_vec.name = csv.data.name
-			"#
-			),
-			Ok(Payload::Select {
-				labels: vec![
-					String::from("api_insert_vec.name"),
-					String::from("api_insert_vec.rating"),
-					String::from("data.name"),
-					String::from("data.rating")
-				],
-				rows: vec![
-					Row(vec![
-						Value::Str(String::from("test2")),
-						Value::F64(1.3),
-						Value::Str(String::from("test2")),
-						Value::Str(String::from("30.1"))
-					]),
-					Row(vec![
-						Value::Str(String::from("test3")),
-						Value::F64(1.0),
-						Value::Str(String::from("test3")),
-						Value::Str(String::from("0.1"))
-					])
-				]
-			})
-		);
-	}
-}
-*/

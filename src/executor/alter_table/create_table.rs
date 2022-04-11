@@ -1,35 +1,37 @@
 use {
-	super::{validate, AlterError},
-	crate::{
-		data::{get_name, Schema},
-		Result, StorageInner,
-	},
+	super::AlterError,
+	crate::{data::Schema, Column, ComplexTableName, Glue, Result},
 	sqlparser::ast::{ColumnDef, ObjectName},
 };
 
-pub async fn create_table(
-	storage: &mut StorageInner,
-	name: &ObjectName,
-	column_defs: &[ColumnDef],
-	if_not_exists: bool,
-) -> Result<()> {
-	let schema = Schema {
-		table_name: get_name(name)?.to_string(),
-		column_defs: column_defs.to_vec(),
-		indexes: vec![],
-	};
+impl Glue {
+	pub async fn create_table(
+		&mut self,
+		name: &ObjectName,
+		column_defs: &[ColumnDef],
+		if_not_exists: bool,
+	) -> Result<()> {
+		let ComplexTableName {
+			name: table_name,
+			database,
+			..
+		} = name.try_into()?;
 
-	for column_def in &schema.column_defs {
-		validate(column_def)?;
-	}
+		let schema = Schema {
+			table_name,
+			column_defs: column_defs.iter().cloned().map(Column::from).collect(),
+			indexes: vec![],
+		};
 
-	if storage.fetch_schema(&schema.table_name).await?.is_some() {
-		if !if_not_exists {
-			Err(AlterError::TableAlreadyExists(schema.table_name.to_owned()).into())
+		let database = &mut **self.get_mut_database(&database)?;
+		if database.fetch_schema(&schema.table_name).await?.is_some() {
+			if !if_not_exists {
+				Err(AlterError::TableAlreadyExists(schema.table_name.to_owned()).into())
+			} else {
+				Ok(())
+			}
 		} else {
-			Ok(())
+			database.insert_schema(&schema).await
 		}
-	} else {
-		storage.insert_schema(&schema).await
 	}
 }

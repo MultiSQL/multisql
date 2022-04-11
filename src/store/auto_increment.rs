@@ -9,7 +9,7 @@ pub trait AutoIncrement {
 			usize,  /*index*/
 			String, /*name*/
 			i64,    /*row_count*/
-		) /*column*/>,
+		) /*column*/>, // TODO: Use struct
 	) -> Result<
 		Vec<(
 			/*column*/ (usize /*index*/, String /*name*/),

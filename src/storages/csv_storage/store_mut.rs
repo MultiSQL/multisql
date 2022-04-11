@@ -20,7 +20,7 @@ impl StoreMut for CSVStorage {
 		let header: Vec<String> = schema
 			.column_defs
 			.iter()
-			.map(|column_def| column_def.name.value.clone())
+			.map(|column_def| column_def.name.clone())
 			.collect();
 
 		writer
@@ -90,8 +90,4 @@ impl StoreMut for CSVStorage {
 			.map_err(|error| WIPError::Debug(format!("{:?}", error)))?;
 		Ok(())
 	}
-
-	//async fn update_data(&mut self, rows: Vec<(Value, Row)>) -> Result<()>;
-
-	//async fn delete_data(&mut self, keys: Vec<Value>) -> Result<()>;
 }

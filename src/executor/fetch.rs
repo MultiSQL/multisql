@@ -1,8 +1,7 @@
 use {
 	super::types::{ColumnInfo, ComplexTableName},
-	crate::{result::Result, StorageInner},
+	crate::{result::Result, Column, StorageInner},
 	serde::Serialize,
-	sqlparser::ast::ColumnDef,
 	thiserror::Error as ThisError,
 };
 
@@ -23,15 +22,14 @@ pub async fn fetch_columns(
 	let columns = schema
 		.column_defs
 		.iter()
-		.map(|ColumnDef { name, .. }| {
-			let name = name.value.clone();
+		.map(|Column { name, .. }| {
 			let index = schema
 				.indexes
 				.iter()
-				.find_map(|index| (index.column == name).then(|| index.name.clone()));
+				.find_map(|index| (&index.column == name).then(|| index.name.clone()));
 			ColumnInfo {
 				table: table.clone(),
-				name,
+				name: name.clone(),
 				index,
 			}
 		})

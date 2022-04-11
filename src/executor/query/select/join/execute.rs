@@ -2,14 +2,14 @@ use {
 	super::{JoinError, JoinMethod, JoinPlan, JoinType},
 	crate::{
 		executor::types::{ColumnInfo, Row},
-		Context, IndexFilter, Ingredient, MetaRecipe, Method, PlannedRecipe, Recipe, Result,
+		Glue, IndexFilter, Ingredient, MetaRecipe, Method, PlannedRecipe, Recipe, Result,
 		StorageInner, Value,
 	},
 };
 
 #[derive(Debug)]
 pub struct JoinExecute {
-	pub database: String,
+	pub database: Option<String>,
 	pub table: String,
 	pub method: JoinMethod,
 	pub join_type: JoinType,
@@ -59,29 +59,13 @@ impl JoinExecute {
 				.collect::<Vec<Row>>()
 		})
 	}
-	pub async fn execute<'a>(
-		self,
-		storages: &[(String, &mut StorageInner)],
-		context: &Context,
-		plane_rows: Vec<Row>,
-	) -> Result<Vec<Row>> {
-		let rows = if let Some((.., context_table_rows)) = context.tables.get(&self.table) {
-			Ok(context_table_rows.clone())
-		} else {
-			let storage = storages
-				.iter()
-				.find_map(|(name, storage)| {
-					if name == &self.database {
-						Some(&**storage)
-					} else {
-						None
-					}
-				})
-				.or_else(|| storages.get(0).map(|(_, storage)| &**storage))
-				.ok_or(JoinError::Unreachable)?;
-
-			self.get_rows(storage).await
-		}?;
+	pub async fn execute<'a>(self, glue: &Glue, plane_rows: Vec<Row>) -> Result<Vec<Row>> {
+		let rows =
+			if let Some((.., context_table_rows)) = glue.get_context()?.tables.get(&self.table) {
+				Ok(context_table_rows.clone())
+			} else {
+				self.get_rows(&**glue.get_database(&self.database)?).await
+			}?;
 		self.method.run(
 			&self.join_type,
 			self.widths.0,

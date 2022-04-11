@@ -2,10 +2,9 @@
 
 use {
 	super::{error::err_into, fetch_schema, SledStorage},
-	crate::{schema::ColumnDefExt, AlterTable, AlterTableError, Result, Row, Schema, Value},
+	crate::{AlterTable, AlterTableError, Column, Result, Row, Schema, Value},
 	async_trait::async_trait,
 	boolinator::Boolinator,
-	sqlparser::ast::{ColumnDef, Ident},
 	std::{iter::once, str},
 };
 
@@ -81,27 +80,11 @@ impl AlterTable for SledStorage {
 
 		let i = column_defs
 			.iter()
-			.position(|column_def| column_def.name.value == old_column_name)
+			.position(|column_def| column_def.name == old_column_name)
 			.ok_or(AlterTableError::RenamingColumnNotFound);
 		let i = i.map_err(err_into)?;
 
-		let ColumnDef {
-			name: Ident { quote_style, .. },
-			data_type,
-			collation,
-			options,
-		} = column_defs[i].clone();
-
-		let column_def = ColumnDef {
-			name: Ident {
-				quote_style,
-				value: new_column_name.to_string(),
-			},
-			data_type,
-			collation,
-			options,
-		};
-		column_defs[i] = column_def;
+		column_defs[i].name = new_column_name.to_string();
 
 		let schema = Schema {
 			table_name: table_name.to_string(),
@@ -114,7 +97,7 @@ impl AlterTable for SledStorage {
 		Ok(())
 	}
 
-	async fn add_column(&mut self, table_name: &str, column_def: &ColumnDef) -> Result<()> {
+	async fn add_column(&mut self, table_name: &str, column: &Column) -> Result<()> {
 		let (
 			key,
 			Schema {
@@ -126,17 +109,12 @@ impl AlterTable for SledStorage {
 
 		if column_defs
 			.iter()
-			.any(|ColumnDef { name, .. }| name.value == column_def.name.value)
+			.any(|check_column| check_column.name == column.name)
 		{
-			let adding_column = column_def.name.value.to_string();
-
-			return Err(AlterTableError::AddingColumnAlreadyExists(adding_column).into());
+			return Err(AlterTableError::AddingColumnAlreadyExists(column.name.clone()).into());
 		}
 
-		//let ColumnDef { data_type, .. } = column_def;
-		let nullable = column_def.is_nullable();
-		let default = column_def.get_default();
-		let value = match (default, nullable) {
+		let value = match (&column.default, &column.is_nullable) {
             (Some(_expr), _) => unimplemented!()/*try_self!(
                 self,
                 Value::from_expr(&data_type, nullable, expr)
@@ -144,7 +122,7 @@ impl AlterTable for SledStorage {
             (None, true) => Value::Null,
             (None, false) => {
                 return Err(
-                    AlterTableError::DefaultValueRequired(column_def.to_string()).into(),
+                    AlterTableError::DefaultValueRequired(column.name.clone()).into(),
                 );
             }
         };
@@ -164,8 +142,8 @@ impl AlterTable for SledStorage {
 		// update schema
 		let column_defs = column_defs
 			.into_iter()
-			.chain(once(column_def.clone()))
-			.collect::<Vec<ColumnDef>>();
+			.chain(once(column.clone()))
+			.collect::<Vec<Column>>();
 
 		let schema = Schema {
 			table_name,
@@ -195,7 +173,7 @@ impl AlterTable for SledStorage {
 
 		let index = column_defs
 			.iter()
-			.position(|ColumnDef { name, .. }| name.value == column_name);
+			.position(|Column { name, .. }| name == column_name);
 
 		let index = match (index, if_exists) {
 			(Some(index), _) => index,
@@ -231,7 +209,7 @@ impl AlterTable for SledStorage {
 			.into_iter()
 			.enumerate()
 			.filter_map(|(i, v)| (i != index).as_some(v))
-			.collect::<Vec<ColumnDef>>();
+			.collect::<Vec<Column>>();
 
 		let schema = Schema {
 			table_name,

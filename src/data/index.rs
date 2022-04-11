@@ -1,8 +1,7 @@
 use {
-	crate::{result::Result, Ingredient, Method, Recipe, StorageInner, Value},
+	crate::{result::Result, Column, Ingredient, Method, Recipe, Row, StorageInner, Value},
 	rayon::prelude::*,
 	serde::{Deserialize, Serialize},
-	sqlparser::ast::ColumnDef,
 	std::{cmp::Ordering, collections::HashMap},
 };
 
@@ -33,13 +32,15 @@ impl Index {
 		&self,
 		storage: &mut StorageInner,
 		table: &str,
-		column_defs: &[ColumnDef],
+		columns: &[Column],
 	) -> Result<()> {
-		let rows = storage.scan_data(table).await?;
-		let column_index: usize = column_defs
+		let rows = storage
+			.scan_data(table)
+			.await?;
+		let column_index: usize = columns
 			.iter()
 			.enumerate()
-			.find_map(|(index, def)| (def.name.value == self.column).then(|| index))
+			.find_map(|(index, def)| (def.name == self.column).then(|| index))
 			.unwrap(); // TODO: Handle
 
 		let mut rows: Vec<(Value, Vec<Value>)> =
@@ -100,64 +101,67 @@ impl Recipe {
 						},
 					);
 				}
-				Method::BinaryOperation(operator, left, right)
-					if operator as usize == Value::gt_eq as usize =>
-				{
-					if let (
-						Recipe::Ingredient(Ingredient::Column(column)),
-						Recipe::Ingredient(Ingredient::Value(value)),
-					) = (left, right)
+				Method::BinaryOperation(
+					operator,
+					Recipe::Ingredient(Ingredient::Column(column)),
+					Recipe::Ingredient(Ingredient::Value(value)),
+				) if operator as usize == Value::eq as usize => {
 					{
 						if let Some((table, index)) = indexed_columns.get(&column) {
 							let mut filters = HashMap::new();
-							filters.insert(table.clone(), MoreThan(index.clone(), value));
+							filters.insert(
+								table.clone(),
+								Inner(
+									Box::new(LessThan(index.clone(), value.inc())),
+									Box::new(MoreThan(index.clone(), value)),
+								),
+							); // Eh; TODO: Improve
 							return (Recipe::TRUE, Some(filters));
 						}
 					}
 				}
-				Method::BinaryOperation(operator, left, right)
-					if operator as usize == Value::gt as usize =>
-				{
-					if let (
-						Recipe::Ingredient(Ingredient::Column(column)),
-						Recipe::Ingredient(Ingredient::Value(value)),
-					) = (left, right)
-					{
-						if let Some((table, index)) = indexed_columns.get(&column) {
-							let mut filters = HashMap::new();
-							filters.insert(table.clone(), MoreThan(index.clone(), value.inc()));
-							return (Recipe::TRUE, Some(filters));
-						}
+				Method::BinaryOperation(
+					operator,
+					Recipe::Ingredient(Ingredient::Column(column)),
+					Recipe::Ingredient(Ingredient::Value(value)),
+				) if operator as usize == Value::gt_eq as usize => {
+					if let Some((table, index)) = indexed_columns.get(&column) {
+						let mut filters = HashMap::new();
+						filters.insert(table.clone(), MoreThan(index.clone(), value));
+						return (Recipe::TRUE, Some(filters));
 					}
 				}
-				Method::BinaryOperation(operator, left, right)
-					if operator as usize == Value::lt as usize =>
-				{
-					if let (
-						Recipe::Ingredient(Ingredient::Column(column)),
-						Recipe::Ingredient(Ingredient::Value(value)),
-					) = (left, right)
-					{
-						if let Some((table, index)) = indexed_columns.get(&column) {
-							let mut filters = HashMap::new();
-							filters.insert(table.clone(), LessThan(index.clone(), value));
-							return (Recipe::TRUE, Some(filters));
-						}
+				Method::BinaryOperation(
+					operator,
+					Recipe::Ingredient(Ingredient::Column(column)),
+					Recipe::Ingredient(Ingredient::Value(value)),
+				) if operator as usize == Value::gt as usize => {
+					if let Some((table, index)) = indexed_columns.get(&column) {
+						let mut filters = HashMap::new();
+						filters.insert(table.clone(), MoreThan(index.clone(), value.inc()));
+						return (Recipe::TRUE, Some(filters));
 					}
 				}
-				Method::BinaryOperation(operator, left, right)
-					if operator as usize == Value::lt_eq as usize =>
-				{
-					if let (
-						Recipe::Ingredient(Ingredient::Column(column)),
-						Recipe::Ingredient(Ingredient::Value(value)),
-					) = (left, right)
-					{
-						if let Some((table, index)) = indexed_columns.get(&column) {
-							let mut filters = HashMap::new();
-							filters.insert(table.clone(), LessThan(index.clone(), value.inc()));
-							return (Recipe::TRUE, Some(filters));
-						}
+				Method::BinaryOperation(
+					operator,
+					Recipe::Ingredient(Ingredient::Column(column)),
+					Recipe::Ingredient(Ingredient::Value(value)),
+				) if operator as usize == Value::lt as usize => {
+					if let Some((table, index)) = indexed_columns.get(&column) {
+						let mut filters = HashMap::new();
+						filters.insert(table.clone(), LessThan(index.clone(), value));
+						return (Recipe::TRUE, Some(filters));
+					}
+				}
+				Method::BinaryOperation(
+					operator,
+					Recipe::Ingredient(Ingredient::Column(column)),
+					Recipe::Ingredient(Ingredient::Value(value)),
+				) if operator as usize == Value::lt_eq as usize => {
+					if let Some((table, index)) = indexed_columns.get(&column) {
+						let mut filters = HashMap::new();
+						filters.insert(table.clone(), LessThan(index.clone(), value.inc()));
+						return (Recipe::TRUE, Some(filters));
 					}
 				}
 				_ => (),

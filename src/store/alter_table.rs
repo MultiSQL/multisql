@@ -1,9 +1,8 @@
 use {
 	super::StorageError,
-	crate::{Result, Schema},
+	crate::{Column, Result, Schema},
 	async_trait::async_trait,
 	serde::Serialize,
-	sqlparser::ast::ColumnDef,
 	std::fmt::Debug,
 	thiserror::Error,
 };
@@ -40,11 +39,9 @@ pub trait AlterTable {
 	) -> Result<()> {
 		Err(StorageError::Unimplemented.into())
 	}
-
-	async fn add_column(&mut self, _table_name: &str, _column_def: &ColumnDef) -> Result<()> {
+	async fn add_column(&mut self, _table_name: &str, _column: &Column) -> Result<()> {
 		Err(StorageError::Unimplemented.into())
 	}
-
 	async fn drop_column(
 		&mut self,
 		_table_name: &str,

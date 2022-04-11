@@ -16,6 +16,16 @@ impl Store for SledStorage {
 	async fn fetch_schema(&self, table_name: &str) -> Result<Option<Schema>> {
 		fetch_schema(&self.tree, table_name).map(|(_, schema)| schema)
 	}
+	async fn scan_schemas(&self) -> Result<Vec<Schema>> {
+		let prefix = "schema/".to_string();
+		self.tree
+			.scan_prefix(prefix.as_bytes())
+			.map(|item| {
+				let (_, bytes) = item.map_err(err_into)?;
+				bincode::deserialize(&bytes).map_err(err_into)
+			})
+			.collect()
+	}
 
 	async fn scan_data(&self, table_name: &str) -> Result<Plane> {
 		let prefix = format!("data/{}/", table_name);

@@ -12,12 +12,14 @@ mod error;
 mod literal;
 mod methods;
 mod serde_convert;
+mod value_type;
 
 pub use {
 	big_endian::BigEndian,
 	cast::{Cast, CastWithRules},
 	convert::{Convert, ConvertFrom},
 	error::ValueError,
+	value_type::ValueType,
 };
 
 /// # Value
@@ -64,6 +66,7 @@ pub enum Value {
 	Null,
 
 	Bool(bool),
+	U64(u64),
 	I64(i64),
 	F64(f64),
 	Str(String),
@@ -92,6 +95,12 @@ impl From<f64> for Value {
 impl From<String> for Value {
 	fn from(from: String) -> Value {
 		Value::Str(from)
+	}
+}
+impl From<Value> for String {
+	// unsafe
+	fn from(from: Value) -> String {
+		from.cast().unwrap()
 	}
 }
 
@@ -180,6 +189,27 @@ impl Value {
 		}
 
 		Ok(self)
+	}
+	pub fn is(&mut self, data_type: &ValueType) -> Result<()> {
+		match (data_type, &self) {
+			(ValueType::Bool, Value::Bool(_))
+			| (ValueType::U64, Value::U64(_))
+			| (ValueType::I64, Value::I64(_))
+			| (ValueType::F64, Value::F64(_))
+			| (ValueType::Str, Value::Str(_))
+			| (ValueType::Timestamp, Value::Timestamp(_))
+			| (ValueType::Any, _)
+			| (_, Value::Null) => Ok(()),
+			(ValueType::F64, Value::I64(_)) => {
+				*self = Value::F64(self.clone().cast()?);
+				Ok(())
+			}
+			_ => Err(ValueError::IncompatibleDataType {
+				data_type: data_type.to_string(),
+				value: format!("{:?}", self),
+			}
+			.into()),
+		}
 	}
 
 	fn type_is_valid(&self, data_type: &DataType) -> bool {

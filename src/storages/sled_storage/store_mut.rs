@@ -72,7 +72,7 @@ impl StoreMut for SledStorage {
 		self.tree.apply_batch(batch).map_err(err_into)
 	}
 
-	async fn update_data(&mut self, rows: Vec<(Value, Row)>) -> Result<()> {
+	async fn update_data(&mut self, _table_name: &str, rows: Vec<(Value, Row)>) -> Result<()> {
 		let ready_rows = rows
 			.into_par_iter()
 			.map(|(key, value)| {
@@ -92,7 +92,7 @@ impl StoreMut for SledStorage {
 		self.tree.apply_batch(batch).map_err(err_into)
 	}
 
-	async fn delete_data(&mut self, keys: Vec<Value>) -> Result<()> {
+	async fn delete_data(&mut self, _table_name: &str, keys: Vec<Value>) -> Result<()> {
 		let batch = keys
 			.into_iter()
 			.fold(sled::Batch::default(), |mut batch, key| {

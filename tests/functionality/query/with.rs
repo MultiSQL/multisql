@@ -33,6 +33,7 @@ crate::util_macros::testcase!(
 			cte_1
 	"# => a = I64: (1));
 
+		/* TODO: #107
 		glue.execute(
 			r#"
 		WITH cte_0 AS (
@@ -53,6 +54,7 @@ crate::util_macros::testcase!(
 	"#,
 		)
 		.expect_err("CTE is not simultaneous");
+		*/
 
 		glue.execute("CREATE TABLE basic_insert (a INTEGER)")
 			.unwrap();

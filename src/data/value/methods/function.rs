@@ -1,6 +1,7 @@
 use {
-	crate::{CastWithRules, Convert, Result, Value, ValueError},
+	crate::{Cast, CastWithRules, Convert, Result, Value, ValueError},
 	chrono::NaiveDateTime,
+	uuid::Uuid,
 };
 
 macro_rules! expect_arguments {
@@ -90,6 +91,31 @@ impl Value {
 		};
 		value.round(places)
 	}
+
+	pub fn function_rand(arguments: Vec<Self>) -> Result<Self> {
+		match arguments.len() {
+			0 => Self::function_random_float(arguments),
+			2 => Self::function_random_int(arguments),
+			found => {
+				Err(ValueError::NumberOfFunctionParamsNotMatching { expected: 0, found }.into())
+			}
+		}
+	}
+	pub fn function_random_float(arguments: Vec<Self>) -> Result<Self> {
+		expect_arguments!(arguments, 0);
+		Ok(Self::F64(fastrand::f64()))
+	}
+	pub fn function_random_int(mut arguments: Vec<Self>) -> Result<Self> {
+		expect_arguments!(arguments, 2);
+		let min: i64 = arguments.remove(0).cast()?;
+		let max: i64 = arguments.remove(0).cast()?;
+		Ok(Self::I64(fastrand::i64(min..=max)))
+	}
+	pub fn function_uuid(arguments: Vec<Self>) -> Result<Self> {
+		expect_arguments!(arguments, 0);
+		Ok(Self::Str(Uuid::new_v4().to_hyphenated().to_string())) // TODO: Custom type
+	}
+
 	pub fn function_pow(mut arguments: Vec<Self>) -> Result<Self> {
 		expect_arguments!(arguments, 2);
 		arguments.remove(0).pow(arguments.remove(0))
