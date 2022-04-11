@@ -46,12 +46,8 @@ impl Glue {
 			.get_database(&database)?
 			.scan_data(&table_name)
 			.await?
-			.filter_map(|row_result| {
-				let (key, row) = match row_result {
-					Ok(keyed_row) => keyed_row,
-					Err(error) => return Some(Err(error)),
-				};
-
+			.into_iter()
+			.filter_map(|(key, row)| {
 				let row = row.0;
 
 				let confirm_constraint = filter.confirm_constraint(&row);

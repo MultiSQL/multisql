@@ -1,5 +1,5 @@
 use {
-	crate::{result::Result, Column, Ingredient, Method, Recipe, Row, StorageInner, Value},
+	crate::{result::Result, Column, Ingredient, Method, Recipe, StorageInner, Value},
 	rayon::prelude::*,
 	serde::{Deserialize, Serialize},
 	std::{cmp::Ordering, collections::HashMap},
@@ -34,10 +34,7 @@ impl Index {
 		table: &str,
 		columns: &[Column],
 	) -> Result<()> {
-		let rows = storage
-			.scan_data(table)
-			.await?
-			.collect::<Result<Vec<(Value, Row)>>>()?;
+		let rows = storage.scan_data(table).await?;
 		let column_index: usize = columns
 			.iter()
 			.enumerate()
