@@ -148,7 +148,7 @@ impl SchemaDiff {
 			changes.push(RenameTable(table_name.clone()))
 		}
 		if let Some(column_defs) = &self.column_defs {
-			for (index, column_def) in column_defs.into_iter() {
+			for (index, column_def) in column_defs.iter() {
 				match (index, column_def) {
 					(None, None) => (),
 					(Some(index), Some(column_def)) => {
@@ -164,7 +164,7 @@ impl SchemaDiff {
 			}
 		}
 		if let Some(indexes) = &self.indexes {
-			for (index, index_def) in indexes.into_iter() {
+			for (index, index_def) in indexes.iter() {
 				match (index, index_def) {
 					(None, None) => (),
 					(Some(index), Some(index_def)) => {
