@@ -77,7 +77,7 @@ impl Glue {
 			.scan_data(&table)
 			.await?
 			.into_iter()
-			.filter_map(| (key, row)| {
+			.filter_map(|(key, row)| {
 				let row = row.0;
 
 				let confirm_constraint = filter.confirm_constraint(&row);

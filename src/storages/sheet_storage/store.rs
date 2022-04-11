@@ -1,6 +1,6 @@
 use crate::StorageError;
 use {
-	crate::{Cast, Column, Result, Row, Schema, SheetStorage, Store, Value, Plane},
+	crate::{Cast, Column, Plane, Result, Row, Schema, SheetStorage, Store, Value},
 	async_trait::async_trait,
 	std::convert::TryFrom,
 	umya_spreadsheet::{Cell, Worksheet},
@@ -39,8 +39,7 @@ impl Store for SheetStorage {
 				rows
 			});
 
-		rows
-			.into_iter()
+		rows.into_iter()
 			.enumerate()
 			.map(|(pk, row)| {
 				(

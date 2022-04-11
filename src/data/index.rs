@@ -34,9 +34,7 @@ impl Index {
 		table: &str,
 		columns: &[Column],
 	) -> Result<()> {
-		let rows = storage
-			.scan_data(table)
-			.await?;
+		let rows = storage.scan_data(table).await?;
 		let column_index: usize = columns
 			.iter()
 			.enumerate()

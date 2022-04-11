@@ -10,7 +10,7 @@ mod auto_increment;
 pub use auto_increment::AutoIncrement;
 
 use {
-	crate::{Result},
+	crate::Result,
 	serde::{Deserialize, Serialize},
 	std::fmt::Debug,
 	thiserror::Error,
