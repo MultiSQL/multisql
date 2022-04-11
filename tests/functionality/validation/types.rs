@@ -8,14 +8,14 @@ crate::util_macros::testcase!(
 		crate::util_macros::assert_error!(glue,
 			"INSERT INTO TableB SELECT uid FROM TableC;",
 			multisql::ValueError::IncompatibleDataType {
-				data_type: multisql::parser::ast::DataType::Boolean.to_string(),
+				data_type: sqlparser::ast::DataType::Boolean.to_string(),
 				value: format!("{:?}", multisql::Value::I64(1)),
 			}
 		);
 		crate::util_macros::assert_error!(glue,
 			"INSERT INTO TableC (uid) VALUES (\"A\")",
 			multisql::ValueError::IncompatibleDataType {
-				data_type: multisql::parser::ast::DataType::Int(None).to_string(),
+				data_type: sqlparser::ast::DataType::Int(None).to_string(),
 				value: format!("{:?}", multisql::Value::Str(String::from("A"))),
 			}
 		);
@@ -30,7 +30,7 @@ crate::util_macros::testcase!(
 		crate::util_macros::assert_error!(glue,
 			"UPDATE TableC SET uid = TRUE;",
 			multisql::ValueError::IncompatibleDataType {
-				data_type: multisql::parser::ast::DataType::Int(None).to_string(),
+				data_type: sqlparser::ast::DataType::Int(None).to_string(),
 				value: format!("{:?}", multisql::Value::Bool(true)),
 			}
 		);

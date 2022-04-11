@@ -1,29 +1,29 @@
 use {
-	crate::{Result, Row, Schema, SchemaDiff, StorageError, Value},
+	crate::{DatabaseError, Result, Row, Schema, SchemaDiff, Value},
 	async_trait::async_trait,
 };
 
 /// `StoreMut` -> `INSERT`, `CREATE`, `DELETE`, `DROP`, `UPDATE`
 #[async_trait(?Send)]
-pub trait StoreMut {
+pub trait DBMut {
 	async fn insert_schema(&mut self, _schema: &Schema) -> Result<()> {
-		Err(StorageError::Unimplemented.into())
+		Err(DatabaseError::Unimplemented.into())
 	}
 
 	async fn delete_schema(&mut self, _table_name: &str) -> Result<()> {
-		Err(StorageError::Unimplemented.into())
+		Err(DatabaseError::Unimplemented.into())
 	} // Shouldn't this be AlterTable?
 
 	async fn insert_data(&mut self, _table_name: &str, _rows: Vec<Row>) -> Result<()> {
-		Err(StorageError::Unimplemented.into())
+		Err(DatabaseError::Unimplemented.into())
 	}
 
 	async fn update_data(&mut self, _table_name: &str, _rows: Vec<(Value, Row)>) -> Result<()> {
-		Err(StorageError::Unimplemented.into())
+		Err(DatabaseError::Unimplemented.into())
 	}
 
 	async fn delete_data(&mut self, _table_name: &str, _keys: Vec<Value>) -> Result<()> {
-		Err(StorageError::Unimplemented.into())
+		Err(DatabaseError::Unimplemented.into())
 	}
 
 	async fn update_index(
@@ -32,10 +32,10 @@ pub trait StoreMut {
 		_table_name: &str,
 		_keys: Vec<(Value, Value)>,
 	) -> Result<()> {
-		Err(StorageError::Unimplemented.into())
+		Err(DatabaseError::Unimplemented.into())
 	}
 
 	async fn alter_table(&mut self, _table_name: &str, _schema_diff: SchemaDiff) -> Result<()> {
-		Err(StorageError::Unimplemented.into())
+		Err(DatabaseError::Unimplemented.into())
 	}
 }

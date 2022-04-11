@@ -1,7 +1,7 @@
 use {
-	super::{err_into, fetch_schema, SledStorage},
+	super::{err_into, fetch_schema, SledDatabase},
 	crate::{
-		BigEndian, Column, Result, Row, Schema, SchemaChange, SchemaDiff, StorageError, StoreMut,
+		BigEndian, Column, DBMut, DatabaseError, Result, Row, Schema, SchemaChange, SchemaDiff,
 		Value,
 	},
 	async_trait::async_trait,
@@ -11,7 +11,7 @@ use {
 };
 
 #[async_trait(?Send)]
-impl StoreMut for SledStorage {
+impl DBMut for SledDatabase {
 	async fn insert_schema(&mut self, schema: &Schema) -> Result<()> {
 		let key = format!("schema/{}", schema.table_name);
 		let key = key.as_bytes();
@@ -147,7 +147,7 @@ impl StoreMut for SledStorage {
 				IndexRemove(index) => {
 					let schema = fetch_schema(&self.tree, table_name)?
 						.1
-						.ok_or(StorageError::TableNotFound)?;
+						.ok_or(DatabaseError::TableNotFound)?;
 					if let Some(index) = schema.indexes.get(index) {
 						self.remove_index(table_name, &index.name)
 					} else {
@@ -155,14 +155,14 @@ impl StoreMut for SledStorage {
 					}
 				}
 				ColumnUpdate(..) | IndexAdd(..) => Ok(()),
-				_ => Err(StorageError::Unimplemented.into()),
+				_ => Err(DatabaseError::Unimplemented.into()),
 				// TODO: Column remove & add: manipulate all rows
 				// TODO: Index remove, add and update: rebuild
 			}?;
 		}
 
 		let (key, schema) = fetch_schema(&self.tree, table_name)?;
-		let schema = schema.ok_or(StorageError::TableNotFound)?;
+		let schema = schema.ok_or(DatabaseError::TableNotFound)?;
 		let schema = schema_diff.merge(schema);
 		let schema_value = bincode::serialize(&schema)?;
 		self.tree.insert(key, schema_value)?;
@@ -171,10 +171,10 @@ impl StoreMut for SledStorage {
 	}
 }
 
-impl SledStorage {
+impl SledDatabase {
 	pub fn rename_table(&mut self, old_name: &str, new_name: String) -> Result<()> {
 		let (key, schema) = fetch_schema(&self.tree, old_name)?;
-		let schema = schema.ok_or(StorageError::TableNotFound)?;
+		let schema = schema.ok_or(DatabaseError::TableNotFound)?;
 		self.tree.remove(key)?;
 
 		let value = bincode::serialize(&schema)?;
@@ -198,9 +198,9 @@ impl SledStorage {
 	}
 	pub fn add_column(&mut self, table_name: &str, column: Column) -> Result<()> {
 		let value = match (&column.default, &column.is_nullable) {
-			(Some(_expr), _) => Err(StorageError::Unimplemented), // TODO
+			(Some(_expr), _) => Err(DatabaseError::Unimplemented), // TODO
 			(None, true) => Ok(Value::Null),
-			(None, false) => Err(StorageError::Unimplemented),
+			(None, false) => Err(DatabaseError::Unimplemented),
 		}?;
 
 		let prefix = format!("data/{}/", table_name);

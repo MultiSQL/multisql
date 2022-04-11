@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
 use {
-	crate::{MemoryStorage, Result, Row, Schema, StoreMut, Value},
+	crate::{DBMut, MemoryDatabase, Result, Row, Schema, Value},
 	async_trait::async_trait,
 };
 
 #[async_trait(?Send)]
-impl StoreMut for MemoryStorage {
+impl DBMut for MemoryDatabase {
 	async fn insert_schema(&mut self, schema: &Schema) -> Result<()> {
 		let table_name = schema.table_name.clone();
 		self.data.insert(table_name.clone(), HashMap::new());

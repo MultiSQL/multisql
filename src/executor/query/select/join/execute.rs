@@ -2,8 +2,8 @@ use {
 	super::{JoinError, JoinMethod, JoinPlan, JoinType},
 	crate::{
 		executor::types::{ColumnInfo, Row},
-		Glue, IndexFilter, Ingredient, MetaRecipe, Method, PlannedRecipe, Recipe, Result,
-		StorageInner, Value,
+		DatabaseInner, Glue, IndexFilter, Ingredient, MetaRecipe, Method, PlannedRecipe, Recipe,
+		Result, Value,
 	},
 };
 
@@ -45,7 +45,7 @@ impl JoinExecute {
 	pub fn set_first_table(&mut self) {
 		self.method = JoinMethod::FirstTable;
 	}
-	pub async fn get_rows<'a>(&self, storage: &StorageInner) -> Result<Vec<Row>> {
+	pub async fn get_rows<'a>(&self, storage: &DatabaseInner) -> Result<Vec<Row>> {
 		if let Some(index_filter) = self.index_filter.clone() {
 			storage.scan_data_indexed(self.table.as_str(), index_filter)
 		} else {

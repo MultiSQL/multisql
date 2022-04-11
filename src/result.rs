@@ -1,8 +1,8 @@
 use {
 	crate::{
-		AlterError, CSVStorageError, ExecuteError, FetchError, InterfaceError, JoinError,
-		ManualError, MemoryStorageError, PlanError, QueryError, RecipeError, RowError, SelectError,
-		SheetStorageError, StorageError, TableError, ValidateError, ValueError,
+		AlterError, CSVDatabaseError, DatabaseError, ExecuteError, FetchError, InterfaceError,
+		JoinError, ManualError, MemoryDatabaseError, PlanError, QueryError, RecipeError, RowError,
+		SelectError, SheetDatabaseError, TableError, ValidateError, ValueError,
 	},
 	serde::Serialize,
 	std::marker::{Send, Sync},
@@ -21,7 +21,7 @@ pub enum WIPError {
 pub enum Error {
 	#[error(transparent)]
 	#[serde(with = "stringify")]
-	Storage(#[from] Box<dyn std::error::Error>),
+	Database(#[from] Box<dyn std::error::Error>),
 
 	#[error(transparent)]
 	Execute(#[from] ExecuteError),
@@ -52,13 +52,13 @@ pub enum Error {
 	#[error(transparent)]
 	WIP(#[from] WIPError),
 	#[error(transparent)]
-	StorageImplementation(#[from] StorageError),
+	DatabaseImplementation(#[from] DatabaseError),
 	#[error(transparent)]
-	CSVStorage(#[from] CSVStorageError),
+	CSVDatabase(#[from] CSVDatabaseError),
 	#[error(transparent)]
-	SheetStorage(#[from] SheetStorageError),
+	SheetDatabase(#[from] SheetDatabaseError),
 	#[error(transparent)]
-	MemoryStorage(#[from] MemoryStorageError),
+	MemoryDatabase(#[from] MemoryDatabaseError),
 	#[error(transparent)]
 	Interface(#[from] InterfaceError),
 }
@@ -88,11 +88,11 @@ impl PartialEq for Error {
 			(Query(l), Query(r)) => l == r,
 			(Validate(l), Validate(r)) => l == r,
 			(WIP(l), WIP(r)) => l == r,
-			(StorageImplementation(l), StorageImplementation(r)) => l == r,
-			(CSVStorage(l), CSVStorage(r)) => l == r,
-			(SheetStorage(l), SheetStorage(r)) => l == r,
+			(DatabaseImplementation(l), DatabaseImplementation(r)) => l == r,
+			(CSVDatabase(l), CSVDatabase(r)) => l == r,
+			(SheetDatabase(l), SheetDatabase(r)) => l == r,
 			(Interface(l), Interface(r)) => l == r,
-			(MemoryStorage(l), MemoryStorage(r)) => l == r,
+			(MemoryDatabase(l), MemoryDatabase(r)) => l == r,
 			_ => false,
 		}
 	}

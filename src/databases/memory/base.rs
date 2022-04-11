@@ -3,12 +3,14 @@ use std::collections::{BTreeMap, HashMap};
 use crate::{join_iters, JoinType, Row};
 
 use {
-	crate::{IndexFilter, MemoryStorage, MemoryStorageError, Plane, Result, Schema, Store, Value},
+	crate::{
+		DBBase, IndexFilter, MemoryDatabase, MemoryDatabaseError, Plane, Result, Schema, Value,
+	},
 	async_trait::async_trait,
 };
 
 #[async_trait(?Send)]
-impl Store for MemoryStorage {
+impl DBBase for MemoryDatabase {
 	async fn fetch_schema(&self, table_name: &str) -> Result<Option<Schema>> {
 		Ok(self.tables.get(&table_name.to_string()).cloned())
 	}
@@ -20,7 +22,7 @@ impl Store for MemoryStorage {
 		self.data
 			.get(&table_name.to_string())
 			.cloned()
-			.ok_or(MemoryStorageError::TableNotFound.into())
+			.ok_or(MemoryDatabaseError::TableNotFound.into())
 			.map(|rows| rows.into_iter().collect())
 	}
 

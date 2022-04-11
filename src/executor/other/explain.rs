@@ -1,4 +1,4 @@
-use crate::{ExecuteError, Payload, Row, Schema, StorageInner, Value};
+use crate::{DatabaseInner, ExecuteError, Payload, Row, Schema, Value};
 use crate::{Glue, Result};
 use sqlparser::ast::ObjectName;
 
@@ -80,7 +80,7 @@ impl Glue {
 		}
 	}
 }
-impl StorageInner {
+impl DatabaseInner {
 	async fn get_tables(&self) -> Result<Vec<Value>> {
 		Ok(self
 			.scan_schemas()

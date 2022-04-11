@@ -1,6 +1,6 @@
 use {
 	super::types::{ColumnInfo, ComplexTableName},
-	crate::{result::Result, Column, StorageInner},
+	crate::{result::Result, Column, DatabaseInner},
 	serde::Serialize,
 	thiserror::Error as ThisError,
 };
@@ -12,7 +12,7 @@ pub enum FetchError {
 }
 
 pub async fn fetch_columns(
-	storage: &StorageInner,
+	storage: &DatabaseInner,
 	table: ComplexTableName,
 ) -> Result<Vec<ColumnInfo>> {
 	let schema = storage

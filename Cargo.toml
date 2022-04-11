@@ -13,10 +13,10 @@
 [features]
 	default = [
 		# Storages
-		"sled-storage",
-		"csv-storage",
-		"sheet-storage",
-		"memory-storage",
+		"sled-database",
+		"csv-database",
+		"sheet-database",
+		"memory-database",
 		# Functionality
 		"alter-table",
 		"auto-increment",
@@ -25,10 +25,10 @@
 	]
 
 	# Storages
-		sled-storage = ["sled", "bincode"]
-		csv-storage = ["csv", "linecount"]
-		sheet-storage = ["umya-spreadsheet"]
-		memory-storage = []
+		sled-database = ["sled", "bincode"]
+		csv-database = ["csv", "linecount"]
+		sheet-database = ["umya-spreadsheet"]
+		memory-database = []
 
 	# Functionality
 		alter-table = []

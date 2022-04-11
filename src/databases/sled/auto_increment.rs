@@ -1,6 +1,6 @@
 #![cfg(feature = "auto-increment")]
 use {
-	super::{error::err_into, SledStorage},
+	super::{error::err_into, SledDatabase},
 	crate::{AutoIncrement, Error, Result},
 	async_trait::async_trait,
 	fstrings::*,
@@ -8,7 +8,7 @@ use {
 };
 
 #[async_trait(?Send)]
-impl AutoIncrement for SledStorage {
+impl AutoIncrement for SledDatabase {
 	async fn generate_increment_values(
 		&mut self,
 		table_name: String,

@@ -1,10 +1,10 @@
 use {
-	crate::{store::*, Result, SheetStorage, SheetStorageError},
+	crate::{AutoIncrement, Result, SheetDatabase, SheetDatabaseError},
 	async_trait::async_trait,
 };
 
 #[async_trait(?Send)]
-impl AutoIncrement for SheetStorage {
+impl AutoIncrement for SheetDatabase {
 	async fn generate_increment_values(
 		&mut self,
 		sheet_name: String,
@@ -13,7 +13,7 @@ impl AutoIncrement for SheetStorage {
 		let sheet = self
 			.book
 			.get_sheet_by_name_mut(&sheet_name)
-			.map_err(|_| SheetStorageError::FailedToGetSheet)?;
+			.map_err(|_| SheetDatabaseError::FailedToGetSheet)?;
 		let row_init = sheet.get_row_dimensions().len();
 		Ok(columns
 			.into_iter()
