@@ -6,5 +6,5 @@ pub fn memory(_name: &str) -> multisql::Glue {
 	Glue::new(String::from("main"), storage)
 }
 
-crate::util_macros::run!(memory, functionality);
-crate::util_macros::run!(memory, original);
+/*crate::util_macros::run!(memory, functionality);
+crate::util_macros::run!(memory, original);*/
