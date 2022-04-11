@@ -149,9 +149,9 @@ impl StoreMut for SledStorage {
 		for change in changes.into_iter() {
 			use SchemaChange::*;
 			match change {
-				RenameTable(new_name) => self.rename_table(table_name, new_name)
-				_ => Err(StorageError::Unimplemented.into())
-			}
+				RenameTable(new_name) => self.rename_table(table_name, new_name),
+				_ => Err(StorageError::Unimplemented.into()),
+			}?;
 		}
 
 
@@ -169,7 +169,7 @@ impl SledStorage {
 	pub fn rename_table(&mut self, old_name: &str, new_name: String) -> Result<()> {
 		let (key, schema) = fetch_schema(&self.tree, old_name)?;
 		let schema = schema.ok_or(StorageError::TableNotFound)?;
-		tree.remove(key).map_err(err_into)?;
+		self.tree.remove(key).map_err(err_into)?;
 
 		let value = bincode::serialize(&schema).map_err(err_into)?;
 		let key = format!("schema/{}", new_name);
@@ -178,14 +178,14 @@ impl SledStorage {
 
 		let prefix = format!("data/{}/", old_name);
 
-		for item in tree.scan_prefix(prefix.as_bytes()) {
+		for item in self.tree.scan_prefix(prefix.as_bytes()) {
 			let (key, value) = item.map_err(err_into)?;
 
-			let new_key = str::from_utf8(key.as_ref()).map_err(err_into)?;
-			let new_key = new_key.replace(old_name, new_name);
-			tree.insert(new_key, value).map_err(err_into)?;
+			let new_key = std::str::from_utf8(key.as_ref()).map_err(err_into)?;
+			let new_key = new_key.replace(old_name, &new_name);
+			self.tree.insert(new_key, value).map_err(err_into)?;
 
-			tree.remove(key).map_err(err_into)?;
+			self.tree.remove(key).map_err(err_into)?;
 		}
 
 		Ok(())

@@ -136,45 +136,45 @@ pub enum SchemaChange {
 	ColumnAdd(Column),
 	ColumnRemove(usize),
 
-	IndexUpdate(usize, Column),
-	IndexAdd(Column),
+	IndexUpdate(usize, Index),
+	IndexAdd(Index),
 	IndexRemove(usize),
 }
 impl SchemaDiff {
 	pub fn get_changes(&self) -> Vec<SchemaChange> {
 		use SchemaChange::*;
 		let mut changes = Vec::new();
-		if let Some(table_name) = self.table_name {
+		if let Some(table_name) = &self.table_name {
 			changes.push(RenameTable(table_name.clone()))
 		}
-		if let Some(column_defs) = self.column_defs {
+		if let Some(column_defs) = &self.column_defs {
 			for (index, column_def) in column_defs.into_iter() {
 				match (index, column_def) {
 					(None, None) => (),
 					(Some(index), Some(column_def)) => {
-						changes.push(ColumnUpdate(index, column_def));
+						changes.push(ColumnUpdate(*index, column_def.clone()));
 					}
 					(None, Some(column_def)) => {
-						changes.push(ColumnAdd(column_def));
+						changes.push(ColumnAdd(column_def.clone()));
 					}
 					(Some(index), None) => {
-						changes.push(ColumnRemove(index));
+						changes.push(ColumnRemove(*index));
 					}
 				}
 			}
 		}
-		if let Some(indexes) = self.indexes {
+		if let Some(indexes) = &self.indexes {
 			for (index, index_def) in indexes.into_iter() {
 				match (index, index_def) {
 					(None, None) => (),
 					(Some(index), Some(index_def)) => {
-						changes.push(IndexUpdate(index, index_def));
+						changes.push(IndexUpdate(*index, index_def.clone()));
 					}
 					(None, Some(index_def)) => {
-						changes.push(IndexAdd(index_def));
+						changes.push(IndexAdd(index_def.clone()));
 					}
 					(Some(index), None) => {
-						changes.push(IndexRemove(index));
+						changes.push(IndexRemove(*index));
 					}
 				}
 			}
