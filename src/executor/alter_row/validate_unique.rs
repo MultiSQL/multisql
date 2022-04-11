@@ -41,13 +41,11 @@ impl Glue {
 			})
 			.collect();
 		let mut existing_values: Vec<Vec<Value>> = vec![vec![]; unique_columns.len()];
-		return Ok(());
 		self.get_database(database)?
 			.scan_data(table_name)
 			.await?
 			.into_iter()
-			.try_for_each::<_, Result<_>>(|result| {
-				let (key, row) = result?;
+			.try_for_each::<_, Result<_>>(|(key, row)| {
 				if let Some(ignore_keys) = ignore_keys {
 					if ignore_keys.iter().any(|ignore_key| ignore_key == &key) {
 						return Ok(());

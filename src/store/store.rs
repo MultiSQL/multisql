@@ -1,5 +1,5 @@
 use {
-	crate::{IndexFilter, Result, RowIter, Schema, StorageError, Value},
+	crate::{IndexFilter, Result, Schema, StorageError, Value, Plane},
 	async_trait::async_trait,
 };
 
@@ -13,16 +13,15 @@ pub trait Store {
 		Err(StorageError::Unimplemented.into())
 	}
 
-	async fn scan_data(&self, _table_name: &str) -> Result<RowIter> {
+	async fn scan_data(&self, _table_name: &str) -> Result<Plane> {
 		Err(StorageError::Unimplemented.into())
 	}
 
-	// TODO: Move to own trait
 	async fn scan_data_indexed(
 		&self,
 		_table_name: &str,
 		_index_filters: IndexFilter,
-	) -> Result<RowIter> {
+	) -> Result<Plane> {
 		Err(StorageError::Unimplemented.into())
 	}
 	async fn scan_index(

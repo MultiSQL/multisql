@@ -10,7 +10,7 @@ use crate::IndexFilter;
 pub use auto_increment::AutoIncrement;
 
 use {
-	crate::{data::Row, result::Result, Value},
+	crate::{Row, Result, Value, Schema},
 	serde::{Deserialize, Serialize},
 	std::fmt::Debug,
 	thiserror::Error,
@@ -105,63 +105,3 @@ impl Storage {
 pub type StorageInner = dyn FullStorage;
 
 pub trait FullStorage: Store + StoreMut + AlterTable + AutoIncrement {}
-
-/// `Store` -> `SELECT`
-#[async_trait(?Send)]
-pub trait Store {
-	async fn fetch_schema(&self, _table_name: &str) -> Result<Option<Schema>> {
-		Err(StorageError::Unimplemented.into())
-	}
-
-	async fn scan_data(&self, _table_name: &str) -> Result<Plane> {
-		Err(StorageError::Unimplemented.into())
-	}
-
-	async fn scan_data_indexed(
-		&self,
-		_table_name: &str,
-		_index_filters: IndexFilter,
-	) -> Result<Plane> {
-		Err(StorageError::Unimplemented.into())
-	}
-	async fn scan_index(
-		&self,
-		_table_name: &str,
-		_index_filter: IndexFilter,
-	) -> Result<Vec<Value>> {
-		Err(StorageError::Unimplemented.into())
-	}
-}
-
-/// `StoreMut` -> `INSERT`, `CREATE`, `DELETE`, `DROP`, `UPDATE`
-#[async_trait(?Send)]
-pub trait StoreMut {
-	async fn insert_schema(&mut self, _schema: &Schema) -> Result<()> {
-		Err(StorageError::Unimplemented.into())
-	}
-
-	async fn delete_schema(&mut self, _table_name: &str) -> Result<()> {
-		Err(StorageError::Unimplemented.into())
-	}
-
-	async fn insert_data(&mut self, _table_name: &str, _rows: Vec<Row>) -> Result<()> {
-		Err(StorageError::Unimplemented.into())
-	}
-
-	async fn update_data(&mut self, _rows: Vec<(Value, Row)>) -> Result<()> {
-		Err(StorageError::Unimplemented.into())
-	}
-
-	async fn delete_data(&mut self, _keys: Vec<Value>) -> Result<()> {
-		Err(StorageError::Unimplemented.into())
-	}
-
-	async fn update_index(
-		&mut self,
-		_index_name: &str,
-		_table_name: &str,
-		_keys: Vec<(Value, Value)>,
-	) -> Result<()> {
-		Err(StorageError::Unimplemented.into())
-	}
-}

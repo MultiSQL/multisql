@@ -1,6 +1,6 @@
 use crate::StorageError;
 use {
-	crate::{Cast, Column, Result, Row, RowIter, Schema, SheetStorage, Store, Value},
+	crate::{Cast, Column, Result, Row, Schema, SheetStorage, Store, Value, Plane},
 	async_trait::async_trait,
 	std::convert::TryFrom,
 	umya_spreadsheet::{Cell, Worksheet},
@@ -22,7 +22,7 @@ impl Store for SheetStorage {
 			.map(schema_from_sheet)
 			.collect()
 	}
-	async fn scan_data(&self, sheet_name: &str) -> Result<RowIter> {
+	async fn scan_data(&self, sheet_name: &str) -> Result<Plane> {
 		let sheet = self.book.get_sheet_by_name(sheet_name).unwrap();
 		let Schema { column_defs, .. } = schema_from_sheet(sheet)?;
 
@@ -39,7 +39,7 @@ impl Store for SheetStorage {
 				rows
 			});
 
-		let rows = rows
+		rows
 			.into_iter()
 			.enumerate()
 			.map(|(pk, row)| {
@@ -60,10 +60,7 @@ impl Store for SheetStorage {
 				)
 			})
 			.map(Ok)
-			.collect::<Vec<Result<(Value, Row)>>>()
-			.into_iter();
-
-		Ok(Box::new(rows))
+			.collect::<Result<Vec<(Value, Row)>>>()
 	}
 }
 
