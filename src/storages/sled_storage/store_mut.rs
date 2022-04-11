@@ -154,6 +154,7 @@ impl StoreMut for SledStorage {
 			match change {
 				RenameTable(new_name) => self.rename_table(table_name, new_name),
 				ColumnAdd(column_def) => self.add_column(table_name, column_def),
+				ColumnRemove(index) => self.remove_column(table_name, index),
 				ColumnUpdate(..) | IndexAdd(..) => Ok(()),
 				_ => Err(StorageError::Unimplemented.into()),
 				// TODO: Column remove & add: manipulate all rows
@@ -210,6 +211,18 @@ impl SledStorage {
 			let row: Row = bincode::deserialize(&row).map_err(err_into)?;
 			let row = Row(row.0.into_iter().chain([value.clone()]).collect());
 			let row = bincode::serialize(&row).map_err(err_into)?;
+
+			self.tree.insert(key, row).map_err(err_into)?;
+		}
+		Ok(())
+	}
+	pub fn remove_column(&mut self, table_name: &str, index: usize) -> Result<()> {
+		let prefix = format!("data/{}/", table_name);
+		for item in self.tree.scan_prefix(prefix.as_bytes()) {
+			let (key, row) = item.map_err(err_into)?;
+			let mut row = bincode::deserialize(&row).map_err(err_into)?.0;
+			row.remove(index);
+			let row = bincode::serialize(&Row(row)).map_err(err_into)?;
 
 			self.tree.insert(key, row).map_err(err_into)?;
 		}
