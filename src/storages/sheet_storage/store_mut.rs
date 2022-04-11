@@ -1,6 +1,9 @@
 use umya_spreadsheet::{Border, Comment, PatternValues, RichText, Style, TextElement};
 use {
-	crate::{Cast, Result, Row, Schema, SheetStorage, SheetStorageError, StoreMut, Value},
+	crate::{
+		Cast, Result, Row, Schema, SchemaChange, SchemaDiff, SheetStorage, SheetStorageError,
+		StorageError, StoreMut, Value,
+	},
 	async_trait::async_trait,
 };
 
@@ -109,6 +112,23 @@ impl StoreMut for SheetStorage {
 			sheet.remove_row(&(row_num as u32), &1);
 			Ok(())
 		})?;
+		self.save()
+	}
+
+	async fn alter_table(&mut self, sheet_name: &str, schema_diff: SchemaDiff) -> Result<()> {
+		let changes = schema_diff.get_changes();
+		let sheet = self.get_sheet_mut(sheet_name)?;
+		for change in changes.into_iter() {
+			use SchemaChange::*;
+			match change {
+				RenameTable(new_name) => {
+					sheet.set_name(new_name);
+				}
+				_ => return Err(StorageError::Unimplemented.into()),
+				// TODO
+			};
+		}
+
 		self.save()
 	}
 }

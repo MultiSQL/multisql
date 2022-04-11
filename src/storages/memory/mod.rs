@@ -1,4 +1,3 @@
-mod alter_table;
 mod auto_increment;
 mod store;
 mod store_mut;

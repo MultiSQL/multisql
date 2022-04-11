@@ -1,5 +1,5 @@
 use {
-	crate::{data::get_name, AlterError, ExecuteError, Glue, Index, Result},
+	crate::{data::get_name, AlterError, ExecuteError, Glue, Index, Result, SchemaDiff},
 	sqlparser::ast::{Expr, ObjectName, OrderByExpr},
 };
 
@@ -57,13 +57,14 @@ impl Glue {
 				)
 				.into())
 			} else if let Some(column) = column {
-				let mut schema = schema.clone();
+				let schema = schema.clone();
 				let index = Index::new(name, column, unique);
 				index
 					.reset(database, table_name, &schema.column_defs)
 					.await?;
-				schema.indexes.push(index);
-				database.replace_schema(table_name, schema).await
+				database
+					.alter_table(table_name, SchemaDiff::new_add_index(index))
+					.await
 			} else {
 				unreachable!()
 			}

@@ -2,15 +2,9 @@ mod auto_increment;
 mod store;
 mod store_mut;
 mod utils;
-/*mod alter_table;
-mod error;
-#[cfg(not(feature = "alter-table"))]
-impl crate::AlterTable for CSVStorage {}
-#[cfg(not(feature = "auto-increment"))]
-impl crate::AutoIncrement for CSVStorage {}*/
 
 use {
-	crate::{data::Schema, store::*, Column, FullStorage, Result, Storage, ValueType, WIPError},
+	crate::{data::Schema, Column, FullStorage, Result, Storage, ValueType, WIPError},
 	csv::ReaderBuilder,
 	serde::{Deserialize, Serialize},
 	std::{
@@ -46,7 +40,6 @@ impl Default for CSVSettings {
 	}
 }
 
-impl AlterTable for CSVStorage {}
 impl FullStorage for CSVStorage {}
 
 impl Storage {

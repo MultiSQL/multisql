@@ -1,14 +1,7 @@
 use {crate::Error, sled::transaction::TransactionError, std::str, thiserror::Error as ThisError};
 
-#[cfg(feature = "alter-table")]
-use crate::AlterTableError;
-
 #[derive(ThisError, Debug)]
 pub enum StorageError {
-	#[cfg(feature = "alter-table")]
-	#[error(transparent)]
-	AlterTable(#[from] AlterTableError),
-
 	#[error(transparent)]
 	Sled(#[from] sled::Error),
 	#[error(transparent)]
@@ -25,10 +18,23 @@ impl From<StorageError> for Error {
 			Sled(e) => Error::Storage(Box::new(e)),
 			Bincode(e) => Error::Storage(e),
 			Str(e) => Error::Storage(Box::new(e)),
-
-			#[cfg(feature = "alter-table")]
-			AlterTable(e) => e.into(),
 		}
+	}
+}
+impl From<sled::Error> for Error {
+	fn from(e: sled::Error) -> Error {
+		Error::Storage(Box::new(e))
+	}
+}
+impl From<bincode::Error> for Error {
+	fn from(e: bincode::Error) -> Error {
+		Error::Storage(Box::new(e))
+	}
+}
+
+impl From<str::Utf8Error> for Error {
+	fn from(e: str::Utf8Error) -> Error {
+		Error::Storage(Box::new(e))
 	}
 }
 
