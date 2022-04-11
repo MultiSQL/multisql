@@ -1,7 +1,8 @@
 use {
 	super::{err_into, fetch_schema, SledStorage},
 	crate::{
-		BigEndian, Result, Row, Schema, SchemaChange, SchemaDiff, StorageError, StoreMut, Value,
+		BigEndian, Column, Result, Row, Schema, SchemaChange, SchemaDiff, StorageError, StoreMut,
+		Value,
 	},
 	async_trait::async_trait,
 	rayon::prelude::*,
@@ -152,7 +153,8 @@ impl StoreMut for SledStorage {
 			use SchemaChange::*;
 			match change {
 				RenameTable(new_name) => self.rename_table(table_name, new_name),
-				ColumnUpdate(..) | IndexAdd(..) => Ok(()), // Which changes do we need to action upon?
+				ColumnAdd(column_def) => self.add_column(table_name, column_def),
+				ColumnUpdate(..) | IndexAdd(..) => Ok(()),
 				_ => Err(StorageError::Unimplemented.into()),
 				// TODO: Column remove & add: manipulate all rows
 				// TODO: Index remove, add and update: rebuild
@@ -192,6 +194,25 @@ impl SledStorage {
 			self.tree.remove(key).map_err(err_into)?;
 		}
 
+		Ok(())
+	}
+	pub fn add_column(&mut self, table_name: &str, column: Column) -> Result<()> {
+		let value = match (&column.default, &column.is_nullable) {
+			(Some(_expr), _) => Err(StorageError::Unimplemented), // TODO
+			(None, true) => Ok(Value::Null),
+			(None, false) => Err(StorageError::Unimplemented),
+		}?;
+
+		let prefix = format!("data/{}/", table_name);
+
+		for item in self.tree.scan_prefix(prefix.as_bytes()) {
+			let (key, row) = item.map_err(err_into)?;
+			let row: Row = bincode::deserialize(&row).map_err(err_into)?;
+			let row = Row(row.0.into_iter().chain([value.clone()]).collect());
+			let row = bincode::serialize(&row).map_err(err_into)?;
+
+			self.tree.insert(key, row).map_err(err_into)?;
+		}
 		Ok(())
 	}
 }
