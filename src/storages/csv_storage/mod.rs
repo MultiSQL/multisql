@@ -4,7 +4,7 @@ mod store_mut;
 mod utils;
 
 use {
-	crate::{data::Schema, store::*, Column, FullStorage, Result, Storage, ValueType, WIPError},
+	crate::{data::Schema, Column, FullStorage, Result, Storage, ValueType, WIPError},
 	csv::ReaderBuilder,
 	serde::{Deserialize, Serialize},
 	std::{

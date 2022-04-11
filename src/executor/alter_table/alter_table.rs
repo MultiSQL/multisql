@@ -47,7 +47,7 @@ impl Glue {
 			}
 			AlterTableOperation::DropColumn {
 				column_name,
-				if_exists,
+				if_exists: _,
 				..
 			} => {
 				let schema = database

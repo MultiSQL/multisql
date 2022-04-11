@@ -1,6 +1,8 @@
 use {
 	super::{err_into, fetch_schema, SledStorage},
-	crate::{BigEndian, Result, Row, Schema, SchemaDiff, StorageError, StoreMut, Value, SchemaChange},
+	crate::{
+		BigEndian, Result, Row, Schema, SchemaChange, SchemaDiff, StorageError, StoreMut, Value,
+	},
 	async_trait::async_trait,
 	rayon::prelude::*,
 	sled::IVec,
@@ -153,7 +155,6 @@ impl StoreMut for SledStorage {
 				_ => Err(StorageError::Unimplemented.into()),
 			}?;
 		}
-
 
 		let (key, schema) = fetch_schema(&self.tree, table_name)?;
 		let schema = schema.ok_or(StorageError::TableNotFound)?;
