@@ -4,7 +4,9 @@ use {
 		mutable::{index_prefix, indexed_key},
 		SledDatabase,
 	},
-	crate::{join_iters, IndexFilter, JoinType, NullOrd, Plane, Result, Row, Schema, DBBase, Value},
+	crate::{
+		join_iters, DBBase, IndexFilter, JoinType, NullOrd, Plane, Result, Row, Schema, Value,
+	},
 	async_trait::async_trait,
 	rayon::slice::ParallelSliceMut,
 	sled::IVec,

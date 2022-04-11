@@ -1,5 +1,5 @@
 use {
-	crate::{Result, Row, Schema, SchemaDiff, DatabaseError, Value},
+	crate::{DatabaseError, Result, Row, Schema, SchemaDiff, Value},
 	async_trait::async_trait,
 };
 

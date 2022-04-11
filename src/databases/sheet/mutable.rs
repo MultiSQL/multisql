@@ -1,8 +1,8 @@
 use umya_spreadsheet::{Border, Comment, PatternValues, RichText, Style, TextElement};
 use {
 	crate::{
-		Cast, DatabaseError, Result, Row, Schema, SchemaChange, SchemaDiff, SheetDatabase,
-		SheetDatabaseError, DBMut, Value,
+		Cast, DBMut, DatabaseError, Result, Row, Schema, SchemaChange, SchemaDiff, SheetDatabase,
+		SheetDatabaseError, Value,
 	},
 	async_trait::async_trait,
 };

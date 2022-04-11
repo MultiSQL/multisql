@@ -1,4 +1,4 @@
-use crate::{ExecuteError, Payload, Row, Schema, DatabaseInner, Value};
+use crate::{DatabaseInner, ExecuteError, Payload, Row, Schema, Value};
 use crate::{Glue, Result};
 use sqlparser::ast::ObjectName;
 

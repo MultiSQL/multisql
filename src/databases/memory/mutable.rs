@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use {
-	crate::{MemoryDatabase, Result, Row, Schema, DBMut, Value},
+	crate::{DBMut, MemoryDatabase, Result, Row, Schema, Value},
 	async_trait::async_trait,
 };
 

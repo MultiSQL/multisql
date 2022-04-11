@@ -1,7 +1,7 @@
 use {
 	super::{err_into, fetch_schema, SledDatabase},
 	crate::{
-		BigEndian, Column, DatabaseError, Result, Row, Schema, SchemaChange, SchemaDiff, DBMut,
+		BigEndian, Column, DBMut, DatabaseError, Result, Row, Schema, SchemaChange, SchemaDiff,
 		Value,
 	},
 	async_trait::async_trait,

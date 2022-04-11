@@ -1,6 +1,6 @@
 use {
 	super::{utils::csv_reader, CSVDatabase},
-	crate::{Plane, Result, Row, Schema, DBBase, Value, WIPError},
+	crate::{DBBase, Plane, Result, Row, Schema, Value, WIPError},
 	async_trait::async_trait,
 };
 

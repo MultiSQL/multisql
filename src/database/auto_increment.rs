@@ -1,4 +1,7 @@
-use {crate::{Result, DatabaseError}, async_trait::async_trait};
+use {
+	crate::{DatabaseError, Result},
+	async_trait::async_trait,
+};
 
 #[async_trait(?Send)]
 pub trait AutoIncrement {

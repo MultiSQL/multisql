@@ -10,7 +10,7 @@ use {
 	thiserror::Error,
 };
 
-pub use {base::DBBase, mutable::DBMut, auto_increment::AutoIncrement};
+pub use {auto_increment::AutoIncrement, base::DBBase, mutable::DBMut};
 
 #[derive(Error, Serialize, Debug, PartialEq)]
 pub enum DatabaseError {

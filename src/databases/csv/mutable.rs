@@ -1,6 +1,6 @@
 use {
 	super::{CSVDatabase, CSVDatabaseError},
-	crate::{Cast, Result, Row, Schema, DBMut, WIPError},
+	crate::{Cast, DBMut, Result, Row, Schema, WIPError},
 	async_trait::async_trait,
 	csv::WriterBuilder,
 	std::{fs::OpenOptions, io::Write},

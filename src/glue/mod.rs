@@ -3,7 +3,7 @@ use std::sync::Mutex;
 use crate::ExecuteError;
 use {
 	crate::{
-		parse, parse_single, CSVSettings, Connection, Payload, Query, Result, Database, Value,
+		parse, parse_single, CSVSettings, Connection, Database, Payload, Query, Result, Value,
 		WIPError,
 	},
 	futures::executor::block_on,

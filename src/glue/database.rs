@@ -1,5 +1,5 @@
 use {
-	crate::{Context, Glue, InterfaceError, Result, Database, DatabaseInner},
+	crate::{Context, Database, DatabaseInner, Glue, InterfaceError, Result},
 	std::sync::MutexGuard,
 };
 

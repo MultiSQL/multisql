@@ -1,5 +1,5 @@
 use {
-	crate::{data::get_name, AlterError, Glue, Result, DatabaseInner, ValueDefault},
+	crate::{data::get_name, AlterError, DatabaseInner, Glue, Result, ValueDefault},
 	futures::stream::{self, TryStreamExt},
 	sqlparser::ast::ObjectName,
 };

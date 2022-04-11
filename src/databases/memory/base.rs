@@ -4,7 +4,7 @@ use crate::{join_iters, JoinType, Row};
 
 use {
 	crate::{
-		IndexFilter, MemoryDatabase, MemoryDatabaseError, Plane, Result, Schema, DBBase, Value,
+		DBBase, IndexFilter, MemoryDatabase, MemoryDatabaseError, Plane, Result, Schema, Value,
 	},
 	async_trait::async_trait,
 };

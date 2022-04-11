@@ -1,5 +1,5 @@
 use {
-	crate::{IndexFilter, Plane, Result, Schema, DatabaseError, Value},
+	crate::{DatabaseError, IndexFilter, Plane, Result, Schema, Value},
 	async_trait::async_trait,
 };
 

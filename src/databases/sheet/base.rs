@@ -1,6 +1,6 @@
 use crate::DatabaseError;
 use {
-	crate::{Cast, Column, Plane, Result, Row, Schema, SheetDatabase, DBBase, Value},
+	crate::{Cast, Column, DBBase, Plane, Result, Row, Schema, SheetDatabase, Value},
 	async_trait::async_trait,
 	std::convert::TryFrom,
 	umya_spreadsheet::{Cell, Worksheet},
