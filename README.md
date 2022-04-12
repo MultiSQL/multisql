@@ -11,3 +11,9 @@ Diverged from [GlueSQL](https://github.com/gluesql/gluesql) as of [GlueSQLv0.5.0
 See origin differences at [#8](https://github.com/SyRis-Consulting/gluesql/pull/8).
 
 See [benchmarks](./benches)
+
+
+## Documentation
+For SQL documentation, go to [multisql.org](https://multisql.org)
+
+For Rust documentation, go to [docs.rs/multisql](https://docs.rs/multisql/latest/multisql/)
