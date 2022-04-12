@@ -5,6 +5,10 @@
 //! `multisql` is a highly modular SQL database engine library written in Rust.
 //! It enables flexible querying via Rust interfaces.
 //!
+//! ## SQL Documentation
+//!
+//! You can find our SQL documentation at [multisql.org](https://multisql.org).
+//!
 //! ## Examples
 //!
 //! ```
