@@ -17,6 +17,7 @@ mod literal;
 mod methods;
 mod serde_convert;
 mod value_type;
+mod declare;
 
 pub use {
 	big_endian::BigEndian,
@@ -24,6 +25,7 @@ pub use {
 	convert::{Convert, ConvertFrom},
 	error::ValueError,
 	value_type::ValueType,
+	declare::Value,
 };
 
 /// # Value
@@ -65,7 +67,9 @@ pub use {
 ///
 /// Floats and Integers implicitly compare and convert.
 /// (Feature: `implicit_float_conversion`)
-#[derive(Debug, Clone, Serialize, Deserialize)]
+
+
+/*#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Value {
 	Null,
 
@@ -79,7 +83,7 @@ pub enum Value {
 	Timestamp(i64),
 
 	Internal(i64),
-}
+}*/
 
 impl Hash for Value {
 	fn hash<H: Hasher>(&self, state: &mut H) {
@@ -93,7 +97,7 @@ impl Ord for Value {
 	}
 }
 
-impl From<bool> for Value {
+/*impl From<bool> for Value {
 	fn from(from: bool) -> Value {
 		Value::Bool(from)
 	}
@@ -162,7 +166,7 @@ impl PartialOrd for Value {
 			_ => None,
 		}
 	}
-}
+}*/
 
 pub trait NullOrd {
 	fn null_cmp(&self, other: &Self) -> Option<Ordering>;
