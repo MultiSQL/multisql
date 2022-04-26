@@ -7,121 +7,152 @@ use {
 };
 
 pub trait Cast<Output> {
-	fn cast(self) -> Result<Output>;
+	fn cast(self) -> Result<Output> {
+		Err(Error::Value(ValueError::UnimplementedCast))
+	}
 }
 pub trait CastWithRules<Output> {
 	fn cast_with_rule(self, rule: Self) -> Result<Output>;
 }
 
-// Cores
-impl Cast<bool> for Value {
+impl<T> Cast<T> for T {
+	fn cast(self) -> Result<T> {
+		Ok(self)
+	}
+}
+
+/*impl<T> Cast<T> for Null {
+	fn cast(self) -> Result<T> {
+		Err(ValueError::ImpossibleCast.into())
+	}
+}*/
+
+impl Cast<bool> for i64 {
 	fn cast(self) -> Result<bool> {
-		Ok(match self {
-			Value::Bool(value) => value,
-			Value::I64(value) => match value {
-				1 => true,
-				0 => false,
-				_ => return Err(ValueError::ImpossibleCast.into()),
-			},
-			Value::F64(value) => {
-				if value.eq(&1.0) {
-					true
-				} else if value.eq(&0.0) {
-					false
-				} else {
-					return Err(ValueError::ImpossibleCast.into());
-				}
-			}
-			Value::Str(value) => match value.to_uppercase().as_str() {
-				"TRUE" => true,
-				"FALSE" => false,
-				_ => return Err(ValueError::ImpossibleCast.into()),
-			},
-			Value::Null => return Err(ValueError::ImpossibleCast.into()),
-			_ => unimplemented!(),
-		})
+		match self {
+			1 => Ok(true),
+			0 => Ok(false),
+			_ => Err(ValueError::ImpossibleCast.into()),
+		}
+	}
+}
+impl Cast<bool> for u64 {
+	fn cast(self) -> Result<bool> {
+		match self {
+			1 => Ok(true),
+			0 => Ok(false),
+			_ => Err(ValueError::ImpossibleCast.into()),
+		}
+	}
+}
+impl Cast<bool> for f64 {
+	fn cast(self) -> Result<bool> {
+		if self.eq(&1.0) {
+			Ok(true)
+		} else if self.eq(&0.0) {
+			Ok(false)
+		} else {
+			Err(ValueError::ImpossibleCast.into())
+		}
+	}
+}
+impl Cast<bool> for String {
+	fn cast(self) -> Result<bool> {
+		match self.to_uppercase().as_str() {
+			"TRUE" => Ok(true),
+			"FALSE" => Ok(false),
+			_ => Err(ValueError::ImpossibleCast.into()),
+		}
 	}
 }
 
-impl Cast<u64> for Value {
+// Cores
+impl Cast<u64> for bool {
 	fn cast(self) -> Result<u64> {
-		Ok(match self {
-			Value::Bool(value) => {
-				if value {
-					1
-				} else {
-					0
-				}
-			}
-			Value::U64(value) => value,
-			Value::I64(value) => value.try_into().map_err(|_| ValueError::ImpossibleCast)?,
-			Value::F64(value) => (value.trunc() as i64)
-				.try_into()
-				.map_err(|_| ValueError::ImpossibleCast)?,
-			Value::Str(value) => lexical::parse(value).map_err(|_| ValueError::ImpossibleCast)?,
-			Value::Null => return Err(ValueError::ImpossibleCast.into()),
-			_ => unimplemented!(),
-		})
+		Ok(if self { 1 } else { 0 })
+	}
+}
+impl Cast<u64> for i64 {
+	fn cast(self) -> Result<u64> {
+		self.try_into().map_err(|_| ValueError::ImpossibleCast)
+	}
+}
+impl Cast<u64> for f64 {
+	fn cast(self) -> Result<u64> {
+		self.cast::<i64>()?.cast()
+	}
+}
+impl Cast<u64> for String {
+	fn cast(self) -> Result<u64> {
+		lexical::parse(self).map_err(|_| ValueError::ImpossibleCast)
 	}
 }
 
-impl Cast<i64> for Value {
+impl Cast<i64> for bool {
 	fn cast(self) -> Result<i64> {
-		Ok(match self {
-			Value::Bool(value) => {
-				if value {
-					1
-				} else {
-					0
-				}
-			}
-			Value::U64(value) => value.try_into().map_err(|_| ValueError::ImpossibleCast)?,
-			Value::I64(value) => value,
-			Value::F64(value) => value.trunc() as i64,
-			Value::Str(value) => lexical::parse(value).map_err(|_| ValueError::ImpossibleCast)?,
-			Value::Null => return Err(ValueError::ImpossibleCast.into()),
-			_ => unimplemented!(),
-		})
+		Ok(if self { 1 } else { 0 })
+	}
+}
+impl Cast<i64> for u64 {
+	fn cast(self) -> Result<i64> {
+		self.try_into()
+	}
+}
+impl Cast<i64> for f64 {
+	fn cast(self) -> Result<i64> {
+		self.try_into()
+	}
+}
+impl Cast<i64> for String {
+	fn cast(self) -> Result<i64> {
+		lexical::parse(self).map_err(|_| ValueError::ImpossibleCast)
 	}
 }
 
-impl Cast<f64> for Value {
+impl Cast<f64> for bool {
 	fn cast(self) -> Result<f64> {
-		Ok(match self {
-			Value::Bool(value) => {
-				if value {
-					1.0
-				} else {
-					0.0
-				}
-			}
-			Value::U64(value) => (value as f64).trunc(),
-			Value::I64(value) => (value as f64).trunc(),
-			Value::F64(value) => value,
-			Value::Str(value) => {
-				fast_float::parse(value).map_err(|_| ValueError::ImpossibleCast)?
-			}
-			Value::Null => return Err(ValueError::ImpossibleCast.into()),
-			_ => unimplemented!(),
-		})
+		Ok(if self { 1.0 } else { 0.0 })
 	}
 }
-impl Cast<String> for Value {
+impl Cast<f64> for u64 {
+	fn cast(self) -> Result<f64> {
+		Ok((self as f64).trunc())
+	}
+}
+impl Cast<f64> for i64 {
+	fn cast(self) -> Result<f64> {
+		Ok((self as f64).trunc())
+	}
+}
+impl Cast<f64> for String {
+	fn cast(self) -> Result<f64> {
+		fast_float::parse(self).map_err(|_| ValueError::ImpossibleCast)
+	}
+}
+
+impl Cast<String> for bool {
 	fn cast(self) -> Result<String> {
-		Ok(match self {
-			Value::Bool(value) => (if value { "TRUE" } else { "FALSE" }).to_string(),
-			Value::U64(value) => lexical::to_string(value),
-			Value::I64(value) => lexical::to_string(value),
-			Value::F64(value) => lexical::to_string(value),
-			Value::Str(value) => value,
-			Value::Null => String::from("NULL"),
-			_ => unimplemented!(),
-		})
+		Ok((if self { "TRUE" } else { "FALSE" }).to_string())
+	}
+}
+impl Cast<String> for u64 {
+	fn cast(self) -> Result<String> {
+		Ok(lexical::to_string(self))
+	}
+}
+impl Cast<String> for i64 {
+	fn cast(self) -> Result<String> {
+		Ok(lexical::to_string(self))
+	}
+}
+impl Cast<String> for f64 {
+	fn cast(self) -> Result<String> {
+		Ok(lexical::to_string(self))
 	}
 }
 
 // Utilities
-impl Cast<usize> for Value {
+impl<T: Cast<u64>> Cast<usize> for T {
 	fn cast(self) -> Result<usize> {
 		let int: u64 = self.cast()?;
 		int.try_into()

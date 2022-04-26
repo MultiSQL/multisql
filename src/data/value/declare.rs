@@ -1,22 +1,25 @@
 use {
+	crate::{BigEndian, Cast},
+	enum_dispatch::enum_dispatch,
 	serde::{Deserialize, Serialize},
 	std::fmt::Debug,
-	enum_dispatch::enum_dispatch,
 };
 
-#[enum_dispatch]
-pub trait Valued {
+pub struct Null;
 
-}
+//#[enum_dispatch(Value)]
+//pub trait Valued: BigEndian {}
+//impl<T: Valued> BigEndian for T {}
 
 macro_rules! value_types {
 	( $($representation:ident: $type:ty),* ) => {
-		$(impl Valued for $type {})*
+		//#[enum_dispatch(Value)]
+		pub trait Valued: BigEndian $(+ Cast<$type>)* {}
+		//$(impl Valued for $type {})*
 
-		#[derive(Debug, Clone, Serialize, Deserialize)]
+		#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, PartialOrd, Eq)]
 		#[enum_dispatch(Valued)]
 		pub enum Value {
-			Null,
 			$($representation($type)),*
 		}
 	}
@@ -30,9 +33,10 @@ macro_rules! value_types {
 	Text:			String,
 );*/
 value_types!(
-	Bool:	bool,
-	U64:	u64,
-	I64:	i64,
-	F64:	f64,
-	Str:	String
+	Bool: bool,
+	U64: u64,
+	I64: i64,
+	F64: f64,
+	Str: String,
+	Null: Null
 );

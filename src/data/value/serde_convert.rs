@@ -7,7 +7,7 @@ impl From<Value> for serde_json::value::Value {
 			Value::I64(value) => value.into(),
 			Value::F64(value) => value.into(),
 			Value::Str(value) => value.into(),
-			Value::Null => serde_json::value::Value::Null,
+			Value::Null(_) => serde_json::value::Value::Null,
 			_ => unimplemented!(),
 		}
 	}
