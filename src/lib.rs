@@ -12,11 +12,11 @@
 //! ## Examples
 //!
 //! ```
-//! use multisql::{SledStorage, Storage, Glue};
-//! let storage = SledStorage::new("data/example_location/lib_example")
-//!   .map(Storage::new_sled)
+//! use multisql::{Connection, Glue};
+//! let storage = Connection::Sled(String::from("data/example_location/lib_example"))
+//!   .try_into()
 //!   .expect("Storage Creation Failed");
-//! let mut glue = Glue::new(String::from("main"), storage);
+//! let mut glue = Glue::new(String::from("main"), storage));
 //!
 //! glue.execute_many("
 //!   DROP TABLE IF EXISTS test;
