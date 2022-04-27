@@ -1,7 +1,6 @@
 stages:
   - build
   - test
-  - deploy
 
 build-job:
   stage: build
@@ -23,7 +22,3 @@ lint-test-job:
   script:
     - cargo clippy
 
-deploy-job:
-  stage: deploy
-  script:
-    - cargo publish
