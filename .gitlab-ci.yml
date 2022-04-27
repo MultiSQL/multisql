@@ -11,7 +11,7 @@ build-job:
 lib-test-job:
   stage: test
   script:
-    - cargo test --lib
+    - cargo test --tests
 
 doc-test-job:
   stage: test
