@@ -8,7 +8,10 @@ use {
 };
 
 #[enum_dispatch(Value)]
-pub trait Cast<Output: Sized> {
+pub trait Cast<Output: Sized>
+where
+	Self: Sized,
+{
 	fn cast(self) -> Result<Output> {
 		Err(Error::Value(ValueError::UnimplementedCast))
 	}
@@ -76,17 +79,19 @@ impl Cast<u64> for bool {
 }
 impl Cast<u64> for i64 {
 	fn cast(self) -> Result<u64> {
-		self.try_into().map_err(|_| ValueError::ImpossibleCast)
+		self.try_into()
+			.map_err(|_| Error::Value(ValueError::ImpossibleCast))
 	}
 }
 impl Cast<u64> for f64 {
 	fn cast(self) -> Result<u64> {
-		self.cast::<i64>()?.cast()
+		let int: i64 = self.cast()?;
+		int.cast()
 	}
 }
 impl Cast<u64> for String {
 	fn cast(self) -> Result<u64> {
-		lexical::parse(self).map_err(|_| ValueError::ImpossibleCast)
+		lexical::parse(self).map_err(|_| Error::Value(ValueError::ImpossibleCast))
 	}
 }
 
@@ -98,16 +103,17 @@ impl Cast<i64> for bool {
 impl Cast<i64> for u64 {
 	fn cast(self) -> Result<i64> {
 		self.try_into()
+			.map_err(|_| Error::Value(ValueError::ImpossibleCast))
 	}
 }
 impl Cast<i64> for f64 {
 	fn cast(self) -> Result<i64> {
-		self.try_into()
+		Ok(self.trunc() as i64) // TODO: Better
 	}
 }
 impl Cast<i64> for String {
 	fn cast(self) -> Result<i64> {
-		lexical::parse(self).map_err(|_| ValueError::ImpossibleCast)
+		lexical::parse(self).map_err(|_| Error::Value(ValueError::ImpossibleCast))
 	}
 }
 
@@ -128,7 +134,7 @@ impl Cast<f64> for i64 {
 }
 impl Cast<f64> for String {
 	fn cast(self) -> Result<f64> {
-		fast_float::parse(self).map_err(|_| ValueError::ImpossibleCast)
+		fast_float::parse(self).map_err(|_| Error::Value(ValueError::ImpossibleCast))
 	}
 }
 
@@ -162,6 +168,7 @@ impl<T: Cast<u64>> Cast<usize> for T {
 	}
 }
 
+/*
 // Non-Core
 impl CastWithRules<bool> for Value {
 	fn cast_with_rule(self, rule: Self) -> Result<bool> {
@@ -187,6 +194,7 @@ impl CastWithRules<f64> for Value {
 		}
 	}
 }
+*/
 /*impl CastWithRules<String> for Value {
 	fn cast_with_rule(self, rule: Self) -> Result<String> {
 		match rule {

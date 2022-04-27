@@ -246,7 +246,7 @@ impl Glue {
 				row.into_iter()
 					.map(|cell| {
 						Expr::Value(match cell {
-							Value::NULL => AstValue::NULL,
+							Value::NULL => AstValue::Null,
 							Value::Bool(value) => AstValue::Boolean(value),
 							Value::I64(value) => AstValue::Number(value.to_string(), false),
 							Value::F64(value) => AstValue::Number(value.to_string(), false),
