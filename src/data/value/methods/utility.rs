@@ -5,7 +5,7 @@ use {
 
 macro_rules! protect_null {
 	($protect: expr) => {
-		if matches!($protect, Value::Null) {
+		if matches!($protect, Value::Null(_)) {
 			return Ok($protect);
 		}
 	};
@@ -13,14 +13,14 @@ macro_rules! protect_null {
 
 impl Value {
 	pub fn if_null(self, alternative: Self) -> Self {
-		if !matches!(self, Value::Null) {
+		if !matches!(self, Value::Null(_)) {
 			self
 		} else {
 			alternative
 		}
 	}
 	pub fn null_if(self, evaluate: Self) -> Result<Self> {
-		Ok(if self == evaluate { Value::Null } else { self })
+		Ok(if self == evaluate { Value::NULL } else { self })
 	}
 	pub fn iif(self, case_true: Self, case_false: Self) -> Result<Self> {
 		Ok(if self.convert()? {
@@ -93,7 +93,7 @@ impl Value {
 	}
 
 	pub fn round(self, places: Value) -> Result<Value> {
-		if matches!(self, Value::Null) {
+		if matches!(self, Value::Null(_)) {
 			return Ok(self);
 		}
 		let value: f64 = self.convert()?;

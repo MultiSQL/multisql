@@ -199,7 +199,7 @@ impl SledDatabase {
 	pub fn add_column(&mut self, table_name: &str, column: Column) -> Result<()> {
 		let value = match (&column.default, &column.is_nullable) {
 			(Some(_expr), _) => Err(DatabaseError::Unimplemented), // TODO
-			(None, true) => Ok(Value::Null),
+			(None, true) => Ok(Value::NULL),
 			(None, false) => Err(DatabaseError::Unimplemented),
 		}?;
 

@@ -6,7 +6,7 @@ use {
 	thousands::Separable,
 };
 
-pub trait Cast<Output> {
+pub trait Cast<Output: Sized> {
 	fn cast(self) -> Result<Output> {
 		Err(Error::Value(ValueError::UnimplementedCast))
 	}

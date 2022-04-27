@@ -163,7 +163,7 @@ impl PlannedRecipe {
 							})?
 							.clone())
 					})
-					.unwrap_or(Ok(Value::Null))
+					.unwrap_or(Ok(Value::NULL))
 			})
 			.collect::<Result<Vec<Value>>>()
 	}

@@ -151,7 +151,7 @@ impl RecipeUtilities for PlannedRecipe {
 }
 
 impl Recipe {
-	pub const NULL: Recipe = Recipe::Ingredient(Ingredient::Value(Value::Null));
+	pub const NULL: Recipe = Recipe::Ingredient(Ingredient::Value(Value::NULL));
 	pub const TRUE: Recipe = Recipe::Ingredient(Ingredient::Value(Value::Bool(true)));
 	pub const SINGLE_COLUMN: Recipe = Recipe::Ingredient(Ingredient::Column(0));
 }

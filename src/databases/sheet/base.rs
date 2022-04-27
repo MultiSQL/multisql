@@ -53,7 +53,7 @@ impl DBBase for SheetDatabase {
 									.unwrap_or_default(),
 							)
 							.cast_valuetype(data_type)
-							.unwrap_or(Value::Null)
+							.unwrap_or(Value::NULL)
 						})
 						.collect()),
 				)
@@ -70,7 +70,7 @@ impl TryFrom<Cell> for Value {
 			Cell::TYPE_STRING | Cell::TYPE_STRING2 => Value::Str(cell.get_value().to_string()),
 			Cell::TYPE_BOOL => Value::Bool(Value::Str(cell.get_value().to_string()).cast()?),
 			Cell::TYPE_NUMERIC => Value::F64(Value::Str(cell.get_value().to_string()).cast()?),
-			Cell::TYPE_NULL => Value::Null,
+			Cell::TYPE_NULL => Value::NULL,
 			_ => return Err(DatabaseError::Unimplemented.into()),
 		})
 	}

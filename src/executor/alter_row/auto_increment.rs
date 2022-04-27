@@ -18,7 +18,7 @@ impl Glue {
 					index,
 					column.name.clone(),
 					rows.iter()
-						.filter(|row| matches!(row.0.get(index), Some(Value::Null)))
+						.filter(|row| matches!(row.0.get(index), Some(Value::NULL)))
 						.count() as i64,
 				)
 			})
@@ -33,7 +33,7 @@ impl Glue {
 		for row in rows.iter_mut() {
 			for ((index, _name), value) in &mut column_values {
 				let cell = row.0.get_mut(*index).unwrap();
-				if matches!(cell, Value::Null) {
+				if matches!(cell, Value::NULL) {
 					*cell = Value::I64(*value);
 					*value += 1;
 				}

@@ -79,7 +79,7 @@ impl JoinMethod {
 						Ok(if inner_rows.is_empty() && join.includes_left() {
 							(
 								vec![],
-								vec![join_parts(left_row, vec![Value::Null; right_width])],
+								vec![join_parts(left_row, vec![Value::NULL; right_width])],
 							)
 						} else {
 							inner_rows.into_iter().unzip()
@@ -102,7 +102,7 @@ impl JoinMethod {
 					if !used_right_indexes.iter().any(|used| used == &index)
 						&& join.includes_right()
 					{
-						rows.push(join_parts(vec![Value::Null; left_width], row.clone()))
+						rows.push(join_parts(vec![Value::NULL; left_width], row.clone()))
 					}
 				});
 				rows
@@ -224,7 +224,7 @@ impl JoinMethod {
 					.map(|(_, left_rows)| {
 						left_rows
 							.into_iter()
-							.map(|left| join_parts(left, vec![Value::Null; right_width]))
+							.map(|left| join_parts(left, vec![Value::NULL; right_width]))
 							.collect::<Vec<Row>>()
 					})
 					.reduce(Vec::new, |mut all, set| {
@@ -260,7 +260,7 @@ impl JoinMethod {
 					.map(|(_, right_rows)| {
 						right_rows
 							.into_iter()
-							.map(|right| join_parts(vec![Value::Null; left_width], right))
+							.map(|right| join_parts(vec![Value::NULL; left_width], right))
 							.collect::<Vec<Row>>()
 					})
 					.reduce(Vec::new, |mut all, set| {

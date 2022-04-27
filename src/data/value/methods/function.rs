@@ -146,6 +146,6 @@ impl Value {
 		})
 	}
 	pub fn function_try_convert(arguments: Vec<Self>) -> Result<Self> {
-		Ok(Value::function_convert(arguments).unwrap_or(Value::Null))
+		Ok(Value::function_convert(arguments).unwrap_or(Value::NULL))
 	}
 }

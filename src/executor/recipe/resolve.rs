@@ -170,7 +170,7 @@ impl Resolve for Method {
 					let operand = operand.map(|operand| operand.as_solution());
 					let else_result = else_result
 						.map(|else_result| else_result.as_solution())
-						.unwrap_or(Some(Value::Null))
+						.unwrap_or(Some(Value::NULL))
 						.unwrap();
 					if let Some(operand) = operand {
 						let operand = operand.unwrap();

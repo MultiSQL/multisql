@@ -14,9 +14,9 @@ use {
 impl Value {
 	pub fn aggregate_count(self, other: Value) -> Result<Value> {
 		Ok(Value::Internal(match (self, other) {
-			(Value::Null, Value::Null) => 0,
+			(Value::Null(_), Value::Null(_)) => 0,
 			(Value::Internal(self_val), Value::Internal(other_val)) => self_val + other_val,
-			(Value::Internal(val), Value::Null) | (Value::Null, Value::Internal(val)) => val,
+			(Value::Internal(val), Value::Null(_)) | (Value::Null(_), Value::Internal(val)) => val,
 			(Value::Internal(val), _) | (_, Value::Internal(val)) => val + 1,
 			(_, _) => 2,
 		}))
@@ -24,7 +24,7 @@ impl Value {
 	pub fn aggregate_min(self, other: Value) -> Result<Value> {
 		Ok(
 			if matches!(self.partial_cmp(&other), Some(Ordering::Less))
-				|| matches!(other, Value::Null)
+				|| matches!(other, Value::Null(_))
 			{
 				self
 			} else {
@@ -35,7 +35,7 @@ impl Value {
 	pub fn aggregate_max(self, other: Value) -> Result<Value> {
 		Ok(
 			if matches!(self.partial_cmp(&other), Some(Ordering::Greater))
-				|| matches!(other, Value::Null)
+				|| matches!(other, Value::Null(_))
 			{
 				self
 			} else {

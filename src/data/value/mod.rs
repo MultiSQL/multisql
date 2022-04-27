@@ -1,11 +1,4 @@
-use {
-	crate::result::Result,
-	sqlparser::ast::DataType,
-	std::{
-		cmp::Ordering,
-		hash::{Hash, Hasher},
-	},
-};
+use {crate::result::Result, sqlparser::ast::DataType, std::cmp::Ordering};
 
 mod big_endian;
 mod cast;
@@ -21,7 +14,7 @@ pub use {
 	big_endian::BigEndian,
 	cast::{Cast, CastWithRules},
 	convert::{Convert, ConvertFrom},
-	declare::{Null, Value},
+	declare::{Null, Value, Valued},
 	error::ValueError,
 	value_type::ValueType,
 };
@@ -66,16 +59,11 @@ pub use {
 /// Floats and Integers implicitly compare and convert.
 /// (Feature: `implicit_float_conversion`)
 
-impl Hash for Value {
+/*impl Hash for Value {
 	fn hash<H: Hasher>(&self, state: &mut H) {
 		self.to_be_bytes().hash(state)
 	}
-}
-impl Ord for Value {
-	fn cmp(&self, other: &Self) -> Ordering {
-		self.partial_cmp(other).unwrap_or(Ordering::Equal)
-	}
-}
+}*/
 
 pub trait NullOrd {
 	fn null_cmp(&self, other: &Self) -> Option<Ordering>;
@@ -119,14 +107,14 @@ impl Value {
 
 		Ok(self)
 	}
-	pub fn is(&mut self, data_type: &ValueType) -> Result<()> {
+	/*pub fn is(&mut self, data_type: &ValueType) -> Result<()> {
 		match (data_type, &self) {
 			(ValueType::Bool, Value::Bool(_))
 			| (ValueType::U64, Value::U64(_))
 			| (ValueType::I64, Value::I64(_))
 			| (ValueType::F64, Value::F64(_))
 			| (ValueType::Str, Value::Str(_))
-			| (ValueType::Timestamp, Value::Timestamp(_))
+			//| (ValueType::Timestamp, Value::Timestamp(_))
 			| (ValueType::Any, _)
 			| (_, Value::Null(_)) => Ok(()),
 			(ValueType::F64, Value::I64(_)) => {
@@ -139,7 +127,7 @@ impl Value {
 			}
 			.into()),
 		}
-	}
+	}*/
 
 	fn type_is_valid(&self, data_type: &DataType) -> bool {
 		matches!(
@@ -169,7 +157,7 @@ impl Value {
 			| (DataType::Int(_), Value::I64(_))
 			| (DataType::Float(_), Value::F64(_))
 			| (DataType::Text, Value::Str(_)) => Ok(self.clone()),
-			(_, Value::Null(_)) => Ok(Value::Null),
+			(_, Value::Null(_)) => Ok(Value::NULL),
 
 			(DataType::Boolean, value) => value.clone().cast().map(Value::Bool),
 			(DataType::Int(_), value) => value.clone().cast().map(Value::I64),

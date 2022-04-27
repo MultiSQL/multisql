@@ -45,7 +45,7 @@ impl MetaRecipe {
 }
 impl MetaRecipe {
 	pub const NULL: Self = MetaRecipe {
-		recipe: Recipe::Ingredient(Ingredient::Value(Value::Null)),
+		recipe: Recipe::Ingredient(Ingredient::Value(Value::NULL)),
 		meta: RecipeMeta::NEW,
 	};
 	pub const TRUE: Self = MetaRecipe {

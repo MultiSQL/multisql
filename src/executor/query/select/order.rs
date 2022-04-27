@@ -82,8 +82,8 @@ struct OrderTerm {
 impl OrderTerm {
 	pub fn sort(&self, order_item_a: &Value, order_item_b: &Value) -> Option<Ordering> {
 		let order = match (order_item_a, order_item_b) {
-			(Value::Null, Value::Null) => Ordering::Equal,
-			(Value::Null, _) | (_, Value::Null) => {
+			(Value::NULL, Value::NULL) => Ordering::Equal,
+			(Value::NULL, _) | (_, Value::NULL) => {
 				if self.prefer_nulls {
 					Ordering::Greater
 				} else {

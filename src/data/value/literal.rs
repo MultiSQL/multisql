@@ -19,7 +19,7 @@ impl<'a> TryFrom<&'a AstValue> for Value {
 				)
 				.map_err(|_| ValueError::FailedToParseNumber.into()),
 			AstValue::SingleQuotedString(value) => Ok(Value::Str(value.clone())),
-			AstValue::Null => Ok(Value::Null),
+			AstValue::NULL => Ok(Value::NULL),
 			_ => Err(ValueError::UnimplementedLiteralType.into()),
 		}
 	}

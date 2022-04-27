@@ -103,7 +103,7 @@ impl Glue {
 				rows = rows
 					.into_iter()
 					.map(|mut row| {
-						row.resize(row_width, Value::Null);
+						row.resize(row_width, Value::NULL);
 						row
 					})
 					.collect();

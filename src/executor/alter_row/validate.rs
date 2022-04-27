@@ -84,7 +84,7 @@ pub fn validate(columns: &[Column], stated_columns: &[usize], rows: &mut Vec<Row
 									value = if let Some(fallback) = failure_recipe.clone() {
 										if !matches!(
 											fallback,
-											Recipe::Ingredient(Ingredient::Value(Value::Null))
+											Recipe::Ingredient(Ingredient::Value(Value::NULL))
 										) {
 											fallback
 												.simplify(SimplifyBy::Basic)?

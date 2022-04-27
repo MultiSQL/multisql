@@ -110,7 +110,7 @@ macro_rules! select {
 	($($label: tt = $type: ident),* : _) => ({ // Crappy but working way of testing single NULL
 		multisql::Payload::Select {
 			labels: vec![$( stringify!($label).to_owned().replace("\"", "")),+],
-			rows: vec![multisql::Row(vec![multisql::Value::Null])]
+			rows: vec![multisql::Row(vec![multisql::Value::NULL])]
 		}
 	});
 }

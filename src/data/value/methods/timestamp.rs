@@ -13,7 +13,7 @@ use {
 macro_rules! protect_null {
 	($protect: expr) => {
 		match $protect {
-			Value::Null => return Ok(Value::Null),
+			Value::Null(_) => return Ok(Value::NULL),
 			other => other,
 		}
 	};

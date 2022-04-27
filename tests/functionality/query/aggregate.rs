@@ -44,7 +44,7 @@ crate::util_macros::testcase!(
 		{
 			let _expect = multisql::Payload::Select{
 					labels: vec![String::from("agg")],
-					rows: vec![multisql::Row(vec![multisql::Value::Null])]
+					rows: vec![multisql::Row(vec![multisql::Value::NULL])]
 				};
 			assert!(
 				matches!(
