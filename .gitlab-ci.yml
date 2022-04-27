@@ -6,17 +6,17 @@ stages:
 build-job:
   stage: build
   script:
-    - cargo build
+    - cargo build --target-dir /home/kyran/.cache/build-output/
 
 lib-test-job:
   stage: test
   script:
-    - cargo test --tests
+    - cargo test --tests --target-dir /home/kyran/.cache/build-output/
 
 doc-test-job:
   stage: test
   script:
-    - cargo test --doc
+    - cargo test --doc --target-dir /home/kyran/.cache/build-output/
 
 lint-test-job:
   stage: test
