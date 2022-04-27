@@ -1,6 +1,7 @@
 stages:
   - build
   - test
+  - lint
 
 build:
   stage: build
@@ -18,13 +19,13 @@ doc-test:
     - cargo test --doc --target-dir /home/kyran/.cache/build-output/
 
 check-clippy:
-  stage: test
+  stage: lint
   script:
     - cargo clippy
   allow_failure: true
 
 check-fmt:
-  stage: test
+  stage: lint
   script:
     - cargo fmt --check
   allow_failure: true
