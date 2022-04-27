@@ -17,7 +17,7 @@ pub struct Null;
 macro_rules! value_types {
 	( $($representation:ident: $type:ty),* ) => {
 		#[enum_dispatch(Value)]
-		pub trait Valued: BigEndian + BinaryOperations + UnaryOperations $(+ Cast<$type>)* {}
+		pub trait Valued: Into<Value> + BigEndian + BinaryOperations<Self> + UnaryOperations $(+ Cast<$type>)* {}
 
 		//#[enum_dispatch]
 		#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, PartialOrd)]
@@ -35,6 +35,12 @@ impl Eq for Value {}
 impl Ord for Value {
 	fn cmp(&self, other: &Value) -> Ordering {
 		self.partial_cmp(other).unwrap_or(Ordering::Equal)
+	}
+}
+
+impl Into<Value> for bool {
+	fn into(self) -> Value {
+		Value::Bool(self)
 	}
 }
 

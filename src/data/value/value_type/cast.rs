@@ -11,7 +11,7 @@ impl Value {
 			| (ValueType::F64, Value::F64(_))
 			| (ValueType::Str, Value::Str(_))
 			| (ValueType::Any, _) => Ok(self.clone()),
-			(_, Value::NULL) => Ok(Value::NULL),
+			(_, Value::Null(Null)) => Ok(Value::NULL),
 
 			(ValueType::Bool, value) => value.clone().cast().map(Value::Bool),
 			(ValueType::I64, value) => value.clone().cast().map(Value::I64),

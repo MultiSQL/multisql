@@ -1,5 +1,5 @@
 use {
-	crate::{Convert, Result, Value, ValueError},
+	crate::{Cast, Convert, Result, Value, ValueError},
 	std::cmp::min,
 };
 
@@ -32,18 +32,18 @@ impl Value {
 
 	pub fn to_uppercase(self) -> Result<Self> {
 		protect_null!(self);
-		let string: String = self.convert()?;
+		let string: String = self.cast()?;
 		Ok(string.to_uppercase().into())
 	}
 	pub fn to_lowercase(self) -> Result<Self> {
 		protect_null!(self);
-		let string: String = self.convert()?;
+		let string: String = self.cast()?;
 		Ok(string.to_lowercase().into())
 	}
 	pub fn left(self, length: Value) -> Result<Value> {
 		protect_null!(self);
 		protect_null!(length);
-		let length: i64 = length.convert()?;
+		let length: i64 = length.cast()?;
 		if length < 0 {
 			return Err(ValueError::BadInput(length.into()).into());
 		}

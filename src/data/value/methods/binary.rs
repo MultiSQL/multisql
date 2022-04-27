@@ -1,14 +1,27 @@
 use {
-	crate::{Cast, Result, Value},
+	crate::{Cast, Result, Value, Valued},
 	std::ops::*,
-	enum_dispatch::enum_dispatch,
 };
 
-#[enum_dispatch(Value)]
-pub trait BinaryOperations:
-	Sized + Add + Sub + Mul + Div + Rem + Eq + Ord + BitAnd + BitOr + BitXor
+pub trait BinaryOperations<O: Valued>:
+	Sized + ValuedBinaryOperations<O> + BooleanBinaryOperations
 {
 }
+
+pub trait ValuedBinaryOperations<O: Valued>:
+	Sized
+	+ Add<Output = O>
+	+ Sub<Output = O>
+	+ Mul<Output = O>
+	+ Div<Output = O>
+	+ Rem<Output = O>
+	+ BitAnd<Output = O>
+	+ BitOr<Output = O>
+	+ BitXor<Output = O>
+{
+}
+
+pub trait BooleanBinaryOperations: Sized + Eq + Ord {}
 
 pub enum BinaryOperation {
 	Add,
@@ -27,28 +40,28 @@ pub enum BinaryOperation {
 }
 
 impl BinaryOperation {
-	pub fn exec(&self, left: Value, right: Value) -> Result<Value> {
+	pub fn exec<I: BinaryOperations<O>, O: Valued>(&self, left: I, right: I) -> Result<Value> {
 		use BinaryOperation::*;
-		match self {
-			Add => left.add(right),
-			Sub => left.sub(right),
-			Mul => left.mul(right),
-			Div => left.div(right),
-			Rem => left.rem(right),
-			Eq => left == right,
-			Lt => left < right,
-			LtEq => left <= right,
-			Gt => left > right,
-			GtEq => left >= right,
-			And => left & right,
-			Or => left | right,
-			Xor => left ^ right,
-		}
+		Ok(match self {
+			Add => left.add(right).into(),
+			Sub => left.sub(right).into(),
+			Mul => left.mul(right).into(),
+			Div => left.div(right).into(),
+			Rem => left.rem(right).into(),
+			Eq => (left == right).into(),
+			Lt => (left < right).into(),
+			LtEq => (left <= right).into(),
+			Gt => (left > right).into(),
+			GtEq => (left >= right).into(),
+			And => (left & right).into(),
+			Or => (left | right).into(),
+			Xor => (left ^ right).into(),
+		})
 	}
 }
 
-impl Value {
+/*impl Value {
 	pub fn string_concat(self, other: Self) -> Result<Self> {
 		Ok(format!("{}{}", self.cast()?, other.cast()?).into())
 	}
-}
+}*/

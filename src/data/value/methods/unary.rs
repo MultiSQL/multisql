@@ -4,7 +4,6 @@ use {
 	std::ops::*,
 };
 
-#[enum_dispatch(Value)]
 pub trait UnaryOperations: Not + Neg {}
 
 pub enum UnaryOperation {}
