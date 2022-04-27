@@ -1,11 +1,13 @@
 use {
-	super::{Convert, Value, ValueError},
+	super::{Value, ValueError},
 	crate::{Error, Result},
-	chrono::{NaiveDate, NaiveDateTime, NaiveTime, ParseError},
+	//chrono::{NaiveDate, NaiveDateTime, NaiveTime, ParseError},
+	enum_dispatch::enum_dispatch,
 	std::convert::TryInto,
-	thousands::Separable,
+	//thousands::Separable,
 };
 
+#[enum_dispatch(Value)]
 pub trait Cast<Output: Sized> {
 	fn cast(self) -> Result<Output> {
 		Err(Error::Value(ValueError::UnimplementedCast))
@@ -185,7 +187,7 @@ impl CastWithRules<f64> for Value {
 		}
 	}
 }
-impl CastWithRules<String> for Value {
+/*impl CastWithRules<String> for Value {
 	fn cast_with_rule(self, rule: Self) -> Result<String> {
 		match rule {
 			Value::I64(000) | Value::Bool(true) => self.cast(),
@@ -215,8 +217,9 @@ impl CastWithRules<String> for Value {
 			_ => Err(ValueError::InvalidConversionRule.into()),
 		}
 	}
-}
+}*/
 
+/*
 // Non-SQL
 // - DateTime
 fn parse_error_into(error: ParseError) -> Error {
@@ -322,3 +325,4 @@ impl CastWithRules<NaiveDateTime> for Value {
 		}
 	}
 }
+*/

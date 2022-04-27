@@ -5,4 +5,12 @@ mod timestamp;
 mod unary;
 mod utility;
 
-pub use {binary::BinaryOperations, unary::UnaryOperations};
+pub use {
+	binary::{BinaryOperation, BinaryOperations},
+	unary::{UnaryOperation, UnaryOperations},
+};
+
+enum Operation {
+	UnaryOperation(UnaryOperation),
+	BinaryOperation(BinaryOperation),
+}

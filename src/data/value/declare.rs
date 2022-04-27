@@ -1,6 +1,6 @@
 use {
 	super::methods::{BinaryOperations, UnaryOperations},
-	crate::{BigEndian, Cast},
+	crate::{BigEndian, Cast, Error},
 	enum_dispatch::enum_dispatch,
 	serde::{Deserialize, Serialize},
 	std::fmt::Debug,
@@ -15,19 +15,20 @@ pub struct Null;
 
 macro_rules! value_types {
 	( $($representation:ident: $type:ty),* ) => {
-		//#[enum_dispatch(Value)]
+		#[enum_dispatch(Value)]
 		pub trait Valued: BigEndian + BinaryOperations + UnaryOperations $(+ Cast<$type>)* {}
 		//$(impl Valued for $type {})*
 
+		#[enum_dispatch], Error
 		#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, PartialOrd)]
-		#[enum_dispatch(Valued)]
 		pub enum Value {
 			$($representation($type)),*
 		}
-		impl Value {
-			pub const NULL: Self = Self::Null(Null);
-		}
 	}
+}
+
+impl Value {
+	pub const NULL: Self = Self::Null(Null);
 }
 
 /*value_types!(

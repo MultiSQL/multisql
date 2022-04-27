@@ -1,5 +1,9 @@
-use crate::Null;
+use {
+	crate::{Null, Value},
+	enum_dispatch::enum_dispatch,
+};
 
+#[enum_dispatch(Value)]
 pub trait BigEndian {
 	fn to_be_bytes(&self) -> Vec<u8>;
 }
