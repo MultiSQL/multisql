@@ -6,17 +6,17 @@ stages:
 build:
   stage: build
   script:
-    - cargo build --target-dir ../build-output/
+    - cargo build --target-dir ~/.cache/build-output/
 
 test:
   stage: test
   script:
-    - cargo test --tests --target-dir ../build-output/
+    - cargo test --tests --target-dir ~/.cache/build-output/
 
 doc-test:
   stage: test
   script:
-    - cargo test --doc --target-dir ../build-output/
+    - cargo test --doc --target-dir ~/.cache/build-output/
 
 check-clippy:
   stage: lint
