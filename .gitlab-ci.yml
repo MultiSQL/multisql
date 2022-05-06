@@ -2,30 +2,46 @@ stages:
   - build
   - test
   - lint
+  - release
 
 build:
   stage: build
-  script:
-    - cargo build --target-dir ~/.cache/build-output/
+  script: cargo build --target-dir ~/.cache/build-output/
 
 test:
   stage: test
-  script:
-    - cargo test --tests --target-dir ~/.cache/build-output/
+  script: cargo test --tests --target-dir ~/.cache/build-output/
 
 doc-test:
   stage: test
-  script:
-    - cargo test --doc --target-dir ~/.cache/build-output/
+  script: cargo test --doc --target-dir ~/.cache/build-output/
 
 check-clippy:
   stage: lint
-  script:
-    - cargo clippy
+  script: cargo clippy
   allow_failure: true
 
 check-fmt:
   stage: lint
-  script:
-    - cargo fmt --check
+  script: cargo fmt --check
   allow_failure: true
+
+release-build:
+  stage: release
+  script: cargo build --release
+  artifacts:
+    paths:
+      - release/*
+
+publish:
+  stage: release
+  if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_TITLE =~ /\d\.\d\.\d/
+  script: cargo publish
+  release:
+    name: $CI_COMMIT_TITLE
+    tag_name: '$CI_COMMIT_TITLE'
+    ref: '$CI_COMMIT_TITLE'
+    description: '$CI_COMMIT_TITLE - Automatically Released'
+    needs:
+      - job: release-build
+        artifacts: true
