@@ -30,9 +30,8 @@ check-fmt:
 release-build:
   stage: release
   script: cargo build --release
-  artifacts:
-    paths:
-      - release/*
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_TITLE =~ /\d\.\d\.\d/
 
 publish:
   stage: release
@@ -41,7 +40,6 @@ publish:
   script: cargo publish
   needs:
     - job: release-build
-      artifacts: true
   release:
     name: $CI_COMMIT_TITLE
     tag_name: '$CI_COMMIT_TITLE'
