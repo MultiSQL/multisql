@@ -36,7 +36,9 @@ impl DBBase for ODBCDatabase {
 		let connection = self
 			.environment
 			.connect_with_connection_string(&self.connection_string)?;
-		let mut columns = connection.columns(&connection.current_catalog()?, "", table_name, "")?;
+		let (schema_name, table_name) = convert_table_name(table_name);
+		let mut columns =
+			connection.columns(&connection.current_catalog()?, schema_name, table_name, "")?;
 		let col_range = 1..(columns.num_result_cols()?);
 		let mut column_defs = Vec::new();
 		while let Some(mut row) = columns.next_row()? {
@@ -79,6 +81,12 @@ impl DBBase for ODBCDatabase {
 			.connect_with_connection_string(&self.connection_string)?;
 
 		let schema = self.fetch_schema(table_name).await?.unwrap(); // TODO: Handle
+		let (schema_name, table_name) = convert_table_name(table_name);
+		let table_name = if !schema_name.is_empty() {
+			format!("{}.{}", schema_name, table_name)
+		} else {
+			table_name.to_string()
+		};
 
 		let response =
 			connection.execute(&format!("SELECT * FROM {table}", table = table_name), ())?;
@@ -106,6 +114,17 @@ impl DBBase for ODBCDatabase {
 		} else {
 			Vec::new()
 		})
+	}
+}
+
+fn convert_table_name(table_name: &str) -> (&str, &str) {
+	let mut table_name: Vec<&str> = table_name.split('_').collect();
+	if table_name.len() == 1 {
+		("", table_name.remove(0))
+	} else if table_name.len() == 2 {
+		(table_name.remove(0), table_name.remove(0))
+	} else {
+		("", "")
 	}
 }
 

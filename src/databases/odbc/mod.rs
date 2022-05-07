@@ -32,6 +32,6 @@ fn temp_odbc_test() {
 	let connection = Connection::ODBC(String::from("Driver={SQL Server}; Server=CPServer18; Database=CostProBI_NHW; Uid=kyran; Trusted_Connection=yes"));
 	let database = connection.try_into().unwrap();
 	let mut glue = Glue::new(String::from("main"), database);
-	println!("{:?}", glue.execute("EXPLAIN tblEpisode"));
+	println!("{:?}", glue.execute("SELECT * FROM BI_tblEpisode LIMIT 100"));
 	panic!();
 }
