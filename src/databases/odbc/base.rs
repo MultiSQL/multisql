@@ -104,7 +104,7 @@ impl DBBase for ODBCDatabase {
 							.map(|_| std::str::from_utf8(&output).unwrap_or_default())
 							.unwrap_or("NULL")
 							.to_string();
-						let column = &schema.column_defs[col as usize]; // TODO: Protect
+						let column = &schema.column_defs[(col - 1) as usize]; // TODO: Protect
 						odbc_value_to_multisql(output, &column.data_type)
 					})
 					.collect::<Result<Vec<Value>>>()?;
@@ -142,12 +142,24 @@ fn odbc_type_to_multisql(data_type: &str) -> ValueType {
 }
 
 fn odbc_value_to_multisql(data_value: String, data_type: &ValueType) -> Result<Value> {
-	let from = Value::Str(data_value);
+	if data_value == "NULL" || (data_value.is_empty() && !matches!(data_type, ValueType::Str)) {
+		return Ok(Value::Null);
+	}
+	let from = Value::Str(data_value.clone());
 	match data_type {
-		ValueType::I64 => from.cast().map(Value::I64),
-		ValueType::F64 => from.cast().map(Value::F64),
+		ValueType::I64 => Ok(from
+			.cast()
+			.map(Value::I64)
+			.expect(&format!("{}", data_value))),
+		ValueType::F64 => Ok(from
+			.cast()
+			.map(Value::F64)
+			.expect(&format!("{}", data_value))),
 		ValueType::Timestamp => Ok(Value::Null), // TODO
-		ValueType::Bool => from.cast().map(Value::I64)?.cast().map(Value::Bool),
+		ValueType::Bool => from
+			.cast()
+			.map(Value::I64)
+			.and_then(|int| int.cast().map(Value::Bool)),
 		ValueType::Str => Ok(from),
 		_ => Ok(from),
 	}
