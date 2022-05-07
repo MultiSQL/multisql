@@ -36,7 +36,7 @@ impl DBBase for ODBCDatabase {
 		let connection = self
 			.environment
 			.connect_with_connection_string(&self.connection_string)?;
-		let (schema_name, table_name) = convert_table_name(table_name);
+		let (schema_name, table_name) = split_table_name(table_name);
 		let mut columns =
 			connection.columns(&connection.current_catalog()?, schema_name, table_name, "")?;
 		let col_range = 1..(columns.num_result_cols()? + 1);
@@ -81,13 +81,7 @@ impl DBBase for ODBCDatabase {
 			.connect_with_connection_string(&self.connection_string)?;
 
 		let schema = self.fetch_schema(table_name).await?.unwrap(); // TODO: Handle
-		let (schema_name, table_name) = convert_table_name(table_name);
-		let table_name = if !schema_name.is_empty() {
-			format!("{}.{}", schema_name, table_name)
-		} else {
-			table_name.to_string()
-		};
-
+		let table_name = convert_table_name(table_name);
 		let response = connection.execute(
 			&format!("SELECT TOP 1000 * FROM {table}", table = table_name),
 			(),
@@ -119,7 +113,15 @@ impl DBBase for ODBCDatabase {
 	}
 }
 
-fn convert_table_name(table_name: &str) -> (&str, &str) {
+pub(crate) fn convert_table_name(table_name: &str) -> String {
+	let (schema_name, table_name) = split_table_name(table_name);
+	if !schema_name.is_empty() {
+		format!("{}.{}", schema_name, table_name)
+	} else {
+		table_name.to_string()
+	}
+}
+pub(crate) fn split_table_name(table_name: &str) -> (&str, &str) {
 	let mut table_name: Vec<&str> = table_name.split('_').collect();
 	if table_name.len() == 1 {
 		("", table_name.remove(0))
