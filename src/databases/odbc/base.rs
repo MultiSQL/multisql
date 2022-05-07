@@ -11,7 +11,7 @@ impl DBBase for ODBCDatabase {
 			.environment
 			.connect_with_connection_string(&self.connection_string)?;
 		let mut tables = connection.tables(&connection.current_catalog()?, "", "", "TABLE")?;
-		let col_range = 1..(tables.num_result_cols()?);
+		let col_range = 1..(tables.num_result_cols()? + 1);
 		let mut schemas = Vec::new();
 		while let Some(mut row) = tables.next_row()? {
 			let row = col_range
@@ -39,7 +39,7 @@ impl DBBase for ODBCDatabase {
 		let (schema_name, table_name) = convert_table_name(table_name);
 		let mut columns =
 			connection.columns(&connection.current_catalog()?, schema_name, table_name, "")?;
-		let col_range = 1..(columns.num_result_cols()?);
+		let col_range = 1..(columns.num_result_cols()? + 1);
 		let mut column_defs = Vec::new();
 		while let Some(mut row) = columns.next_row()? {
 			let row = col_range
@@ -88,10 +88,12 @@ impl DBBase for ODBCDatabase {
 			table_name.to_string()
 		};
 
-		let response =
-			connection.execute(&format!("SELECT * FROM {table}", table = table_name), ())?;
+		let response = connection.execute(
+			&format!("SELECT TOP 1000 * FROM {table}", table = table_name),
+			(),
+		)?;
 		Ok(if let Some(mut rows) = response {
-			let col_range = 1..(rows.num_result_cols()?);
+			let col_range = 1..(rows.num_result_cols()? + 1);
 
 			let mut out_rows = Vec::new();
 			while let Some(mut row) = rows.next_row()? {
