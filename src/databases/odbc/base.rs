@@ -1,5 +1,5 @@
 use {
-	crate::{Column, DBBase, ODBCDatabase, Result, Schema, ValueType},
+	crate::{Cast, Column, DBBase, ODBCDatabase, Plane, Result, Row, Schema, Value, ValueType},
 	async_trait::async_trait,
 	odbc_api::{Cursor, ResultSetMetadata},
 };
@@ -71,6 +71,42 @@ impl DBBase for ODBCDatabase {
 			None
 		})
 	}
+
+	async fn scan_data(&self, table_name: &str) -> Result<Plane> {
+		// TODO: Non-string conversion (if possible?)
+		let connection = self
+			.environment
+			.connect_with_connection_string(&self.connection_string)?;
+
+		let schema = self.fetch_schema(table_name).await?.unwrap(); // TODO: Handle
+
+		let response =
+			connection.execute(&format!("SELECT * FROM {table}", table = table_name), ())?;
+		Ok(if let Some(mut rows) = response {
+			let col_range = 1..(rows.num_result_cols()?);
+
+			let mut out_rows = Vec::new();
+			while let Some(mut row) = rows.next_row()? {
+				let row = col_range
+					.clone()
+					.map(|col| {
+						let mut output = Vec::new();
+						let output = row
+							.get_text(col as u16, &mut output)
+							.map(|_| std::str::from_utf8(&output).unwrap_or_default())
+							.unwrap_or("NULL")
+							.to_string();
+						let column = &schema.column_defs[col as usize]; // TODO: Protect
+						odbc_value_to_multisql(output, &column.data_type)
+					})
+					.collect::<Result<Vec<Value>>>()?;
+				out_rows.push((Value::Null, Row(row))); // TODO: PK
+			}
+			out_rows
+		} else {
+			Vec::new()
+		})
+	}
 }
 
 fn odbc_type_to_multisql(data_type: &str) -> ValueType {
@@ -83,5 +119,17 @@ fn odbc_type_to_multisql(data_type: &str) -> ValueType {
 		_ => {
 			ValueType::Any
 		}
+	}
+}
+
+fn odbc_value_to_multisql(data_value: String, data_type: &ValueType) -> Result<Value> {
+	let from = Value::Str(data_value);
+	match data_type {
+		ValueType::I64 => from.cast().map(Value::I64),
+		ValueType::F64 => from.cast().map(Value::F64),
+		ValueType::Timestamp => Ok(Value::Null), // TODO
+		ValueType::Bool => from.cast().map(Value::I64)?.cast().map(Value::Bool),
+		ValueType::Str => Ok(from),
+		_ => Ok(from),
 	}
 }
