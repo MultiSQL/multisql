@@ -33,6 +33,8 @@ pub enum Connection {
 	CSV(String, crate::CSVSettings),
 	#[cfg(feature = "sheet-database")]
 	Sheet(String),
+	#[cfg(feature = "odbc-database")]
+	ODBC(String),
 }
 impl Default for Connection {
 	fn default() -> Self {
@@ -55,6 +57,8 @@ impl TryFrom<Connection> for Database {
 			CSV(path, settings) => Box::new(CSVDatabase::new_with_settings(path, settings.clone())?),
 			#[cfg(feature = "sheet-database")]
 			Sheet(path) => Box::new(SheetDatabase::new(path)?),
+			#[cfg(feature = "odbc-database")]
+			ODBC(connection_string) => Box::new(ODBCDatabase::new(connection_string)?),
 			Unknown => return Err(DatabaseError::UnknownConnection.into()),
 		});
 		Ok(Database {
