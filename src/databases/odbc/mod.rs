@@ -31,7 +31,11 @@ fn temp_odbc_test() {
 	use crate::{Connection, Glue};
 	let connection = Connection::ODBC(String::from("Driver={SQL Server}; Server=CPServer18; Database=CostProBI_Common; Uid=kyran; Pwd=KyGost77; Trusted_Connection=yes"));
 	let database = connection.try_into().unwrap();
+<<<<<<< HEAD
 	let mut glue = Glue::new(String::from("main"), database);
 	println!("{:?}", glue.execute("EXPLAIN TABLE_ALL"));
 	panic!();
+=======
+	let glue = Glue::new(String::from("main"), database);
+>>>>>>> 6301ee113a217d2dd8740cdee1fff688cd488659
 }
