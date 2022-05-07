@@ -2,9 +2,10 @@ use {
 	crate::{Column, Index},
 	serde::{Deserialize, Serialize},
 	std::collections::HashMap,
+	std::fmt::Debug,
 };
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Schema {
 	pub table_name: String,
 	pub column_defs: Vec<Column>,
