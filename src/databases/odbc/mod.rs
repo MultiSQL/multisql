@@ -4,12 +4,12 @@ mod mutable;
 
 use {
 	crate::{database::*, Result},
-	odbc_api::{Connection, Environment},
+	odbc_api::Environment,
 };
 
 pub struct ODBCDatabase {
 	environment: Environment,
-	connection: Connection<'static>,
+	connection_string: String,
 }
 
 impl DBFull for ODBCDatabase {}
@@ -17,10 +17,11 @@ impl DBFull for ODBCDatabase {}
 impl ODBCDatabase {
 	pub fn new(connection_string: &str) -> Result<Self> {
 		let environment = Environment::new()?;
-		let connection = environment.connect_with_connection_string(connection_string)?;
+		environment.connect_with_connection_string(connection_string)?; // Fail Fast
+		let connection_string = connection_string.to_string();
 		Ok(Self {
 			environment,
-			connection,
+			connection_string,
 		})
 	}
 }

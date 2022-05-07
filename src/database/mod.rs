@@ -45,7 +45,7 @@ impl TryFrom<Connection> for Database {
 	type Error = crate::Error;
 	fn try_from(connection: Connection) -> Result<Database> {
 		use {
-			crate::{CSVDatabase, MemoryDatabase, SheetDatabase, SledDatabase},
+			crate::{CSVDatabase, MemoryDatabase, SheetDatabase, SledDatabase, ODBCDatabase},
 			Connection::*,
 		};
 		let database: Mutex<Box<DatabaseInner>> = Mutex::new(match &connection {
