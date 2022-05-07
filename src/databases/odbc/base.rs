@@ -10,7 +10,7 @@ impl DBBase for ODBCDatabase {
 		let connection = self
 			.environment
 			.connect_with_connection_string(&self.connection_string)?;
-		let mut tables = connection.tables(&connection.current_catalog()?, "", "", "")?;
+		let mut tables = connection.tables(&connection.current_catalog()?, "", "", "TABLE")?;
 		let col_range = 1..(tables.num_result_cols()?);
 		let mut schemas = Vec::new();
 		while let Some(mut row) = tables.next_row()? {
@@ -27,7 +27,24 @@ impl DBBase for ODBCDatabase {
 		}
 		Ok(schemas)
 	}
-	async fn fetch_schema(&self, _table_name: &str) -> Result<Option<Schema>> {
-		Ok(Some(self.scan_schemas().await?.remove(0)))
+	async fn fetch_schema(&self, table_name: &str) -> Result<Option<Schema>> {
+		let connection = self
+			.environment
+			.connect_with_connection_string(&self.connection_string)?;
+		let mut tables = connection.columns(&connection.current_catalog()?, "", table_name, "")?;
+		let col_range = 1..(tables.num_result_cols()?);
+		while let Some(mut row) = tables.next_row()? {
+			let row = col_range
+				.clone()
+				.map(|col| {
+					let mut output = Vec::new();
+					row.get_text(col as u16, &mut output)?;
+					let output = std::str::from_utf8(&output)?.to_string();
+					Ok(output)
+				})
+				.collect::<Result<Vec<String>>>()?;
+			println!("{:?}", row);
+		}
+		Ok(None)
 	}
 }
