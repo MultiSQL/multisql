@@ -1,6 +1,6 @@
 use {
 	crate::{
-		executor::types::Row, Column, Ingredient, Recipe, RecipeUtilities, Resolve, Result,
+		executor::types::Row, Column, Error, Ingredient, Recipe, RecipeUtilities, Resolve, Result,
 		SimplifyBy, Value, ValueDefault, ValueType,
 	},
 	rayon::prelude::*,
@@ -76,42 +76,21 @@ pub fn validate(columns: &[Column], stated_columns: &[usize], rows: &mut Vec<Row
 			column_info
 				.iter()
 				.map(|(index, failure_recipe, nullable, data_type)| {
-					index
-						.map(|index| {
-							row.get(index).map(|value| {
-								let mut value = value.clone();
-								if let Err(error) = value.validate_null(*nullable) {
-									value = if let Some(fallback) = failure_recipe.clone() {
-										if !matches!(
-											fallback,
-											Recipe::Ingredient(Ingredient::Value(Value::Null))
-										) {
-											fallback
-												.simplify(SimplifyBy::Basic)?
-												.as_solution()
-												.ok_or(ValidateError::BadDefault)?
-										} else {
-											return Err(error);
-										}
-									} else {
-										return Err(error);
-									}
-								}
-								value.is(data_type)?;
-								Ok(value)
-							})
-						})
-						.flatten()
-						.unwrap_or({
-							if let Some(recipe) = failure_recipe.clone() {
-								recipe
-									.simplify(SimplifyBy::Basic)?
-									.as_solution()
-									.ok_or_else(|| ValidateError::BadDefault.into())
-							} else {
-								Err(ValidateError::MissingValue.into())
-							}
-						})
+					let mut value = index
+						.and_then(|index| row.get(index).cloned())
+						.ok_or(Error::Validate(ValidateError::MissingValue)).and_then(|value| {
+						value.validate_null(*nullable).map(|_| value)}).or_else(|_| {
+							let recipe = failure_recipe
+								.clone()
+								.ok_or(Error::Validate(ValidateError::MissingValue))?;
+							recipe
+								.simplify(SimplifyBy::Basic)?
+								.as_solution()
+								.ok_or(Error::Validate(ValidateError::BadDefault))
+						})?;
+
+					value.is(data_type)?;
+					Ok(value)
 				})
 				.collect::<Result<Row>>()
 		})

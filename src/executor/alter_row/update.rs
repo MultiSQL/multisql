@@ -77,29 +77,33 @@ impl Glue {
 			.scan_data(&table)
 			.await?
 			.into_iter()
-			.filter_map(|(key, row)| {
-				let row = row.0;
-
-				let confirm_constraint = filter.confirm_constraint(&row);
-				if let Ok(false) = confirm_constraint {
-					return None;
-				} else if let Err(error) = confirm_constraint {
-					return Some(Err(error));
+			.filter_map(|(key, Row(row))| match filter.confirm_constraint(&row) {
+				Ok(false) => None,
+				Err(error) => Some(Err(error)),
+				Ok(true) => {
+					Some(row
+						.iter()
+						.enumerate()
+						.map(|(index, old_value)| {
+							assignments
+								.iter()
+								.find_map(|(assignment_index, assignment_recipe)| {
+									if assignment_index == &index {
+										Some(
+											assignment_recipe
+												.clone()
+												.simplify_by_row(&row)
+												.and_then(|recipe| recipe.confirm()),
+										)
+									} else {
+										None
+									}
+								})
+								.unwrap_or(Ok(old_value.clone()))
+						})
+						.collect::<Result<VecRow>>()
+					.map(|row| (key, row)))
 				}
-				let row = row
-					.iter()
-					.enumerate()
-					.map(|(index, old_value)| {
-						assignments
-							.iter()
-							.find(|(assignment_index, _)| assignment_index == &index)
-							.map(|(_, assignment_recipe)| {
-								assignment_recipe.clone().simplify_by_row(&row)?.confirm()
-							})
-							.unwrap_or_else(|| Ok(old_value.clone()))
-					})
-					.collect::<Result<VecRow>>();
-				Some(row.map(|row| (key, row)))
 			})
 			.collect::<Result<Vec<(Value, VecRow)>>>()?;
 
