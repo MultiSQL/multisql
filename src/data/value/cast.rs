@@ -38,7 +38,7 @@ impl Cast<bool> for Value {
 				_ => return Err(ValueError::ImpossibleCast.into()),
 			},
 			Value::Null => return Err(ValueError::ImpossibleCast.into()),
-			_ => unimplemented!(),
+			_ => return Err(Error::Value(ValueError::UnimplementedCast)),
 		})
 	}
 }
@@ -60,7 +60,7 @@ impl Cast<u64> for Value {
 				.map_err(|_| ValueError::ImpossibleCast)?,
 			Value::Str(value) => lexical::parse(value).map_err(|_| ValueError::ImpossibleCast)?,
 			Value::Null => return Err(ValueError::ImpossibleCast.into()),
-			_ => unimplemented!(),
+			_ => return Err(Error::Value(ValueError::UnimplementedCast)),
 		})
 	}
 }
@@ -80,7 +80,7 @@ impl Cast<i64> for Value {
 			Value::F64(value) => value.trunc() as i64,
 			Value::Str(value) => lexical::parse(value).map_err(|_| ValueError::ImpossibleCast)?,
 			Value::Null => return Err(ValueError::ImpossibleCast.into()),
-			_ => unimplemented!(),
+			_ => return Err(Error::Value(ValueError::UnimplementedCast)),
 		})
 	}
 }
@@ -102,7 +102,7 @@ impl Cast<f64> for Value {
 				fast_float::parse(value).map_err(|_| ValueError::ImpossibleCast)?
 			}
 			Value::Null => return Err(ValueError::ImpossibleCast.into()),
-			_ => unimplemented!(),
+			_ => return Err(Error::Value(ValueError::UnimplementedCast)),
 		})
 	}
 }
@@ -114,8 +114,9 @@ impl Cast<String> for Value {
 			Value::I64(value) => lexical::to_string(value),
 			Value::F64(value) => lexical::to_string(value),
 			Value::Str(value) => value,
+			Value::Timestamp(value) => lexical::to_string(value),
 			Value::Null => String::from("NULL"),
-			_ => unimplemented!(),
+			_ => return Err(Error::Value(ValueError::UnimplementedCast)),
 		})
 	}
 }
