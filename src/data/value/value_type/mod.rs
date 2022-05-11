@@ -4,9 +4,10 @@ use {
 	crate::Value,
 	serde::{Deserialize, Serialize},
 	sqlparser::ast::DataType,
+	std::fmt::Debug,
 };
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub enum ValueType {
 	Bool,
 	U64,
