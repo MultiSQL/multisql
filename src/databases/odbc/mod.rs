@@ -37,6 +37,6 @@ fn temp_odbc_test() {
 	glue.execute("SELECT * FROM BI_tblEpisode LIMIT 100")
 		.unwrap();
 
-	glue.execute("INSERT INTO BILoad_tblEpisodeLoad (elEpisodeNumber) VALUES ('test')")
+	glue.execute("INSERT INTO BILoad_insertTest (testText) VALUES ('test')")
 		.unwrap();
 }
