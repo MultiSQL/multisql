@@ -216,6 +216,14 @@ impl Value {
 			| (ValueType::Timestamp, Value::Timestamp(_))
 			| (ValueType::Any, _)
 			| (_, Value::Null) => Ok(()),
+			(ValueType::Timestamp, Value::I64(val)) => {
+				*self = Value::Timestamp(*val);
+				Ok(())
+			}
+			(ValueType::I64, Value::Timestamp(val)) => {
+				*self = Value::I64(*val);
+				Ok(())
+			}
 			(ValueType::F64, Value::I64(_)) => {
 				*self = Value::F64(self.clone().cast()?);
 				Ok(())
