@@ -11,8 +11,9 @@ impl DBMut for ODBCDatabase {
 		let connection = self
 			.environment
 			.connect_with_connection_string(&self.connection_string)?;
-		let table_name = convert_table_name(table_name);
+			
 		let schema = self.fetch_schema(&table_name).await?.unwrap();
+		let table_name = convert_table_name(table_name);
 		let columns = schema
 			.column_defs
 			.iter()

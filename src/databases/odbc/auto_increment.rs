@@ -7,7 +7,7 @@ use {
 impl AutoIncrement for ODBCDatabase {
 	async fn generate_increment_values(
 		&mut self,
-		table_name: String,
+		_table_name: String,
 		columns: Vec<(usize, String, i64)>,
 	) -> Result<Vec<((usize, String), i64)>> {
 		let row_init = 1;
