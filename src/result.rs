@@ -23,6 +23,11 @@ pub enum Error {
 	#[serde(with = "stringify")]
 	Database(#[from] Box<dyn std::error::Error>),
 
+	#[cfg(feature = "odbc-database")]
+	#[error(transparent)]
+	#[serde(with = "stringify")]
+	ODBC(#[from] odbc_api::Error),
+
 	#[error(transparent)]
 	Execute(#[from] ExecuteError),
 	#[error(transparent)]
