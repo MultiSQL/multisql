@@ -1,8 +1,8 @@
 use {
 	super::base::convert_table_name,
-	crate::{Cast, DBBase, DBMut, ODBCDatabase, Result, Row, Value},
+	crate::{DBBase, DBMut, ODBCDatabase, Result, Row, Value},
 	async_trait::async_trait,
-	odbc_api::{parameter::InputParameter, Bit, IntoParameter, Nullable},
+	odbc_api::{parameter::InputParameter, Bit, IntoParameter},
 };
 
 #[async_trait(?Send)]
