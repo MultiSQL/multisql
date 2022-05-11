@@ -1,8 +1,8 @@
 use {
 	super::base::convert_table_name,
-	crate::{Cast, DBBase, DBMut, ODBCDatabase, Result, Row},
+	crate::{Cast, DBBase, DBMut, ODBCDatabase, Result, Row, Value},
 	async_trait::async_trait,
-	odbc_api::IntoParameter,
+	odbc_api::{parameter::InputParameter, Bit, IntoParameter, Nullable},
 };
 
 #[async_trait(?Send)]
@@ -11,7 +11,7 @@ impl DBMut for ODBCDatabase {
 		let connection = self
 			.environment
 			.connect_with_connection_string(&self.connection_string)?;
-			
+
 		let schema = self.fetch_schema(&table_name).await?.unwrap();
 		let table_name = convert_table_name(table_name);
 		let columns = schema
@@ -35,10 +35,25 @@ impl DBMut for ODBCDatabase {
 			let values = row
 				.0
 				.into_iter()
-				.map(|value| value.cast().map(|value: String| value.into_parameter()))
-				.collect::<Result<Vec<_>>>()?;
+				.map(into_parameter)
+				.collect::<Vec<Box<dyn InputParameter>>>();
 			connection.execute(&query, &values[..]).unwrap();
 		}
 		Ok(())
+	}
+}
+
+fn into_parameter(value: Value) -> Box<dyn InputParameter> {
+	match value {
+		Value::Str(val) => Box::new(val.into_parameter()),
+		Value::I64(val) => Box::new(val.into_parameter()),
+		Value::U64(val) => Box::new((val as i64).into_parameter()),
+		Value::F64(val) => Box::new(val.into_parameter()),
+		Value::Bool(val) => Box::new(Bit(val.into())),
+		Value::Null => {
+			let none: Option<i8> = None;
+			Box::new(none.into_parameter())
+		}
+		_ => unimplemented!(),
 	}
 }
