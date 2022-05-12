@@ -27,9 +27,9 @@ impl ToString for ValueType {
 	fn to_string(&self) -> String {
 		use ValueType::*;
 		match self {
-			Bool => String::from("Boolean"),
-			U64 => String::from("Unsigned Integer"),
-			I64 => String::from("Signed Integer"),
+			Bool => String::from("Bool"),
+			U64 => String::from("UInt"),
+			I64 => String::from("Int"),
 			F64 => String::from("Float"),
 			Str => String::from("Text"),
 			Timestamp => String::from("Timestamp"),
