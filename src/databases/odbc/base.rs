@@ -59,7 +59,7 @@ impl DBBase for ODBCDatabase {
 				name: row[3].clone(),
 				data_type: odbc_type_to_multisql(&row[5]),
 				default: None, // doesn't really matter
-				is_nullable: (row[17] != "NO"),
+				is_nullable: true,//(row[17] != "NO"),
 				is_unique: false, // doesn't realllllyyyy matter
 			});
 		}
