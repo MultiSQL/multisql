@@ -18,25 +18,28 @@ impl DBMut for ODBCDatabase {
 			.column_defs
 			.iter()
 			.map(|col_def| col_def.name.as_str())
-			.collect::<Vec<&str>>()
-			.join(", ");
-		let placeholders = schema
-			.column_defs
-			.iter()
-			.map(|_| "?")
-			.collect::<Vec<&str>>()
-			.join(", ");
-		let query = format!(
-			"INSERT INTO {table} ({columns}) VALUES ({placeholders})",
-			table = table_name,
-			columns = columns
-		);
+			.collect::<Vec<&str>>();
 		for row in rows {
-			let values = row
+			let (values, columns): (Vec<_>, Vec<&str>) = row
 				.0
 				.into_iter()
-				.map(into_parameter)
-				.collect::<Vec<Box<dyn InputParameter>>>();
+				.enumerate()
+				.filter_map(|(index, value)| {
+					if !matches!(value, Value::Null) {
+						Some((into_parameter(value), columns[index]))
+					} else {
+						None
+					}
+				})
+				.collect::<Vec<(Box<dyn InputParameter>, &str)>>()
+				.into_iter().unzip();
+			let placeholders = columns.iter().map(|_|"?").collect::<Vec<&str>>().join(", ");
+			let columns = columns.join(", ");
+			let query = format!(
+					"INSERT INTO {table} ({columns}) VALUES ({placeholders})",
+					table = table_name,
+					columns = columns
+				);
 			connection.execute(&query, &values[..]).unwrap();
 		}
 		Ok(())
