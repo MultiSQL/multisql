@@ -58,9 +58,9 @@ impl DBBase for ODBCDatabase {
 			column_defs.push(Column {
 				name: row[3].clone(),
 				data_type: odbc_type_to_multisql(&row[5]),
-				default: None, // doesn't really matter
-				is_nullable: true,//(row[17] != "NO"),
-				is_unique: false, // doesn't realllllyyyy matter
+				default: None,     // doesn't really matter
+				is_nullable: true, //(row[17] != "NO"),
+				is_unique: false,  // doesn't realllllyyyy matter
 			});
 		}
 		Ok(if !column_defs.is_empty() {

@@ -70,7 +70,7 @@
 			# Sheet
 				umya-spreadsheet = { version = "0.7.1", optional = true }
 			# ODBC
-				odbc-api = { version = "0.39.1", optional = true }
+				odbc-api = { version = "0.40.1", optional = true }
 
 [dev-dependencies]
 	tokio = { version = "0.3.3", features = ["macros", "rt"] }

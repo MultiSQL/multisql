@@ -1,7 +1,7 @@
 use {
 	crate::{
-		executor::types::Row, Column, Error, Recipe, RecipeUtilities, Resolve, Result,
-		SimplifyBy, ValueDefault, ValueType,
+		executor::types::Row, Column, Error, Recipe, RecipeUtilities, Resolve, Result, SimplifyBy,
+		ValueDefault, ValueType,
 	},
 	rayon::prelude::*,
 	serde::Serialize,
@@ -78,8 +78,9 @@ pub fn validate(columns: &[Column], stated_columns: &[usize], rows: &mut Vec<Row
 				.map(|(index, failure_recipe, nullable, data_type)| {
 					let mut value = index
 						.and_then(|index| row.get(index).cloned())
-						.ok_or(Error::Validate(ValidateError::MissingValue)).and_then(|value| {
-						value.validate_null(*nullable).map(|_| value)}).or_else(|_| {
+						.ok_or(Error::Validate(ValidateError::MissingValue))
+						.and_then(|value| value.validate_null(*nullable).map(|_| value))
+						.or_else(|_| {
 							let recipe = failure_recipe
 								.clone()
 								.ok_or(Error::Validate(ValidateError::MissingValue))?;

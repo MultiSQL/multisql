@@ -120,7 +120,7 @@ impl Glue {
 		self.auto_increment(&database, table, &column_defs, &mut rows)
 			.await?;
 		/*self.validate_unique(&database, table, &column_defs, &rows, Some(&keys))
-			.await?;*/
+		.await?;*/
 		let keyed_rows: Vec<(Value, Row)> = keys.into_iter().zip(rows).collect();
 		let num_rows = keyed_rows.len();
 
