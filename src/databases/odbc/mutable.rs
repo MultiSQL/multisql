@@ -12,7 +12,7 @@ use {
 #[async_trait(?Send)]
 impl DBMut for ODBCDatabase {
 	async fn insert_data(&mut self, table_name: &str, rows: Vec<Row>) -> Result<()> {
-		for rows in rows.chunks(1_000){
+		for rows in rows.chunks(255){
 			self.insert(table_name, rows.to_vec()).await ?;
 		}
 		Ok(())
