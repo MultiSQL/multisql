@@ -92,7 +92,7 @@ fn into_buffer(values: Vec<Value>, column_def: Column) -> AnyColumnBuffer {
 				.collect(),
 		),
 		Str => {
-			let mut col = TextColumn::new(50, values.len()*2);
+			let mut col = TextColumn::new(50, 255*255);
 			values.into_iter().enumerate().for_each(|(index, value)| {
 				let text: String = value.cast().unwrap();
 				col.append(index, Some(text.as_bytes()))
