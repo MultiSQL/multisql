@@ -1,6 +1,6 @@
 [package]
 	name = "multisql"
-	version = "0.2.13"
+	version = "0.2.14"
 	authors = ["Kyran Gostelow <kyran@gostelow.me>", "Taehoon Moon <taehoon.moon@outlook.com>"]
 	edition = "2021"
 	description = "MultiSQL"
