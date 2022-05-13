@@ -19,7 +19,7 @@ impl Glue {
 	}
 	pub fn get_context(&self) -> Result<MutexGuard<Context>> {
 		self.context
-			.lock()
+			.try_lock()
 			.map_err(|_| InterfaceError::ContextUnavailable.into())
 	}
 	pub fn get_mut_context(&mut self) -> Result<&mut Context> {

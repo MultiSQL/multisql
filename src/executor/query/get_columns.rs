@@ -51,8 +51,7 @@ impl Glue {
 		let query = self.get_view_query(view_name, database).await?;
 		if let Some(query) = query {
 			let plan = Manual::new(self, query)?;
-			//let (_, columns) = self.arrange_joins(plan.joins).await?;
-			let columns = vec![ColumnInfo::of_name(String::from("a"))];
+			let (_, columns) = self.arrange_joins(plan.joins).await?;
 			let labels = refine_items(plan.select_items, &columns, false)?
 				.into_iter()
 				.map(|(_recipe, label)| label)

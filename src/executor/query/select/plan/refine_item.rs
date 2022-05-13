@@ -1,5 +1,5 @@
 use {
-	super::{SelectItem},
+	super::SelectItem,
 	crate::{
 		executor::{types::ColumnInfo, PlannedRecipe},
 		Error, PlanError, Result,
