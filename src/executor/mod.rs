@@ -1,5 +1,6 @@
 mod alter_row;
 mod alter_table;
+mod create;
 mod execute;
 mod fetch;
 mod other;
@@ -8,15 +9,14 @@ mod query;
 mod recipe;
 mod set_variable;
 mod types;
-mod create;
 
 pub use {
 	alter_row::ValidateError,
 	alter_table::AlterError,
+	create::*,
 	execute::{ExecuteError, Payload},
 	fetch::FetchError,
 	query::{JoinError, ManualError, PlanError, QueryError, SelectError},
 	recipe::*,
 	types::ComplexTableName,
-	create::CreateError,
 };

@@ -34,7 +34,7 @@ impl Glue {
 		})
 	}
 }
-const VIEW_TABLE_NAME: &str = "_view";
+pub const VIEW_TABLE_NAME: &str = "_view";
 
 lazy_static! {
 	static ref VIEW_TABLE: Schema = Schema {
