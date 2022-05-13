@@ -1,3 +1,4 @@
+mod get_rows;
 mod select;
 mod set_expr;
 

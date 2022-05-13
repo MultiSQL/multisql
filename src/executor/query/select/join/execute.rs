@@ -45,27 +45,10 @@ impl JoinExecute {
 	pub fn set_first_table(&mut self) {
 		self.method = JoinMethod::FirstTable;
 	}
-	pub async fn get_rows<'a>(&self, storage: &DatabaseInner) -> Result<Vec<Row>> {
-		if let Some(index_filter) = self.index_filter.clone() {
-			storage.scan_data_indexed(self.table.as_str(), index_filter)
-		} else {
-			storage.scan_data(self.table.as_str())
-		}
-		.await
-		.map(|plane| {
-			plane
-				.into_iter()
-				.map(|(_, row)| row.0)
-				.collect::<Vec<Row>>()
-		})
-	}
 	pub async fn execute<'a>(self, glue: &Glue, plane_rows: Vec<Row>) -> Result<Vec<Row>> {
-		let rows =
-			if let Some((.., context_table_rows)) = glue.get_context()?.tables.get(&self.table) {
-				Ok(context_table_rows.clone())
-			} else {
-				self.get_rows(&**glue.get_database(&self.database)?).await
-			}?;
+		let rows = glue
+			.get_rows(&self.table, &self.database, &self.index_filter)
+			.await?;
 		self.method.run(
 			&self.join_type,
 			self.widths.0,
