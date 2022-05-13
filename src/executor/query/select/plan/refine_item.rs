@@ -1,8 +1,8 @@
 use {
-	super::{Manual, Order, SelectItem},
+	super::{SelectItem},
 	crate::{
 		executor::{types::ColumnInfo, PlannedRecipe},
-		Error, Glue, PlanError, Result,
+		Error, PlanError, Result,
 	},
 };
 

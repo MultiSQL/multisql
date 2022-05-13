@@ -1,10 +1,8 @@
 use {
-	super::{Manual, Order, SelectItem},
 	crate::{
 		executor::{
-			query::select::join::{JoinExecute, JoinManual, JoinPlan},
+			query::select::join::{JoinManual, JoinPlan},
 			types::ColumnInfo,
-			PlannedRecipe,
 		},
 		Glue, Result,
 	},

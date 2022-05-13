@@ -1,17 +1,18 @@
 use {
-	super::select::{refine_items, Manual, Plan},
+	super::select::{refine_items, Manual},
 	crate::{
 		executor::{
 			fetch::fetch_columns,
 			types::{ColumnInfo, ComplexTableName},
 		},
-		Context, Glue, Result,
+		Glue, Result,
 	},
 	async_recursion::async_recursion,
 };
 
 impl Glue {
 	pub async fn get_columns(&self, table: ComplexTableName) -> Result<Vec<ColumnInfo>> {
+		let view_labels = self.get_view_columns(&table.name, &table.database).await?;
 		let context_tables = {
 			let context = self.get_context().unwrap();
 			context.tables.clone()
@@ -26,8 +27,7 @@ impl Glue {
 				})
 				.collect::<Vec<ColumnInfo>>())
 		} else {
-			let labels = self.get_view_columns(&table.name, &table.database).await?;
-			if let Some(labels) = labels {
+			if let Some(labels) = view_labels {
 				let labels = labels
 					.into_iter()
 					.map(|name| ColumnInfo {
@@ -51,7 +51,8 @@ impl Glue {
 		let query = self.get_view_query(view_name, database).await?;
 		if let Some(query) = query {
 			let plan = Manual::new(self, query)?;
-			let (_, columns) = self.arrange_joins(plan.joins).await?;
+			//let (_, columns) = self.arrange_joins(plan.joins).await?;
+			let columns = vec![ColumnInfo::of_name(String::from("a"))];
 			let labels = refine_items(plan.select_items, &columns, false)?
 				.into_iter()
 				.map(|(_recipe, label)| label)

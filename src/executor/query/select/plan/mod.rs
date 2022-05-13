@@ -3,11 +3,11 @@ mod refine_item;
 pub(crate) use refine_item::*;
 use {
 	super::{
-		join::{JoinExecute, JoinPlan},
+		join::{JoinExecute},
 		Manual, Order, SelectItem,
 	},
 	crate::{
-		executor::{types::ColumnInfo, PlannedRecipe},
+		executor::{PlannedRecipe},
 		Glue, Result,
 	},
 	serde::Serialize,
