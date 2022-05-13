@@ -5,9 +5,8 @@ use {
 			fetch::fetch_columns,
 			types::{ColumnInfo, ComplexTableName},
 		},
-		Glue, Result,
+		Context, Glue, Result,
 	},
-	async_recursion::async_recursion,
 };
 
 impl Glue {
@@ -45,7 +44,7 @@ impl Glue {
 	) -> Result<Option<Vec<String>>> {
 		let query = self.get_view_query(view_name, database).await?;
 		if let Some(query) = query {
-			let plan = Manual::new(query, &*self.get_context()?)?;
+			let plan = Manual::new(query, &Context::default())?;
 			let labels = refine_items(plan.select_items, &[], false)?
 				.into_iter()
 				.map(|(_recipe, label)| label)

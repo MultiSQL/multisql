@@ -75,46 +75,25 @@ impl Manual {
 			.into_iter()
 			.unzip();
 
-		/*subqueries.push(constraint.meta.subqueries.clone());
-
-		let subqueries = subqueries
+		let joins = from
 			.into_iter()
-			.reduce(|mut all_subqueries, subqueries| {
-				all_subqueries.extend(subqueries);
-				all_subqueries
+			.map(|from| {
+				let main = JoinManual::new_implicit_join(from.relation)?;
+				let mut joins = from
+					.joins
+					.into_iter()
+					.map(|join| JoinManual::new(join, context))
+					.collect::<Result<Vec<JoinManual>>>()?;
+				joins.push(main);
+				Ok(joins)
 			})
-			.ok_or(ManualError::UncaughtASTError(String::from(
-				"Supposedly subqueries yet none found",
-			)))?;
-		// Subqueries TODO
-		// Issues:
-		// - Current method can expand plane on multiple match
-		// - No plane isolation (ambiguous columns because subquery columns and plane columns are treated the same)
-		if !subqueries.is_empty() {
-			return Err(ManualError::UnimplementedSubquery.into());
-		}*/
-
-		let /*mut*/ joins = from
-            .into_iter()
-            .map(|from| {
-                let main = JoinManual::new_implicit_join(from.relation)?;
-                let mut joins = from
-                    .joins
-                    .into_iter()
-                    .map(|join| JoinManual::new(join, context))
-                    .collect::<Result<Vec<JoinManual>>>()?;
-                joins.push(main);
-                Ok(joins)
-            })
-            .collect::<Result<Vec<Vec<JoinManual>>>>()?
-            .into_iter()
-            .reduce(|mut all_joins, joins| {
-                all_joins.extend(joins);
-                all_joins
-            })
-            .ok_or_else(||ManualError::UncaughtASTError(String::from("No tables")))?;
-		//joins.extend(subqueries);
-		//let joins = joins;
+			.collect::<Result<Vec<Vec<JoinManual>>>>()?
+			.into_iter()
+			.reduce(|mut all_joins, joins| {
+				all_joins.extend(joins);
+				all_joins
+			})
+			.ok_or_else(|| ManualError::UncaughtASTError(String::from("No tables")))?;
 
 		Ok(Manual {
 			joins,
@@ -151,7 +130,7 @@ fn convert_select_item(
 				SelectItemAst::ExprWithAlias { expr, alias } => (expr, Some(alias.value)),
 				_ => unreachable!(),
 			};
-			let recipe = MetaRecipe::new(expression)?.simplify_by_context(context)?;
+			let recipe = MetaRecipe::new(expression)?;//.simplify_by_context(context)?;
 			let subqueries = recipe.meta.subqueries.clone();
 			(SelectItem::Recipe(recipe, alias), subqueries)
 		}
