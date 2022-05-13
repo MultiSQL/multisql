@@ -32,11 +32,11 @@ publish:
   script: cargo publish
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_TITLE =~ /\d\.\d\.\d/
-  release:
-    name: $CI_COMMIT_TITLE
-    tag_name: '$CI_COMMIT_TITLE'
-    ref: '$CI_COMMIT_TITLE'
-    description: '$CI_COMMIT_TITLE - Automatically Released'
+#  release:
+#    name: $CI_COMMIT_TITLE
+#    tag_name: '$CI_COMMIT_TITLE'
+#    ref: '$CI_COMMIT_TITLE'
+#    description: '$CI_COMMIT_TITLE - Automatically Released'
 
 benchmark:
   stage: benchmark
