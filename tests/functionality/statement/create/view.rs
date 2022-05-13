@@ -12,7 +12,7 @@ crate::util_macros::testcase!(
 		);
 
 		crate::util_macros::assert_select!(glue,
-			"SELECT a FROM basic_view"
+			"SELECT 1 FROM basic_view"
 			=> a = I64: (1)
 		);
 	})

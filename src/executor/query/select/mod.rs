@@ -15,7 +15,7 @@ use {
 	futures::stream::{self, StreamExt, TryStreamExt},
 	rayon::prelude::*,
 	serde::Serialize,
-	sqlparser::ast::{OrderByExpr, Select},
+	sqlparser::ast::{OrderByExpr, Select, TableFactor},
 	thiserror::Error as ThisError,
 };
 pub use {

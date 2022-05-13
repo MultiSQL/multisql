@@ -1,9 +1,13 @@
-use crate::{
-	executor::{
-		fetch::fetch_columns,
-		types::{ColumnInfo, ComplexTableName},
+use {
+	super::Plan,
+	crate::{
+		executor::{
+			fetch::fetch_columns,
+			types::{ColumnInfo, ComplexTableName},
+		},
+		Glue, Result,
 	},
-	Glue, Result,
+	async_recursion::async_recursion,
 };
 
 impl Glue {
@@ -34,14 +38,18 @@ impl Glue {
 			}
 		}
 	}
+	#[async_recursion(?Send)]
 	pub async fn get_view_columns(
 		&self,
 		view_name: &str,
 		database: &Option<String>,
 	) -> Result<Option<Vec<String>>> {
-		// inefficient
-		self.get_view_data(view_name, database)
-			.await
-			.map(|opt| opt.map(|(labels, _)| labels))
+		let query = self.get_view_query(view_name, database).await?;
+		if let Some(query) = query {
+			let plan = Plan::new(self, query, vec![]).await?;
+			Ok(Some(plan.labels))
+		} else {
+			Ok(None)
+		}
 	}
 }

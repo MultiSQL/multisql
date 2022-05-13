@@ -1,3 +1,5 @@
+mod organise_joins;
+mod refine_item;
 use {
 	super::{
 		join::{JoinExecute, JoinPlan},
@@ -8,6 +10,8 @@ use {
 		Glue, Result,
 	},
 	futures::future::join_all,
+	organise_joins::organise_joins,
+	refine_item::refine_item,
 	serde::Serialize,
 	sqlparser::ast::{OrderByExpr, Select},
 	thiserror::Error as ThisError,
@@ -67,39 +71,8 @@ impl Plan {
 			.enumerate()
 			.collect();
 
-		let mut needed_joins: Vec<(usize, JoinPlan)> = joins;
-		let mut requested_joins: Vec<(usize, JoinPlan)> = vec![];
-		let mut len_last: usize;
-		let mut len = 0;
-		loop {
-			len_last = len;
-			len = needed_joins.len();
-			if needed_joins.is_empty() {
-				break;
-			}
-			let needed_joins_iter = needed_joins.into_iter();
-			needed_joins = vec![];
-			needed_joins_iter.for_each(|(needed_index, join)| {
-				if !join.needed_tables.iter().any(|needed_table_index| {
-					!(&needed_index == needed_table_index
-						|| requested_joins
-							.iter()
-							.any(|(requested_index, _)| needed_table_index == requested_index))
-				}) {
-					requested_joins.push((needed_index, join))
-				} else {
-					if len == len_last {
-						// TODO
-						panic!(
-							"Impossible Join, table not present or tables require eachother: {:?}",
-							join
-						)
-						// TODO: Handle
-					}
-					needed_joins.push((needed_index, join))
-				}
-			});
-		}
+		let requested_joins = organise_joins(joins);
+
 		let columns = requested_joins
 			.iter()
 			.fold(vec![], |mut columns, (index, _)| {
@@ -130,53 +103,8 @@ impl Plan {
 		let select_items = select_items
 			.into_iter()
 			.enumerate()
-			.map(|(index, select_item)| {
-				Ok(match select_item {
-					SelectItem::Recipe(meta_recipe, alias) => {
-						let recipe = PlannedRecipe::new(meta_recipe, &columns)?;
-						let label = alias
-							.unwrap_or_else(|| recipe.get_label(index, include_table, &columns));
-						vec![(recipe, label)]
-					}
-					SelectItem::Wildcard(specifier) => {
-						let specified_table =
-							specifier.and_then(|specifier| specifier.get(0).cloned());
-						let matches_table = |column: &ColumnInfo| {
-							specified_table
-								.clone()
-								.map(|specified_table| {
-									column.table.name == specified_table
-										|| column
-											.table
-											.alias
-											.clone()
-											.map(|alias| alias == specified_table)
-											.unwrap_or(false)
-								})
-								.unwrap_or(true)
-						};
-						columns
-							.iter()
-							.enumerate()
-							.filter_map(|(index, column)| {
-								if matches_table(column) {
-									Some((
-										PlannedRecipe::of_index(index),
-										if include_table {
-											format!("{}.{}", column.table.name, column.name)
-										} else {
-											column.name.clone()
-										},
-									))
-								} else {
-									None
-								}
-							})
-							.collect()
-					}
-				})
-			})
-			.collect::<Result<Vec<Vec<(PlannedRecipe, String)>>>>()? // TODO: Don't do this
+			.map(|(index, select_item)| refine_item(index, select_item, &columns, include_table))
+			.collect::<Result<Vec<Vec<(PlannedRecipe, String)>>>>()?
 			.into_iter()
 			.reduce(|mut select_items, select_item_set| {
 				select_items.extend(select_item_set);
