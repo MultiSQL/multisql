@@ -12,7 +12,7 @@ use {
 	},
 	async_recursion::async_recursion,
 	serde::Serialize,
-	sqlparser::ast::{Cte, Query, SetExpr, TableAlias, With},
+	sqlparser::ast::{Cte, Query, TableAlias, With},
 	thiserror::Error as ThisError,
 };
 
@@ -121,7 +121,7 @@ impl Glue {
 			order_by,
 			limit,
 			offset,
-			with,
+			with: _,
 			// TODO (below)
 			fetch: _,
 			lock: _,

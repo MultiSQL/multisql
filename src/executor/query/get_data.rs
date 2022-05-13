@@ -1,6 +1,6 @@
 use {
 	crate::{
-		executor::types::LabelsAndRows, Cast, Glue, IndexFilter, Result, Value, VIEW_TABLE_NAME,
+		executor::types::LabelsAndRows, Cast, Glue, Result, VIEW_TABLE_NAME,
 	},
 	async_recursion::async_recursion,
 };
