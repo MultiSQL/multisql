@@ -2,7 +2,6 @@ use {
 	super::{JoinManual, JoinType},
 	crate::{
 		executor::{
-			fetch::fetch_columns,
 			types::{ColumnInfo, ComplexTableName},
 			MetaRecipe,
 		},
@@ -44,7 +43,7 @@ impl JoinPlan {
 			constraint,
 			join_type,
 		} = join_manual;
-		let columns = get_columns(glue, table.clone()).await?;
+		let columns = glue.get_columns(table.clone()).await?;
 		let ComplexTableName {
 			database,
 			name: table,
@@ -82,20 +81,5 @@ impl JoinPlan {
 				}
 			})
 			.collect()
-	}
-}
-
-async fn get_columns(glue: &Glue, table: ComplexTableName) -> Result<Vec<ColumnInfo>> {
-	if let Some((context_table_labels, ..)) = glue.get_context()?.tables.get(&table.name) {
-		Ok(context_table_labels
-			.iter()
-			.map(|name| ColumnInfo {
-				table: table.clone(),
-				name: name.clone(),
-				index: None,
-			})
-			.collect::<Vec<ColumnInfo>>())
-	} else {
-		fetch_columns(&**glue.get_database(&table.database)?, table).await
 	}
 }

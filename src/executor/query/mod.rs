@@ -1,7 +1,10 @@
+mod get_columns;
+mod get_data;
+mod get_rows;
 mod select;
 mod set_expr;
 
-pub use select::{join::*, ManualError, PlanError, SelectError};
+pub use select::{join::*, ManualError, Plan, PlanError, SelectError};
 use {
 	crate::{
 		executor::types::LabelsAndRows, result::Result, Cast, Glue, MetaRecipe, RecipeUtilities,

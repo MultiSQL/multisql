@@ -86,6 +86,15 @@ impl Glue {
 				.create_table(name, columns, *if_not_exists)
 				.await
 				.map(|_| Payload::Create),
+			Statement::CreateView {
+				name,
+				query,
+				or_replace,
+				..
+			} => self
+				.create_view(name, query, *or_replace)
+				.await
+				.map(|_| Payload::Create),
 			Statement::Drop {
 				object_type,
 				names,

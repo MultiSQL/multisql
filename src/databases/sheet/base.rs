@@ -1,6 +1,8 @@
 use crate::DatabaseError;
 use {
-	crate::{Cast, Column, DBBase, Plane, Result, Row, Schema, SheetDatabase, Value},
+	crate::{
+		Cast, Column, DBBase, Plane, Result, Row, Schema, SheetDatabase, SheetDatabaseError, Value,
+	},
 	async_trait::async_trait,
 	std::convert::TryFrom,
 	umya_spreadsheet::{Cell, Worksheet},
@@ -23,7 +25,10 @@ impl DBBase for SheetDatabase {
 			.collect()
 	}
 	async fn scan_data(&self, sheet_name: &str) -> Result<Plane> {
-		let sheet = self.book.get_sheet_by_name(sheet_name).unwrap();
+		let sheet = self
+			.book
+			.get_sheet_by_name(sheet_name)
+			.map_err(|_| SheetDatabaseError::FailedToGetSheet)?;
 		let Schema { column_defs, .. } = schema_from_sheet(sheet)?;
 
 		let row_count = sheet.get_highest_row();

@@ -5,7 +5,7 @@ use {
 			types::{Alias, ObjectName},
 			MetaRecipe,
 		},
-		Context, Result,
+		Glue, Result,
 	},
 	serde::Serialize,
 	sqlparser::ast::{Expr, Ident, Select, SelectItem as SelectItemAst},
@@ -38,7 +38,7 @@ pub enum SelectItem {
 }
 
 impl Manual {
-	pub fn new(select: Select, context: &Context) -> Result<Self> {
+	pub fn new(glue: &Glue, select: Select) -> Result<Self> {
 		let Select {
 			projection,
 			from,
@@ -56,65 +56,50 @@ impl Manual {
 		} = select;
 
 		let constraint = selection
-			.map(|selection| MetaRecipe::new(selection)?.simplify_by_context(context))
+			.map(|selection| {
+				MetaRecipe::new(selection)?.simplify_by_context(&glue.get_context().unwrap())
+			})
 			.unwrap_or(Ok(MetaRecipe::TRUE))?;
 
 		let group_constraint = having
-			.map(|having| MetaRecipe::new(having)?.simplify_by_context(context))
+			.map(|having| {
+				MetaRecipe::new(having)?.simplify_by_context(&glue.get_context().unwrap())
+			})
 			.unwrap_or(Ok(MetaRecipe::TRUE))?;
 
 		let groups = group_by
 			.into_iter()
-			.map(|expression| MetaRecipe::new(expression)?.simplify_by_context(context))
+			.map(|expression| {
+				MetaRecipe::new(expression)?.simplify_by_context(&glue.get_context().unwrap())
+			})
 			.collect::<Result<Vec<MetaRecipe>>>()?;
 
 		let (select_items, _subqueries): (Vec<SelectItem>, Vec<Vec<JoinManual>>) = projection
 			.into_iter()
-			.map(|select_item| convert_select_item(select_item, context))
+			.map(|select_item| convert_select_item(glue, select_item))
 			.collect::<Result<Vec<(SelectItem, Vec<JoinManual>)>>>()?
 			.into_iter()
 			.unzip();
 
-		/*subqueries.push(constraint.meta.subqueries.clone());
-
-		let subqueries = subqueries
+		let joins = from
 			.into_iter()
-			.reduce(|mut all_subqueries, subqueries| {
-				all_subqueries.extend(subqueries);
-				all_subqueries
+			.map(|from| {
+				let main = JoinManual::new_implicit_join(from.relation)?;
+				let mut joins = from
+					.joins
+					.into_iter()
+					.map(|join| JoinManual::new(join, &glue.get_context().unwrap()))
+					.collect::<Result<Vec<JoinManual>>>()?;
+				joins.push(main);
+				Ok(joins)
 			})
-			.ok_or(ManualError::UncaughtASTError(String::from(
-				"Supposedly subqueries yet none found",
-			)))?;
-		// Subqueries TODO
-		// Issues:
-		// - Current method can expand plane on multiple match
-		// - No plane isolation (ambiguous columns because subquery columns and plane columns are treated the same)
-		if !subqueries.is_empty() {
-			return Err(ManualError::UnimplementedSubquery.into());
-		}*/
-
-		let /*mut*/ joins = from
-            .into_iter()
-            .map(|from| {
-                let main = JoinManual::new_implicit_join(from.relation)?;
-                let mut joins = from
-                    .joins
-                    .into_iter()
-                    .map(|join| JoinManual::new(join, context))
-                    .collect::<Result<Vec<JoinManual>>>()?;
-                joins.push(main);
-                Ok(joins)
-            })
-            .collect::<Result<Vec<Vec<JoinManual>>>>()?
-            .into_iter()
-            .reduce(|mut all_joins, joins| {
-                all_joins.extend(joins);
-                all_joins
-            })
-            .ok_or_else(||ManualError::UncaughtASTError(String::from("No tables")))?;
-		//joins.extend(subqueries);
-		//let joins = joins;
+			.collect::<Result<Vec<Vec<JoinManual>>>>()?
+			.into_iter()
+			.reduce(|mut all_joins, joins| {
+				all_joins.extend(joins);
+				all_joins
+			})
+			.ok_or_else(|| ManualError::UncaughtASTError(String::from("No tables")))?;
 
 		Ok(Manual {
 			joins,
@@ -134,8 +119,8 @@ fn identifier_into_object_name(identifier: Vec<Ident>) -> ObjectName {
 }
 
 fn convert_select_item(
+	glue: &Glue,
 	select_item: SelectItemAst,
-	context: &Context,
 ) -> Result<(SelectItem, Vec<JoinManual>)> {
 	Ok(match select_item {
 		SelectItemAst::UnnamedExpr(_) | SelectItemAst::ExprWithAlias { .. } => {
@@ -151,7 +136,8 @@ fn convert_select_item(
 				SelectItemAst::ExprWithAlias { expr, alias } => (expr, Some(alias.value)),
 				_ => unreachable!(),
 			};
-			let recipe = MetaRecipe::new(expression)?.simplify_by_context(context)?;
+			let recipe =
+				MetaRecipe::new(expression)?.simplify_by_context(&glue.get_context().unwrap())?;
 			let subqueries = recipe.meta.subqueries.clone();
 			(SelectItem::Recipe(recipe, alias), subqueries)
 		}

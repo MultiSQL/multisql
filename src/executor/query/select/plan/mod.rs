@@ -1,13 +1,9 @@
+mod organise_joins;
+mod refine_item;
+pub(crate) use refine_item::*;
 use {
-	super::{
-		join::{JoinExecute, JoinPlan},
-		Manual, Order, SelectItem,
-	},
-	crate::{
-		executor::{types::ColumnInfo, PlannedRecipe},
-		Glue, Result,
-	},
-	futures::future::join_all,
+	super::{join::JoinExecute, Manual, Order, SelectItem},
+	crate::{executor::PlannedRecipe, Glue, Result},
 	serde::Serialize,
 	sqlparser::ast::{OrderByExpr, Select},
 	thiserror::Error as ThisError,
@@ -41,76 +37,9 @@ impl Plan {
 			constraint,
 			group_constraint,
 			groups,
-		} = Manual::new(select, &*glue.get_context()?)?;
+		} = Manual::new(glue, select)?;
 
-		let mut joins: Vec<JoinPlan> = join_all(
-			joins
-				.into_iter()
-				.map(|join| JoinPlan::new(join, glue))
-				.collect::<Vec<_>>(),
-		)
-		.await
-		.into_iter()
-		.collect::<Result<Vec<JoinPlan>>>()?;
-
-		joins.sort_unstable();
-		let table_columns = joins
-			.iter()
-			.map(|join| join.columns.clone())
-			.collect::<Vec<Vec<ColumnInfo>>>();
-		let joins = joins
-			.into_iter()
-			.map(|mut join| {
-				join.calculate_needed_tables(&table_columns);
-				join
-			})
-			.enumerate()
-			.collect();
-
-		let mut needed_joins: Vec<(usize, JoinPlan)> = joins;
-		let mut requested_joins: Vec<(usize, JoinPlan)> = vec![];
-		let mut len_last: usize;
-		let mut len = 0;
-		loop {
-			len_last = len;
-			len = needed_joins.len();
-			if needed_joins.is_empty() {
-				break;
-			}
-			let needed_joins_iter = needed_joins.into_iter();
-			needed_joins = vec![];
-			needed_joins_iter.for_each(|(needed_index, join)| {
-				if !join.needed_tables.iter().any(|needed_table_index| {
-					!(&needed_index == needed_table_index
-						|| requested_joins
-							.iter()
-							.any(|(requested_index, _)| needed_table_index == requested_index))
-				}) {
-					requested_joins.push((needed_index, join))
-				} else {
-					if len == len_last {
-						// TODO
-						panic!(
-							"Impossible Join, table not present or tables require eachother: {:?}",
-							join
-						)
-						// TODO: Handle
-					}
-					needed_joins.push((needed_index, join))
-				}
-			});
-		}
-		let columns = requested_joins
-			.iter()
-			.fold(vec![], |mut columns, (index, _)| {
-				columns.extend(
-					table_columns
-						.get(*index)
-						.expect("Something went very wrong")
-						.clone(),
-				);
-				columns
-			});
+		let (requested_joins, columns) = glue.arrange_joins(joins).await?;
 
 		let (constraint, mut index_filters) = PlannedRecipe::new_constraint(constraint, &columns)?;
 
@@ -127,63 +56,7 @@ impl Plan {
 		}
 
 		let include_table = joins.len() != 1;
-		let select_items = select_items
-			.into_iter()
-			.enumerate()
-			.map(|(index, select_item)| {
-				Ok(match select_item {
-					SelectItem::Recipe(meta_recipe, alias) => {
-						let recipe = PlannedRecipe::new(meta_recipe, &columns)?;
-						let label = alias
-							.unwrap_or_else(|| recipe.get_label(index, include_table, &columns));
-						vec![(recipe, label)]
-					}
-					SelectItem::Wildcard(specifier) => {
-						let specified_table =
-							specifier.and_then(|specifier| specifier.get(0).cloned());
-						let matches_table = |column: &ColumnInfo| {
-							specified_table
-								.clone()
-								.map(|specified_table| {
-									column.table.name == specified_table
-										|| column
-											.table
-											.alias
-											.clone()
-											.map(|alias| alias == specified_table)
-											.unwrap_or(false)
-								})
-								.unwrap_or(true)
-						};
-						columns
-							.iter()
-							.enumerate()
-							.filter_map(|(index, column)| {
-								if matches_table(column) {
-									Some((
-										PlannedRecipe::of_index(index),
-										if include_table {
-											format!("{}.{}", column.table.name, column.name)
-										} else {
-											column.name.clone()
-										},
-									))
-								} else {
-									None
-								}
-							})
-							.collect()
-					}
-				})
-			})
-			.collect::<Result<Vec<Vec<(PlannedRecipe, String)>>>>()? // TODO: Don't do this
-			.into_iter()
-			.reduce(|mut select_items, select_item_set| {
-				select_items.extend(select_item_set);
-				select_items
-			})
-			.ok_or(PlanError::UnreachableNoSelectItems)?;
-
+		let select_items = refine_items(select_items, &columns, include_table)?;
 		let (select_items, labels) = select_items.into_iter().unzip();
 
 		let group_constraint = PlannedRecipe::new(group_constraint, &columns)?;

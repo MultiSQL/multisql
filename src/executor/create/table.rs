@@ -1,6 +1,5 @@
 use {
-	super::AlterError,
-	crate::{data::Schema, Column, ComplexTableName, Glue, Result},
+	crate::{data::Schema, Column, ComplexTableName, CreateError, Error, Glue, Result},
 	sqlparser::ast::{ColumnDef, ObjectName},
 };
 
@@ -22,11 +21,20 @@ impl Glue {
 			column_defs: column_defs.iter().cloned().map(Column::from).collect(),
 			indexes: vec![],
 		};
-
+		self.add_table(database, schema, if_not_exists).await
+	}
+	pub async fn add_table(
+		&mut self,
+		database: Option<String>,
+		schema: Schema,
+		if_not_exists: bool,
+	) -> Result<()> {
 		let database = &mut **self.get_mut_database(&database)?;
 		if database.fetch_schema(&schema.table_name).await?.is_some() {
 			if !if_not_exists {
-				Err(AlterError::TableAlreadyExists(schema.table_name.to_owned()).into())
+				Err(Error::Create(CreateError::AlreadyExists(
+					schema.table_name.to_owned(),
+				)))
 			} else {
 				Ok(())
 			}

@@ -1,8 +1,8 @@
 use {
 	super::QueryError,
 	crate::{
-		executor::types::LabelsAndRows, macros::warning, result::Result, Glue, MetaRecipe, Payload,
-		RecipeUtilities, Value,
+		executor::types::LabelsAndRows, macros::warning, result::Result, Error, Glue, MetaRecipe,
+		Payload, RecipeUtilities, Value,
 	},
 	async_recursion::async_recursion,
 	sqlparser::ast::{OrderByExpr, SetExpr, SetOperator, Statement},
@@ -90,7 +90,7 @@ impl Glue {
 					unreachable!(); // TODO: Handle
 				}
 			}
-			_ => Err(QueryError::QueryNotSupported.into()), // TODO: Other queries
+			_ => Err(Error::Query(QueryError::QueryNotSupported)),
 		}
 	}
 }
