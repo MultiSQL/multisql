@@ -116,11 +116,16 @@ comparative_binary_ops!(
 
 impl Value {
 	pub fn string_concat(self, other: Self) -> Result<Self> {
-		Ok(format!(
-			"{}{}",
-			String::convert_from(self)?,
-			String::convert_from(other)?
-		)
-		.into())
+		if matches!(self, Value::Null) || matches!(other, Value::Null) {
+			Ok(Value::Null)
+		} else {
+			Ok(format!(
+				"{}{}",
+				String::convert_from(self)?,
+				String::convert_from(other)?
+			)
+			.into())
+		}
+
 	}
 }

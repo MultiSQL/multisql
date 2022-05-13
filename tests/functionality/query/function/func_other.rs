@@ -96,6 +96,7 @@ crate::util_macros::testcase!(
 			(String::from("AeeBee"), String::from("AeeBeeCee"))
 		);
 
+		crate::util_macros::assert_success!(glue, "VALUES (CONCAT('Aee', 'Bee', 'Cee', NULL))");
 		crate::util_macros::assert_success!(glue, "VALUES (UUID())");
 		crate::util_macros::assert_success!(glue, "VALUES (RAND(), RAND(2, 300), RAND(-10,10))");
 		crate::util_macros::assert_error!(glue, "VALUES (RAND(1))");
