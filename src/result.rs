@@ -2,7 +2,7 @@ use {
 	crate::{
 		AlterError, CSVDatabaseError, DatabaseError, ExecuteError, FetchError, InterfaceError,
 		JoinError, ManualError, MemoryDatabaseError, PlanError, QueryError, RecipeError, RowError,
-		SelectError, SheetDatabaseError, TableError, ValidateError, ValueError,
+		SelectError, SheetDatabaseError, TableError, ValidateError, ValueError, CreateError,
 	},
 	serde::Serialize,
 	std::marker::{Send, Sync},
@@ -32,6 +32,8 @@ pub enum Error {
 	Execute(#[from] ExecuteError),
 	#[error(transparent)]
 	Alter(#[from] AlterError),
+	#[error(transparent)]
+	Create(#[from] CreateError),
 	#[error(transparent)]
 	Fetch(#[from] FetchError),
 	#[error(transparent)]
@@ -81,6 +83,7 @@ impl PartialEq for Error {
 		match (self, other) {
 			(Execute(l), Execute(r)) => l == r,
 			(Alter(l), Alter(r)) => l == r,
+			(Create(l), Create(r)) => l == r,
 			(Fetch(l), Fetch(r)) => l == r,
 			(Select(l), Select(r)) => l == r,
 			(Row(l), Row(r)) => l == r,

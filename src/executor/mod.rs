@@ -8,6 +8,7 @@ mod query;
 mod recipe;
 mod set_variable;
 mod types;
+mod create;
 
 pub use {
 	alter_row::ValidateError,
@@ -17,4 +18,5 @@ pub use {
 	query::{JoinError, ManualError, PlanError, QueryError, SelectError},
 	recipe::*,
 	types::ComplexTableName,
+	create::CreateError,
 };
