@@ -1,25 +1,33 @@
 crate::util_macros::testcase!(
 	(|mut glue: multisql::Glue| {
-
-		crate::util_macros::execute!(glue, "
+		crate::util_macros::execute!(
+			glue,
+			"
 			CREATE TABLE TestA (
 				id INTEGER UNIQUE,
 				num INT
 			)
-		");
+		"
+		);
 
-		crate::util_macros::execute!(glue, "
+		crate::util_macros::execute!(
+			glue,
+			"
 			CREATE TABLE TestB (
 				id INTEGER UNIQUE,
 				num INT UNIQUE
 			)
-		");
-		crate::util_macros::execute!(glue, "
+		"
+		);
+		crate::util_macros::execute!(
+			glue,
+			"
 			CREATE TABLE TestC (
 				id INTEGER NULL UNIQUE,
 				num INT
 			)
-		");
+		"
+		);
 
 		crate::util_macros::execute!(glue, "INSERT INTO TestA VALUES (1, 1)");
 		crate::util_macros::execute!(glue, "INSERT INTO TestA VALUES (2, 1), (3, 1)");
@@ -77,8 +85,7 @@ crate::util_macros::testcase!(
 			];
 
 			for (_error, sql) in error_cases.into_iter() {
-				let result = glue.execute(sql);
-				assert!(matches!(result, Err(_error)));
+				crate::util_macros::assert_error!(glue, sql, _error);
 			}
 		}
 	})

@@ -39,6 +39,7 @@ impl Glue {
 		view_name: &str,
 		database: &Option<String>,
 	) -> Result<Option<Vec<String>>> {
+		// inefficient
 		self.get_view_data(view_name, database)
 			.await
 			.map(|opt| opt.map(|(labels, _)| labels))

@@ -1,7 +1,7 @@
 use {
 	crate::{Column, ComplexTableName, Glue, Result, Row, Schema, Value, ValueType},
 	lazy_static::lazy_static,
-	sqlparser::ast::{ObjectName, Query},
+	sqlparser::ast::{ObjectName, Query, SetExpr},
 };
 
 impl Glue {
@@ -13,8 +13,24 @@ impl Glue {
 	) -> Result<()> {
 		let ComplexTableName { name, database, .. } = &name.try_into()?;
 		// TODO: Parse then serialize as SQL (#140)
-		// TODO: Handle
-		let query = serde_yaml::to_string(&*query).unwrap();
+		let query = if let Query {
+			body: SetExpr::Query(query),
+			..
+		} = *query.clone()
+		{
+			query
+		} else {
+			unimplemented!()
+		};
+		let query = if let Query {
+			body: SetExpr::Select(select),
+			..
+		} = *query
+		{
+			serde_yaml::to_string(&*select).unwrap()
+		} else {
+			unimplemented!()
+		};
 
 		// Make view table if not yet exists
 		self.add_table(database.clone(), VIEW_TABLE.clone(), true)

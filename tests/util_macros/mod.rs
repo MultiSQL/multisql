@@ -118,10 +118,9 @@ pub(crate) use select;
 
 macro_rules! execute {
 	($storage: expr, $query: expr) => {{
-		use fstrings::*;
 		$storage
 			.execute($query)
-			.expect(&fstrings::f!("Query Failed: $query"));
+			.expect(&format!("Query Failed: {query}", query = $query));
 	}};
 }
 pub(crate) use execute;
@@ -174,7 +173,7 @@ macro_rules! assert_error {
 			.expect(&format!(
 				"Unexpected\n\tQuery:\n\t{query}\n\tExpected:\t{expect:?}",
 				query = $query,
-				expect = $error
+				expect = _test
 			));
 	}};
 	($storage: expr, $query: expr) => {
