@@ -10,8 +10,6 @@ use {
 		executor::{types::ColumnInfo, PlannedRecipe},
 		Glue, Result,
 	},
-	futures::future::join_all,
-	organise_joins::organise_joins,
 	serde::Serialize,
 	sqlparser::ast::{OrderByExpr, Select},
 	thiserror::Error as ThisError,
@@ -45,45 +43,9 @@ impl Plan {
 			constraint,
 			group_constraint,
 			groups,
-		} = Manual::new(select, &*glue.get_context()?)?;
+		} = Manual::new(glue, select)?;
 
-		let mut joins: Vec<JoinPlan> = join_all(
-			joins
-				.into_iter()
-				.map(|join| JoinPlan::new(join, glue))
-				.collect::<Vec<_>>(),
-		)
-		.await
-		.into_iter()
-		.collect::<Result<Vec<JoinPlan>>>()?;
-
-		joins.sort_unstable();
-		let table_columns = joins
-			.iter()
-			.map(|join| join.columns.clone())
-			.collect::<Vec<Vec<ColumnInfo>>>();
-		let joins = joins
-			.into_iter()
-			.map(|mut join| {
-				join.calculate_needed_tables(&table_columns);
-				join
-			})
-			.enumerate()
-			.collect();
-
-		let requested_joins = organise_joins(joins);
-
-		let columns = requested_joins
-			.iter()
-			.fold(vec![], |mut columns, (index, _)| {
-				columns.extend(
-					table_columns
-						.get(*index)
-						.expect("Something went very wrong")
-						.clone(),
-				);
-				columns
-			});
+		let (requested_joins, columns) = glue.arrange_joins(joins).await?;
 
 		let (constraint, mut index_filters) = PlannedRecipe::new_constraint(constraint, &columns)?;
 

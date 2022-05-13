@@ -2,13 +2,61 @@ use {
 	super::{Manual, Order, SelectItem},
 	crate::{
 		executor::{
-			query::select::join::{JoinExecute, JoinPlan},
+			query::select::join::{JoinExecute, JoinManual, JoinPlan},
 			types::ColumnInfo,
 			PlannedRecipe,
 		},
 		Glue, Result,
 	},
+	futures::future::join_all,
 };
+
+impl Glue {
+	pub(crate) async fn arrange_joins(
+		&self,
+		joins: Vec<JoinManual>,
+	) -> Result<(Vec<(usize, JoinPlan)>, Vec<ColumnInfo>)> {
+		let mut joins: Vec<JoinPlan> = join_all(
+			joins
+				.into_iter()
+				.map(|join| JoinPlan::new(join, self))
+				.collect::<Vec<_>>(),
+		)
+		.await
+		.into_iter()
+		.collect::<Result<Vec<JoinPlan>>>()?;
+
+		joins.sort_unstable();
+		let table_columns = joins
+			.iter()
+			.map(|join| join.columns.clone())
+			.collect::<Vec<Vec<ColumnInfo>>>();
+		let joins = joins
+			.into_iter()
+			.map(|mut join| {
+				join.calculate_needed_tables(&table_columns);
+				join
+			})
+			.enumerate()
+			.collect();
+
+		let requested_joins = organise_joins(joins);
+
+		let columns = requested_joins
+			.iter()
+			.fold(vec![], |mut columns, (index, _)| {
+				columns.extend(
+					table_columns
+						.get(*index)
+						.expect("Something went very wrong")
+						.clone(),
+				);
+				columns
+			});
+
+		Ok((requested_joins, columns))
+	}
+}
 
 pub(crate) fn organise_joins(mut needed_joins: Vec<(usize, JoinPlan)>) -> Vec<(usize, JoinPlan)> {
 	let mut requested_joins: Vec<(usize, JoinPlan)> = vec![];
