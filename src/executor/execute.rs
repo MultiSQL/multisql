@@ -91,8 +91,10 @@ impl Glue {
 				query,
 				or_replace,
 				..
-			} => self.create_view(name, query, *or_replace).await
-			.map(|_| Payload::Create),
+			} => self
+				.create_view(name, query, *or_replace)
+				.await
+				.map(|_| Payload::Create),
 			Statement::Drop {
 				object_type,
 				names,

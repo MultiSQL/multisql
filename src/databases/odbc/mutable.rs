@@ -5,76 +5,76 @@ use {
 	odbc_api::{
 		buffers::{AnyColumnBuffer, ColumnarBuffer, TextColumn},
 		parameter::InputParameter,
-		Bit, IntoParameter
+		Bit, IntoParameter,
 	},
 };
 
 #[async_trait(?Send)]
 impl DBMut for ODBCDatabase {
 	async fn insert_data(&mut self, table_name: &str, rows: Vec<Row>) -> Result<()> {
-		for rows in rows.chunks(255){
-			self.insert(table_name, rows.to_vec()).await ?;
+		for rows in rows.chunks(255) {
+			self.insert(table_name, rows.to_vec()).await?;
 		}
 		Ok(())
 	}
 }
 
 impl ODBCDatabase {
-async fn insert(&mut self, table_name: &str, rows: Vec<Row>) -> Result<()> {
-let connection = self
-	.environment
-	.connect_with_connection_string(&self.connection_string)?;
-	let schema = self.fetch_schema(&table_name).await?.unwrap();
-	let table_name = convert_table_name(table_name);
-	let columns = schema
-		.column_defs
-		.iter()
-		.map(|col_def| col_def.name.as_str())
-		.collect::<Vec<&str>>();
+	async fn insert(&mut self, table_name: &str, rows: Vec<Row>) -> Result<()> {
+		let connection = self
+			.environment
+			.connect_with_connection_string(&self.connection_string)?;
+		let schema = self.fetch_schema(&table_name).await?.unwrap();
+		let table_name = convert_table_name(table_name);
+		let columns = schema
+			.column_defs
+			.iter()
+			.map(|col_def| col_def.name.as_str())
+			.collect::<Vec<&str>>();
 
-	let mut insert_columns: Vec<Vec<Value>> = columns.iter().map(|_| Vec::new()).collect();
-	for Row(row) in rows {
-		for (index, value) in row.into_iter().enumerate() {
-			insert_columns[index].push(value);
+		let mut insert_columns: Vec<Vec<Value>> = columns.iter().map(|_| Vec::new()).collect();
+		for Row(row) in rows {
+			for (index, value) in row.into_iter().enumerate() {
+				insert_columns[index].push(value);
+			}
 		}
+		let insert_columns: Vec<(usize, Vec<Value>)> = insert_columns
+			.into_iter()
+			.enumerate()
+			.filter(|(_, column)| column.iter().any(|value| !matches!(value, Value::Null)))
+			.collect();
+
+		let columns = insert_columns
+			.iter()
+			.map(|(index, _)| columns[*index].clone())
+			.collect::<Vec<&str>>()
+			.join(", ");
+		let placeholders = insert_columns
+			.iter()
+			.map(|_| "?")
+			.collect::<Vec<&str>>()
+			.join(", ");
+		let insert_columns: Vec<(u16, AnyColumnBuffer)> = insert_columns
+			.into_iter()
+			.map(|(index, column)| {
+				(
+					index as u16,
+					into_buffer(column, schema.column_defs[index].clone()),
+				)
+			})
+			.collect(); // TODO: Handle overflow
+
+		let insert_columns = ColumnarBuffer::new(insert_columns);
+
+		let query = format!(
+			"INSERT INTO {table} ({columns}) VALUES ({placeholders})",
+			table = table_name,
+			columns = columns,
+			placeholders = placeholders
+		);
+		connection.execute(&query, &insert_columns).unwrap();
+		Ok(())
 	}
-	let insert_columns: Vec<(usize, Vec<Value>)> = insert_columns
-		.into_iter()
-		.enumerate()
-		.filter(|(_, column)| column.iter().any(|value| !matches!(value, Value::Null)))
-		.collect();
-
-	let columns = insert_columns
-		.iter()
-		.map(|(index, _)| columns[*index].clone())
-		.collect::<Vec<&str>>()
-		.join(", ");
-	let placeholders = insert_columns
-		.iter()
-		.map(|_| "?")
-		.collect::<Vec<&str>>()
-		.join(", ");
-	let insert_columns: Vec<(u16, AnyColumnBuffer)> = insert_columns
-		.into_iter()
-		.map(|(index, column)| {
-			(
-				index as u16,
-				into_buffer(column, schema.column_defs[index].clone()),
-			)
-		})
-		.collect(); // TODO: Handle overflow
-
-	let insert_columns = ColumnarBuffer::new(insert_columns);
-
-	let query = format!(
-		"INSERT INTO {table} ({columns}) VALUES ({placeholders})",
-		table = table_name,
-		columns = columns,
-		placeholders = placeholders
-	);
-	connection.execute(&query, &insert_columns).unwrap();
-	Ok(())
-}
 }
 fn into_buffer(values: Vec<Value>, column_def: Column) -> AnyColumnBuffer {
 	use crate::ValueType::*;

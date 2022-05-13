@@ -4,7 +4,7 @@ mod get_rows;
 mod select;
 mod set_expr;
 
-pub use select::{Plan, join::*, ManualError, PlanError, SelectError};
+pub use select::{join::*, ManualError, Plan, PlanError, SelectError};
 use {
 	crate::{
 		executor::types::LabelsAndRows, result::Result, Cast, Glue, MetaRecipe, RecipeUtilities,
