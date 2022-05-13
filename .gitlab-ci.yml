@@ -43,6 +43,9 @@ publish:
     tag_name: '$CI_COMMIT_TITLE'
     ref: '$CI_COMMIT_TITLE'
     description: '$CI_COMMIT_TITLE - Automatically Released'
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_TITLE =~ /\d\.\d\.\d/
+
 
 benchmark:
   stage: benchmark
