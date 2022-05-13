@@ -15,13 +15,13 @@ use {
 	futures::stream::{self, StreamExt, TryStreamExt},
 	rayon::prelude::*,
 	serde::Serialize,
-	sqlparser::ast::{OrderByExpr, Select, TableFactor},
+	sqlparser::ast::{OrderByExpr, Select},
 	thiserror::Error as ThisError,
 };
 pub use {
 	manual::{Manual, ManualError, SelectItem},
 	order::Order,
-	plan::{Plan, PlanError},
+	plan::*,
 };
 
 #[derive(ThisError, Serialize, Debug, PartialEq)]

@@ -1,5 +1,6 @@
 mod organise_joins;
 mod refine_item;
+pub(crate) use refine_item::*;
 use {
 	super::{
 		join::{JoinExecute, JoinPlan},
@@ -11,7 +12,6 @@ use {
 	},
 	futures::future::join_all,
 	organise_joins::organise_joins,
-	refine_item::refine_item,
 	serde::Serialize,
 	sqlparser::ast::{OrderByExpr, Select},
 	thiserror::Error as ThisError,
@@ -100,18 +100,7 @@ impl Plan {
 		}
 
 		let include_table = joins.len() != 1;
-		let select_items = select_items
-			.into_iter()
-			.enumerate()
-			.map(|(index, select_item)| refine_item(index, select_item, &columns, include_table))
-			.collect::<Result<Vec<Vec<(PlannedRecipe, String)>>>>()?
-			.into_iter()
-			.reduce(|mut select_items, select_item_set| {
-				select_items.extend(select_item_set);
-				select_items
-			})
-			.ok_or(PlanError::UnreachableNoSelectItems)?;
-
+		let select_items = refine_items(select_items, &columns, include_table)?;
 		let (select_items, labels) = select_items.into_iter().unzip();
 
 		let group_constraint = PlannedRecipe::new(group_constraint, &columns)?;

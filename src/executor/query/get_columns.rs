@@ -1,5 +1,5 @@
 use {
-	super::Plan,
+	super::select::{refine_items, Manual},
 	crate::{
 		executor::{
 			fetch::fetch_columns,
@@ -38,7 +38,6 @@ impl Glue {
 			}
 		}
 	}
-	#[async_recursion(?Send)]
 	pub async fn get_view_columns(
 		&self,
 		view_name: &str,
@@ -46,8 +45,12 @@ impl Glue {
 	) -> Result<Option<Vec<String>>> {
 		let query = self.get_view_query(view_name, database).await?;
 		if let Some(query) = query {
-			let plan = Plan::new(self, query, vec![]).await?;
-			Ok(Some(plan.labels))
+			let plan = Manual::new(query, &*self.get_context()?)?;
+			let labels = refine_items(plan.select_items, &[], false)?
+				.into_iter()
+				.map(|(_recipe, label)| label)
+				.collect();
+			Ok(Some(labels))
 		} else {
 			Ok(None)
 		}

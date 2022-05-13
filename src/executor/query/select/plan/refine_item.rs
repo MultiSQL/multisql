@@ -2,7 +2,7 @@ use {
 	super::{Manual, Order, SelectItem},
 	crate::{
 		executor::{types::ColumnInfo, PlannedRecipe},
-		Glue, Result,
+		Error, Glue, PlanError, Result,
 	},
 };
 
@@ -54,4 +54,22 @@ pub(crate) fn refine_item(
 				.collect()
 		}
 	})
+}
+
+pub(crate) fn refine_items(
+	select_items: Vec<SelectItem>,
+	columns: &[ColumnInfo],
+	include_table: bool,
+) -> Result<Vec<(PlannedRecipe, String)>> {
+	select_items
+		.into_iter()
+		.enumerate()
+		.map(|(index, select_item)| refine_item(index, select_item, &columns, include_table))
+		.collect::<Result<Vec<Vec<(PlannedRecipe, String)>>>>()?
+		.into_iter()
+		.reduce(|mut select_items, select_item_set| {
+			select_items.extend(select_item_set);
+			select_items
+		})
+		.ok_or(Error::Plan(PlanError::UnreachableNoSelectItems))
 }
