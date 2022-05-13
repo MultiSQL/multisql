@@ -144,12 +144,7 @@ impl Glue {
 			})
 			.transpose()?;
 
-		let (mut labels, mut rows) = if let SetExpr::Select(query) = body {
-			let (labels, rows) = self.select_query(*query, order_by).await?;
-			(labels, rows)
-		} else {
-			unimplemented!()
-		};
+		let (mut labels, mut rows) = self.from_body_no_mut(body, order_by).await?;
 
 		if let Some(offset) = offset {
 			rows.drain(0..offset);
