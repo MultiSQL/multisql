@@ -21,7 +21,7 @@ use {
 pub use {
 	manual::{Manual, ManualError, SelectItem},
 	order::Order,
-	plan::{Plan, PlanError},
+	plan::*,
 };
 
 #[derive(ThisError, Serialize, Debug, PartialEq)]
@@ -42,7 +42,7 @@ pub enum SelectError {
 }
 
 impl Glue {
-	pub async fn select(&mut self, plan: Plan) -> Result<LabelsAndRows> {
+	pub async fn select(&self, plan: Plan) -> Result<LabelsAndRows> {
 		let Plan {
 			joins,
 			select_items,
@@ -138,7 +138,7 @@ impl Glue {
 		Ok((labels, final_rows))
 	}
 	pub async fn select_query(
-		&mut self,
+		&self,
 		query: Select,
 		order_by: Vec<OrderByExpr>,
 	) -> Result<LabelsAndRows> {

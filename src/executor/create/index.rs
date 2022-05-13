@@ -1,5 +1,8 @@
 use {
-	crate::{data::get_name, AlterError, ExecuteError, Glue, Index, Result, SchemaDiff},
+	crate::{
+		data::get_name, AlterError, CreateError, Error, ExecuteError, Glue, Index, Result,
+		SchemaDiff,
+	},
 	sqlparser::ast::{Expr, ObjectName, OrderByExpr},
 };
 
@@ -29,7 +32,7 @@ impl Glue {
 
 		if schema.indexes.iter().any(|index| index.name == name) {
 			if !if_not_exists {
-				Err(AlterError::AlreadyExists(name).into())
+				Err(Error::Create(CreateError::AlreadyExists(name).into()))
 			} else {
 				Ok(())
 			}

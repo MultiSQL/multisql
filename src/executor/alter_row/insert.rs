@@ -41,23 +41,34 @@ impl Glue {
 
 		let num_rows = rows.len();
 
-		let database = &mut **self.get_mut_database(database)?;
-
-		let result = database.insert_data(table_name, rows.clone()).await;
-
-		let result = result.map(|_| {
-			if expect_data {
-				Payload::Select { labels, rows }
-			} else {
-				Payload::Insert(num_rows)
+		let result = if expect_data {
+			Payload::Select {
+				labels,
+				rows: rows.clone(),
 			}
-		})?;
+		} else {
+			Payload::Insert(num_rows)
+		};
 
-		for index in indexes.iter() {
-			// TODO: Should definitely be just inserting an index record
-			index.reset(database, table_name, &column_defs).await?; // TODO: Not this; optimise
+		self.insert_data(database, table_name, rows).await?;
+
+		if !indexes.is_empty() {
+			let database = &mut **self.get_mut_database(database)?;
+			for index in indexes.iter() {
+				// TODO: Should definitely be just inserting an index record
+				index.reset(database, table_name, &column_defs).await?; // TODO: Not this; optimise
+			}
 		}
 
 		Ok(result)
+	}
+	pub async fn insert_data(
+		&mut self,
+		database: &Option<String>,
+		table_name: &str,
+		rows: Vec<Row>,
+	) -> Result<()> {
+		let database = &mut **self.get_mut_database(database)?;
+		database.insert_data(table_name, rows).await
 	}
 }
