@@ -27,29 +27,21 @@ check-fmt:
   script: cargo fmt --check
   allow_failure: true
 
-release-build:
-  stage: release
-  script: cargo build --release
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_TITLE =~ /\d\.\d\.\d/
-
 publish:
   stage: release
   script: cargo publish
-  needs:
-    - job: release-build
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_TITLE =~ /\d\.\d\.\d/
   release:
     name: $CI_COMMIT_TITLE
     tag_name: '$CI_COMMIT_TITLE'
     ref: '$CI_COMMIT_TITLE'
     description: '$CI_COMMIT_TITLE - Automatically Released'
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_TITLE =~ /\d\.\d\.\d/
 
 benchmark:
   stage: benchmark
   script: cargo bench
-  needs:
-    - job: publish
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_TITLE =~ /\d\.\d\.\d/
+  needs:
+    - job: publish
