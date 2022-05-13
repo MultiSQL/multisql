@@ -12,7 +12,6 @@ use {
 
 impl Glue {
 	pub async fn get_columns(&self, table: ComplexTableName) -> Result<Vec<ColumnInfo>> {
-		let view_labels = self.get_view_columns(&table.name, &table.database).await?;
 		let context_tables = {
 			let context = self.get_context().unwrap();
 			context.tables.clone()
@@ -27,6 +26,7 @@ impl Glue {
 				})
 				.collect::<Vec<ColumnInfo>>())
 		} else {
+			let view_labels = self.get_view_columns(&table.name, &table.database).await?;
 			if let Some(labels) = view_labels {
 				let labels = labels
 					.into_iter()
