@@ -259,20 +259,7 @@ impl Value {
 	}
 
 	pub fn cast_datatype(&self, data_type: &DataType) -> Result<Self> {
-		match (data_type, self) {
-			(DataType::Boolean, Value::Bool(_))
-			| (DataType::Int(_), Value::I64(_))
-			| (DataType::Float(_), Value::F64(_))
-			| (DataType::Text, Value::Str(_)) => Ok(self.clone()),
-			(_, Value::Null) => Ok(Value::Null),
-
-			(DataType::Boolean, value) => value.clone().cast().map(Value::Bool),
-			(DataType::Int(_), value) => value.clone().cast().map(Value::I64),
-			(DataType::Float(_), value) => value.clone().cast().map(Value::F64),
-			(DataType::Text, value) => value.clone().cast().map(Value::Str),
-
-			_ => Err(ValueError::UnimplementedCast.into()),
-		}
+		self.cast_valuetype(&data_type.clone().into())
 	}
 
 	pub fn inc(&self) -> Self {

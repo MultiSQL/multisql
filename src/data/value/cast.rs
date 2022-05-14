@@ -42,7 +42,7 @@ impl Cast<bool> for Value {
 			Value::Str(value) => match value.to_uppercase().as_str() {
 				"TRUE" => true,
 				"FALSE" => false,
-				_ => return Err(ValueError::ImpossibleCast.into()),
+				_ => return Err(failed_cast(&Value::Str(value), ValueType::Bool)),
 			},
 			Value::Null => return Err(failed_cast(&self, ValueType::Bool)),
 			_ => return Err(unimplemented_cast(&self, ValueType::Bool)),
@@ -67,7 +67,8 @@ impl Cast<u64> for Value {
 			Value::F64(value) => (value.trunc() as i64)
 				.try_into()
 				.map_err(|_| failed_cast(&self, ValueType::U64))?,
-			Value::Str(value) => lexical::parse(value).map_err(|_| ValueError::ImpossibleCast)?,
+			Value::Str(value) => lexical::parse(&value)
+				.map_err(|_| failed_cast(&Value::Str(value), ValueType::U64))?,
 			Value::Null => return Err(failed_cast(&self, ValueType::U64)),
 			_ => return Err(unimplemented_cast(&self, ValueType::U64)),
 		})
@@ -89,7 +90,8 @@ impl Cast<i64> for Value {
 				.map_err(|_| failed_cast(&self, ValueType::I64))?,
 			Value::I64(value) => value,
 			Value::F64(value) => value.trunc() as i64,
-			Value::Str(value) => lexical::parse(value).map_err(|_| ValueError::ImpossibleCast)?,
+			Value::Str(value) => lexical::parse(&value)
+				.map_err(|_| failed_cast(&Value::Str(value), ValueType::I64))?,
 			Value::Null => return Err(failed_cast(&self, ValueType::I64)),
 			_ => return Err(unimplemented_cast(&self, ValueType::I64)),
 		})
@@ -109,9 +111,8 @@ impl Cast<f64> for Value {
 			Value::U64(value) => (value as f64).trunc(),
 			Value::I64(value) => (value as f64).trunc(),
 			Value::F64(value) => value,
-			Value::Str(value) => {
-				fast_float::parse(value).map_err(|_| ValueError::ImpossibleCast)?
-			}
+			Value::Str(value) => fast_float::parse(&value)
+				.map_err(|_| failed_cast(&Value::Str(value), ValueType::F64))?,
 			Value::Null => return Err(failed_cast(&self, ValueType::F64)),
 			_ => return Err(unimplemented_cast(&self, ValueType::F64)),
 		})
