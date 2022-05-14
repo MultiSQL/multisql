@@ -7,7 +7,7 @@ use {
 	std::fmt::Debug,
 };
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub enum ValueType {
 	Bool,
 	U64,

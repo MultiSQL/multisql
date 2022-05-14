@@ -1,5 +1,5 @@
 use {
-	super::{Convert, Value, ValueError},
+	super::{Convert, Value, ValueError, ValueType},
 	crate::{Error, Result},
 	chrono::{NaiveDate, NaiveDateTime, NaiveTime, ParseError},
 	std::convert::TryInto,
@@ -13,6 +13,13 @@ pub trait CastWithRules<Output> {
 	fn cast_with_rule(self, rule: Self) -> Result<Output>;
 }
 
+fn failed_cast(value: &Value, value_type: ValueType) -> Error {
+	Error::Value(ValueError::FailedCast(value.clone(), value_type))
+}
+fn unimplemented_cast(value: &Value, value_type: ValueType) -> Error {
+	Error::Value(ValueError::FailedCast(value.clone().into(), value_type))
+}
+
 // Cores
 impl Cast<bool> for Value {
 	fn cast(self) -> Result<bool> {
@@ -21,7 +28,7 @@ impl Cast<bool> for Value {
 			Value::I64(value) => match value {
 				1 => true,
 				0 => false,
-				_ => return Err(ValueError::ImpossibleCast.into()),
+				_ => return Err(failed_cast(&self, ValueType::Bool)),
 			},
 			Value::F64(value) => {
 				if value.eq(&1.0) {
@@ -29,7 +36,7 @@ impl Cast<bool> for Value {
 				} else if value.eq(&0.0) {
 					false
 				} else {
-					return Err(ValueError::ImpossibleCast.into());
+					return Err(failed_cast(&self, ValueType::Bool));
 				}
 			}
 			Value::Str(value) => match value.to_uppercase().as_str() {
@@ -37,8 +44,8 @@ impl Cast<bool> for Value {
 				"FALSE" => false,
 				_ => return Err(ValueError::ImpossibleCast.into()),
 			},
-			Value::Null => return Err(ValueError::ImpossibleCast.into()),
-			_ => return Err(Error::Value(ValueError::UnimplementedCast)),
+			Value::Null => return Err(failed_cast(&self, ValueType::Bool)),
+			_ => return Err(unimplemented_cast(&self, ValueType::Bool)),
 		})
 	}
 }
@@ -54,13 +61,15 @@ impl Cast<u64> for Value {
 				}
 			}
 			Value::U64(value) => value,
-			Value::I64(value) => value.try_into().map_err(|_| ValueError::ImpossibleCast)?,
+			Value::I64(value) => value
+				.try_into()
+				.map_err(|_| failed_cast(&self, ValueType::U64))?,
 			Value::F64(value) => (value.trunc() as i64)
 				.try_into()
-				.map_err(|_| ValueError::ImpossibleCast)?,
+				.map_err(|_| failed_cast(&self, ValueType::U64))?,
 			Value::Str(value) => lexical::parse(value).map_err(|_| ValueError::ImpossibleCast)?,
-			Value::Null => return Err(ValueError::ImpossibleCast.into()),
-			_ => return Err(Error::Value(ValueError::UnimplementedCast)),
+			Value::Null => return Err(failed_cast(&self, ValueType::U64)),
+			_ => return Err(unimplemented_cast(&self, ValueType::U64)),
 		})
 	}
 }
@@ -75,12 +84,14 @@ impl Cast<i64> for Value {
 					0
 				}
 			}
-			Value::U64(value) => value.try_into().map_err(|_| ValueError::ImpossibleCast)?,
+			Value::U64(value) => value
+				.try_into()
+				.map_err(|_| failed_cast(&self, ValueType::I64))?,
 			Value::I64(value) => value,
 			Value::F64(value) => value.trunc() as i64,
 			Value::Str(value) => lexical::parse(value).map_err(|_| ValueError::ImpossibleCast)?,
-			Value::Null => return Err(ValueError::ImpossibleCast.into()),
-			_ => return Err(Error::Value(ValueError::UnimplementedCast)),
+			Value::Null => return Err(failed_cast(&self, ValueType::I64)),
+			_ => return Err(unimplemented_cast(&self, ValueType::I64)),
 		})
 	}
 }
@@ -101,8 +112,8 @@ impl Cast<f64> for Value {
 			Value::Str(value) => {
 				fast_float::parse(value).map_err(|_| ValueError::ImpossibleCast)?
 			}
-			Value::Null => return Err(ValueError::ImpossibleCast.into()),
-			_ => return Err(Error::Value(ValueError::UnimplementedCast)),
+			Value::Null => return Err(failed_cast(&self, ValueType::F64)),
+			_ => return Err(unimplemented_cast(&self, ValueType::F64)),
 		})
 	}
 }
@@ -116,7 +127,7 @@ impl Cast<String> for Value {
 			Value::Str(value) => value,
 			Value::Timestamp(value) => lexical::to_string(value),
 			Value::Null => String::from("NULL"),
-			_ => return Err(Error::Value(ValueError::UnimplementedCast)),
+			_ => return Err(unimplemented_cast(&self, ValueType::Str)),
 		})
 	}
 }
