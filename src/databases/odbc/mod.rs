@@ -1,7 +1,9 @@
 mod auto_increment;
 mod base;
+mod column_set;
 mod mutable;
 
+pub(crate) use column_set::ColumnSet;
 use {
 	crate::{database::*, Result},
 	odbc_api::Environment,

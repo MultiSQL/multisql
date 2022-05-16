@@ -17,6 +17,7 @@
 		"csv-database",
 		"sheet-database",
 		"memory-database",
+		"odbc-database",
 		# Functionality
 		"alter-table",
 		"auto-increment",
