@@ -1,10 +1,6 @@
 use {
 	crate::{Cast, Error, Result, Value, ValueType},
-	odbc_api::{
-		buffers::{
-			AnyColumnBuffer, BufferDescription, BufferKind, ColumnarBuffer,
-		},
-	},
+	odbc_api::buffers::{AnyColumnBuffer, BufferDescription, BufferKind, ColumnarBuffer},
 };
 
 impl Into<BufferKind> for ValueType {
