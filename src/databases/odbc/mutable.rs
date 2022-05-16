@@ -1,6 +1,6 @@
 use {
 	super::{base::convert_table_name, ColumnSet},
-	crate::{Cast, Column, DBBase, DBMut, ODBCDatabase, Result, Row, Value},
+	crate::{DBBase, DBMut, ODBCDatabase, Result, Row},
 	async_trait::async_trait,
 	odbc_api::buffers::{AnyColumnBuffer, ColumnarBuffer},
 };
