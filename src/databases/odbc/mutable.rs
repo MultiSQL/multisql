@@ -2,10 +2,10 @@ use {
 	super::{base::convert_table_name, ColumnSet},
 	crate::{DBBase, DBMut, ODBCDatabase, Result, Row, Value},
 	async_trait::async_trait,
-	odbc_api::buffers::{AnyColumnBuffer, ColumnarBuffer},
+	odbc_api::buffers::TextRowSet,
 };
 
-const BATCH_SIZE: usize = 1024;
+const BATCH_SIZE: usize = 4096;
 
 #[async_trait(?Send)]
 impl DBMut for ODBCDatabase {
@@ -34,9 +34,12 @@ impl ODBCDatabase {
 		for rows in rows.chunks(BATCH_SIZE) {
 			let column_set = ColumnSet::new(rows.to_vec(), BATCH_SIZE);
 			let query = column_set.query(&table_name, &columns);
-			let buffers: ColumnarBuffer<AnyColumnBuffer> = column_set.try_into()?;
 
-			connection.execute(&query, &buffers)?;
+			let mut statement = connection.prepare(&query)?;
+			//let buffer: ColumnarBuffer<AnyColumnBuffer> = column_set.try_into()?;
+			let buffer: TextRowSet = column_set.try_into()?;
+
+			statement.execute(&buffer)?;
 		}
 		connection.commit()?;
 		Ok(())

@@ -1,13 +1,15 @@
 use {
 	crate::{Cast, Error, Result, Value, ValueType},
-	odbc_api::buffers::{AnyColumnBuffer, BufferDescription, BufferKind, ColumnarBuffer},
+	odbc_api::buffers::{
+		AnyColumnBuffer, BufferDescription, BufferKind, ColumnarBuffer, TextRowSet,
+	},
 };
 
 impl Into<BufferKind> for ValueType {
 	fn into(self) -> BufferKind {
 		match self {
 			ValueType::Str => BufferKind::Text {
-				max_str_len: 255, // Arbitrary!!! Could be a big problem..
+				max_str_len: 255, // Arbitrary!!! Could be a problem..?
 			},
 			ValueType::I64 => BufferKind::I64,
 			ValueType::F64 => BufferKind::F64,
@@ -22,7 +24,7 @@ impl Into<BufferKind> for ValueType {
 struct ColumnValues {
 	index: usize,
 	value_type: ValueType,
-	values: Vec<Value>,
+	pub values: Vec<Value>,
 	size: usize,
 }
 impl TryInto<AnyColumnBuffer> for ColumnValues {
@@ -128,5 +130,23 @@ impl TryInto<ColumnarBuffer<AnyColumnBuffer>> for ColumnSet {
 			.map(|(index, column)| column.try_into().map(|buffer| (index as u16, buffer)))
 			.collect::<Result<Vec<_>>>()?;
 		Ok(ColumnarBuffer::new(buffers))
+	}
+}
+impl TryInto<TextRowSet> for ColumnSet {
+	type Error = Error;
+	fn try_into(self) -> Result<TextRowSet> {
+		let mut buffer = TextRowSet::from_max_str_lens(
+			self.columns[0].values.len(),
+			self.columns.iter().map(|_| 0),
+		)?;
+		for index in 0..self.columns[0].values.len() {
+			let record = self
+				.columns
+				.iter()
+				.map(|column| column.values[index].clone().cast())
+				.collect::<Result<Vec<String>>>()?;
+			buffer.append(record.iter().map(|field| Some(field.as_bytes())))
+		}
+		Ok(buffer)
 	}
 }
