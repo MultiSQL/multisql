@@ -22,8 +22,8 @@ impl Default for ValueType {
 		Self::Any
 	}
 }
-impl From<Value> for ValueType {
-	fn from(value: Value) -> Self {
+impl From<&Value> for ValueType {
+	fn from(value: &Value) -> Self {
 		match value {
 			Value::Bool(_) => ValueType::Bool,
 			Value::U64(_) => ValueType::U64,
