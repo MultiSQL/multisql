@@ -246,6 +246,10 @@ impl CastWithRules<NaiveDateTime> for Value {
 		const TRY_RULES_TIME: [i64; 2] = [100, 101];
 
 		match rule {
+			Value::Null => try_rules(&self, &TRY_RULES_TIMESTAMP)
+				.or_else(|_| try_rules(&self, &TRY_RULES_DATETIME))
+				.or_else(|_| try_rules(&self, &TRY_RULES_DATE))
+				.or_else(|_| try_rules(&self, &TRY_RULES_TIME)),
 			Value::Bool(true) => try_rules(&self, &TRY_RULES_TIMESTAMP),
 			Value::Str(custom) => match custom.as_str() {
 				"TIMESTAMP" => try_rules(&self, &TRY_RULES_TIMESTAMP),

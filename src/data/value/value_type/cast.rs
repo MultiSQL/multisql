@@ -1,5 +1,6 @@
 use {
-	crate::{Cast, Result, Value, ValueError, ValueType},
+	crate::{Cast, CastWithRules, Result, Value, ValueError, ValueType},
+	chrono::NaiveDateTime,
 	std::string::ToString,
 };
 
@@ -17,6 +18,11 @@ impl Value {
 			(ValueType::I64, value) => value.clone().cast().map(Value::I64),
 			(ValueType::F64, value) => value.clone().cast().map(Value::F64),
 			(ValueType::Str, value) => value.clone().cast().map(Value::Str),
+			(ValueType::Timestamp, value) => {
+				let datetime: NaiveDateTime = value.clone().cast_with_rule(Value::Null)?;
+				let timestamp = datetime.timestamp();
+				Ok(Value::Timestamp(timestamp))
+			}
 
 			_ => Err(ValueError::UnimplementedCast.into()),
 		}
