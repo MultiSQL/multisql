@@ -126,7 +126,7 @@ impl Cast<String> for Value {
 			Value::I64(value) => lexical::to_string(value),
 			Value::F64(value) => lexical::to_string(value),
 			Value::Str(value) => value,
-			Value::Timestamp(value) => lexical::to_string(value),
+			Value::Timestamp(value) => NaiveDateTime::from_timestamp(value, 0).to_string(),
 			Value::Null => String::from("NULL"),
 			_ => return Err(unimplemented_cast(&self, ValueType::Str)),
 		})
@@ -241,8 +241,8 @@ impl CastWithRules<NaiveDateTime> for Value {
 				.ok_or_else(|| ValueError::ParseError(try_value.clone(), "TIMESTAMP").into())
 		}
 		const TRY_RULES_TIMESTAMP: [i64; 1] = [000];
-		const TRY_RULES_DATETIME: [i64; 7] = [010, 011, 020, 021, 030, 031, 060];
-		const TRY_RULES_DATE: [i64; 4] = [022, 033, 032, 061]; // 033 should go before 032
+		const TRY_RULES_DATETIME: [i64; 9] = [010, 011, 020, 021, 030, 031, 060, 062, 063];
+		const TRY_RULES_DATE: [i64; 6] = [022, 033, 032, 061, 064, 040]; // 033 should go before 032
 		const TRY_RULES_TIME: [i64; 2] = [100, 101];
 
 		match rule {
@@ -264,17 +264,6 @@ impl CastWithRules<NaiveDateTime> for Value {
 				// From Timestamp (Default)
 				self.cast()
 			}
-			// 01* - Statically specifically defined by accepted standards bodies
-			/*Value::I64(010) => {
-				// From RFC 3339 format
-				let datetime_string: String = self.cast()?;
-				DateTime::parse_from_rfc3339(datetime_string.as_str()).map_err(parse_error_into)
-			}
-			Value::I64(011) => {
-				// From RFC 2822 format
-				let datetime_string: String = self.cast()?;
-				DateTime::parse_from_rfc2822(datetime_string.as_str()).map_err(parse_error_into)
-			}*/
 			// 02* - Conventional
 			// - From Database format (YYYY-MM-DD HH:MM:SS)
 			Value::I64(020) => for_format_datetime(self, "%F %T"),
@@ -293,11 +282,15 @@ impl CastWithRules<NaiveDateTime> for Value {
 			// - From dd-Mon-YY
 			Value::I64(033) => for_format_date(self, "%e-%b-%y"),
 
+			Value::I64(040) => for_format_date(self, "%Y%m%d"),
+
 			// 0(5-8)* - Locales
 			// 06* - Australia
 			Value::I64(060) => for_format_datetime(self, "%d/%m/%Y %H:%M"),
 			Value::I64(061) => for_format_date(self, "%d/%m/%Y"),
-			// (TODO(?))
+			Value::I64(062) => for_format_datetime(self, "%d/%m/%Y %H:%M:%S"),
+			Value::I64(063) => for_format_datetime(self, "%d%m%Y %H:%M:%S"),
+			Value::I64(064) => for_format_date(self, "%d%m%Y"),
 
 			// 10* - Time
 			// - (HH:MM:SS)
