@@ -36,7 +36,7 @@ impl Glue {
 			.clone()
 			.map(|selection| {
 				PlannedRecipe::new(
-					MetaRecipe::new(selection)?.simplify_by_context(&*self.get_context()?)?,
+					MetaRecipe::new(selection)?.simplify_by_tempdb(&self.tempdb)?,
 					&columns,
 				)
 			})

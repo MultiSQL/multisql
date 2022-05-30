@@ -32,7 +32,7 @@ impl Glue {
 							.into_iter()
 							.map(|cell| {
 								MetaRecipe::new(cell)?
-									.simplify_by_context(&*self.get_context()?)?
+									.simplify_by_tempdb(&self.tempdb)?
 									.confirm_or_err(QueryError::MissingComponentsForValues.into())
 							})
 							.collect::<Result<Vec<Value>>>()
