@@ -11,11 +11,7 @@ impl Glue {
 		database: &Option<String>,
 		index_filter: &Option<IndexFilter>,
 	) -> Result<Vec<Vec<Value>>> {
-		let context_tables = {
-			let context = self.get_context().unwrap();
-			context.tables.clone()
-		};
-		if let Some((.., context_table_rows)) = context_tables.get(table) {
+		if let Some((.., context_table_rows)) = self.tempdb.get_table(table) {
 			Ok(context_table_rows.clone())
 		} else {
 			let rows = self.get_view_rows(table, database).await?;

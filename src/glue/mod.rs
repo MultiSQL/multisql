@@ -1,7 +1,7 @@
 use {
 	crate::{
-		parse, parse_single, CSVSettings, Connection, Database, Payload, Query, Result, Value,
-		WIPError, ExecuteError
+		parse, parse_single, CSVSettings, Connection, Database, ExecuteError, Payload, Query,
+		Result, Value, WIPError,
 	},
 	futures::executor::block_on,
 	sqlparser::ast::{
@@ -14,8 +14,9 @@ mod database;
 mod error;
 mod payload;
 mod select;
+mod tempdb;
 
-pub use error::InterfaceError;
+pub use {error::InterfaceError, tempdb::TempDB};
 
 /// # Glue
 /// Glue is *the* interface for interacting with MultiSQL; a Glue instance comprises any number of stores, each with their own identifier.
@@ -31,7 +32,7 @@ pub use error::InterfaceError;
 pub struct Glue {
 	pub primary: String,
 	databases: HashMap<String, Database>,
-	pub tempdb: Database,
+	pub tempdb: TempDB,
 }
 
 /// ## Creation of new interfaces
@@ -45,11 +46,10 @@ impl Glue {
 	/// Creates a [Glue] instance with access to all provided storages.
 	/// Argument is: [Vec]<(Identifier, [Database])>
 	pub fn new_multi(databases: HashMap<String, Database>) -> Self {
-		let tempdb = Connection::Memory.try_into().unwrap();
 		let primary = databases.keys().next().cloned().unwrap_or_default();
 		Self {
 			databases,
-			tempdb,
+			tempdb: TempDB::default(),
 			primary,
 		}
 	}

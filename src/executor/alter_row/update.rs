@@ -49,7 +49,7 @@ impl Glue {
 			.clone()
 			.map(|selection| {
 				PlannedRecipe::new(
-					MetaRecipe::new(selection)?.simplify_by_context(&*self.get_context()?)?,
+					MetaRecipe::new(selection)?.simplify_by_tempdb(&self.tempdb)?,
 					&columns,
 				)
 			})
@@ -69,7 +69,7 @@ impl Glue {
 					.position(|column| column == &column_compare)
 					.ok_or(ExecuteError::ColumnNotFound)?;
 				let recipe = PlannedRecipe::new(
-					MetaRecipe::new(value.clone())?.simplify_by_context(&*self.get_context()?)?,
+					MetaRecipe::new(value.clone())?.simplify_by_tempdb(&self.tempdb)?,
 					&columns,
 				)?;
 				Ok((index, recipe))

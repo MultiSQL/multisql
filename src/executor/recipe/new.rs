@@ -2,7 +2,7 @@ use {
 	super::{Ingredient, Method, Recipe, RecipeError, TryIntoMethod},
 	crate::{
 		executor::{query::JoinManual, types::ObjectName},
-		Context, Resolve, Result, SimplifyBy, Value,
+		Resolve, Result, SimplifyBy, TempDB, Value,
 	},
 	sqlparser::ast::{Expr, FunctionArg, FunctionArgExpr, Ident},
 	std::convert::TryFrom,
@@ -19,7 +19,7 @@ impl MetaRecipe {
 		let (recipe, meta) = Recipe::new_with_meta(expression)?;
 		Ok(Self { recipe, meta })
 	}
-	pub fn simplify_by_context(self, context: &Context) -> Result<Self> {
+	pub fn simplify_by_tempdb(self, tempdb: &TempDB) -> Result<Self> {
 		let meta_objects = self.meta.objects.clone();
 		let (meta_objects, row) = meta_objects
 			.into_iter()
@@ -28,7 +28,7 @@ impl MetaRecipe {
 					.clone()
 					.and_then(|object_name| {
 						if object_name.len() == 1 {
-							context.variables.get(&object_name[0]).map(Clone::clone)
+							tempdb.get_variable(&object_name[0]).map(Clone::clone)
 						} else {
 							None
 						}

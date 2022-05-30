@@ -15,7 +15,7 @@ impl Glue {
 			SetVariableValue::Literal(literal) => literal.try_into()?,
 		};
 		let name = variable.value.clone();
-		self.get_mut_context()?.set_variable(name, value);
+		self.tempdb.set_variable(name, value);
 		Ok(())
 	}
 }

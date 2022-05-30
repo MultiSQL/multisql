@@ -56,22 +56,16 @@ impl Manual {
 		} = select;
 
 		let constraint = selection
-			.map(|selection| {
-				MetaRecipe::new(selection)?.simplify_by_context(&glue.get_context().unwrap())
-			})
+			.map(|selection| MetaRecipe::new(selection)?.simplify_by_tempdb(&glue.tempdb))
 			.unwrap_or(Ok(MetaRecipe::TRUE))?;
 
 		let group_constraint = having
-			.map(|having| {
-				MetaRecipe::new(having)?.simplify_by_context(&glue.get_context().unwrap())
-			})
+			.map(|having| MetaRecipe::new(having)?.simplify_by_tempdb(&glue.tempdb))
 			.unwrap_or(Ok(MetaRecipe::TRUE))?;
 
 		let groups = group_by
 			.into_iter()
-			.map(|expression| {
-				MetaRecipe::new(expression)?.simplify_by_context(&glue.get_context().unwrap())
-			})
+			.map(|expression| MetaRecipe::new(expression)?.simplify_by_tempdb(&glue.tempdb))
 			.collect::<Result<Vec<MetaRecipe>>>()?;
 
 		let (select_items, _subqueries): (Vec<SelectItem>, Vec<Vec<JoinManual>>) = projection
@@ -88,7 +82,7 @@ impl Manual {
 				let mut joins = from
 					.joins
 					.into_iter()
-					.map(|join| JoinManual::new(join, &glue.get_context().unwrap()))
+					.map(|join| JoinManual::new(join, &glue.tempdb))
 					.collect::<Result<Vec<JoinManual>>>()?;
 				joins.push(main);
 				Ok(joins)
@@ -136,8 +130,7 @@ fn convert_select_item(
 				SelectItemAst::ExprWithAlias { expr, alias } => (expr, Some(alias.value)),
 				_ => unreachable!(),
 			};
-			let recipe =
-				MetaRecipe::new(expression)?.simplify_by_context(&glue.get_context().unwrap())?;
+			let recipe = MetaRecipe::new(expression)?.simplify_by_tempdb(&glue.tempdb)?;
 			let subqueries = recipe.meta.subqueries.clone();
 			(SelectItem::Recipe(recipe, alias), subqueries)
 		}

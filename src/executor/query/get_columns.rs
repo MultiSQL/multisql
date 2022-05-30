@@ -12,11 +12,7 @@ use {
 
 impl Glue {
 	pub async fn get_columns(&self, table: ComplexTableName) -> Result<Vec<ColumnInfo>> {
-		let context_tables = {
-			let context = self.get_context().unwrap();
-			context.tables.clone()
-		};
-		if let Some((context_table_labels, ..)) = context_tables.get(&table.name) {
+		if let Some((context_table_labels, ..)) = self.tempdb.get_table(&table.name) {
 			Ok(context_table_labels
 				.iter()
 				.map(|name| ColumnInfo {
