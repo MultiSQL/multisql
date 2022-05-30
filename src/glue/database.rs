@@ -1,5 +1,5 @@
 use {
-	crate::{Context, Database, DatabaseInner, Glue, InterfaceError, Result},
+	crate::{Database, DatabaseInner, Glue, InterfaceError, Result},
 	std::sync::MutexGuard,
 };
 
@@ -16,16 +16,6 @@ impl Glue {
 			.get_mut(db_ref.as_ref().unwrap_or(&self.primary))
 			.ok_or(InterfaceError::DatabaseNotFound.into())
 			.map(Database::get_mut)
-	}
-	pub fn get_context(&self) -> Result<MutexGuard<Context>> {
-		self.context
-			.try_lock()
-			.map_err(|_| InterfaceError::ContextUnavailable.into())
-	}
-	pub fn get_mut_context(&mut self) -> Result<&mut Context> {
-		self.context
-			.get_mut()
-			.map_err(|_| InterfaceError::ContextUnavailable.into())
 	}
 	pub fn get_database_list(&self) -> Vec<&String> {
 		self.databases.keys().collect()
