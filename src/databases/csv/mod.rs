@@ -1,7 +1,11 @@
 mod auto_increment;
 mod base;
+mod discern;
 mod mutable;
+mod record;
 mod utils;
+
+pub use {discern::*, record::*};
 
 use {
 	crate::{data::Schema, Column, DBFull, Database, Result, ValueType, WIPError},
@@ -19,6 +23,9 @@ use {
 pub enum CSVDatabaseError {
 	#[error("CSV storages only support one table at a time")]
 	OnlyOneTableAllowed,
+
+	#[error("Failed to open CSV because of a error with header: {0}")]
+	HeaderError(String),
 }
 
 pub struct CSVDatabase {
@@ -30,12 +37,16 @@ pub struct CSVDatabase {
 pub struct CSVSettings {
 	pub delimiter: u8,
 	pub quoting: bool,
+	pub has_header: Option<bool>,
+	pub sample_rows: usize,
 }
 impl Default for CSVSettings {
 	fn default() -> Self {
 		Self {
 			delimiter: b',',
 			quoting: true,
+			has_header: None,
+			sample_rows: 100,
 		}
 	}
 }
@@ -51,7 +62,7 @@ impl CSVDatabase {
 	pub fn new(path: &str) -> Result<Self> {
 		Self::new_with_settings(path, CSVSettings::default())
 	}
-	pub fn new_with_settings(path: &str, csv_settings: CSVSettings) -> Result<Self> {
+	pub fn new_with_settings(path: &str, mut csv_settings: CSVSettings) -> Result<Self> {
 		let file = OpenOptions::new()
 			.read(true)
 			.write(true)
@@ -59,38 +70,11 @@ impl CSVDatabase {
 			.open(path)
 			.map_err(|error| WIPError::Debug(format!("{:?}", error)))?;
 
-		let schema = discern_schema(file, &csv_settings)?;
+		let schema = csv_settings.discern_schema(file)?;
 		Ok(Self {
 			schema,
 			path: path.to_string(),
 			csv_settings,
 		})
-	}
-}
-
-fn discern_schema(file: File, csv_settings: &CSVSettings) -> Result<Option<Schema>> {
-	let mut reader = ReaderBuilder::new()
-		.delimiter(csv_settings.delimiter)
-		.from_reader(file);
-	let headers = reader
-		.headers()
-		.map_err(|error| WIPError::Debug(format!("{:?}", error)))?;
-	let column_defs = headers
-		.iter()
-		.map(|header| {
-			let mut column = Column::default();
-			column.name = header.to_string();
-			column.data_type = ValueType::Str;
-			column
-		})
-		.collect();
-	if headers.is_empty() {
-		Ok(None)
-	} else {
-		Ok(Some(Schema {
-			table_name: String::new(),
-			column_defs,
-			indexes: vec![],
-		}))
 	}
 }
