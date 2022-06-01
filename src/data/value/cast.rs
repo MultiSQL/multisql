@@ -39,7 +39,7 @@ impl Cast<bool> for Value {
 					return Err(failed_cast(&self, ValueType::Bool));
 				}
 			}
-			Value::Str(value) => match value.to_uppercase().as_str() {
+			Value::Str(value) => match value.to_lowercase().as_str() {
 				"true" => true,
 				"false" => false,
 				_ => return Err(failed_cast(&Value::Str(value), ValueType::Bool)),
