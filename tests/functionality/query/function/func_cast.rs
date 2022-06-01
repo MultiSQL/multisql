@@ -4,7 +4,7 @@ crate::util_macros::testcase!(
 		crate::util_macros::execute!(glue, "INSERT INTO Item VALUES ('1')");
 
 		crate::util_macros::assert_select!(glue, "
-			SELECT CAST('TRUE' AS BOOLEAN) AS cast FROM Item
+			SELECT CAST('true' AS BOOLEAN) AS cast FROM Item
 			" => cast = Bool: (true)
 		);
 		crate::util_macros::assert_select!(glue, "
