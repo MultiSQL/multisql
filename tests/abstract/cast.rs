@@ -29,8 +29,8 @@ crate::util_macros::testcase!(
 		cast!(F64(1.0)              => Float(None)  , F64(1.0));
 
 		// Boolean
-		cast!(Str("TRUE".to_owned())    => Boolean, Bool(true));
-		cast!(Str("FALSE".to_owned())   => Boolean, Bool(false));
+		cast!(Str("true".to_owned())    => Boolean, Bool(true));
+		cast!(Str("false".to_owned())   => Boolean, Bool(false));
 		cast!(I64(1)                    => Boolean, Bool(true));
 		cast!(I64(0)                    => Boolean, Bool(false));
 		cast!(F64(1.0)                  => Boolean, Bool(true));
@@ -58,8 +58,8 @@ crate::util_macros::testcase!(
 		cast!(Null                  => Float(None), Null);
 
 		// Text
-		cast!(Bool(true)    => Text, Str("TRUE".to_owned()));
-		cast!(Bool(false)   => Text, Str("FALSE".to_owned()));
+		cast!(Bool(true)    => Text, Str("true".to_owned()));
+		cast!(Bool(false)   => Text, Str("false".to_owned()));
 		cast!(I64(11)       => Text, Str("11".to_owned()));
 		cast!(F64(1.0)      => Text, Str("1.0".to_owned()));
 		cast!(Null          => Text, Null);

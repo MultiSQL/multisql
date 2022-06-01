@@ -19,7 +19,7 @@ crate::util_macros::testcase!(
 		);
 		crate::util_macros::assert_select!(glue, "
 			SELECT CAST(flag AS TEXT) AS cast FROM Item
-			" => cast = Str: (String::from("TRUE"))
+			" => cast = Str: (String::from("true"))
 		);
 		/*(
 			r#"SELECT CAST(ratio AS INTEGER) AS cast FROM Item"#,

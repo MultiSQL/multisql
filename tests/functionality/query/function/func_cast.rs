@@ -57,7 +57,7 @@ crate::util_macros::testcase!(
 		);
 		crate::util_macros::assert_select!(glue, "
 			SELECT CAST(TRUE AS TEXT) AS cast FROM Item
-			" => cast = Str: (String::from("TRUE"))
+			" => cast = Str: (String::from("true"))
 		);
 		/*crate::util_macros::assert_select!(glue, "
 			SELECT CAST(NULL AS TEXT) AS cast FROM Item

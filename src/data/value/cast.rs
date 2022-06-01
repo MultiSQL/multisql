@@ -40,8 +40,8 @@ impl Cast<bool> for Value {
 				}
 			}
 			Value::Str(value) => match value.to_uppercase().as_str() {
-				"TRUE" => true,
-				"FALSE" => false,
+				"true" => true,
+				"false" => false,
 				_ => return Err(failed_cast(&Value::Str(value), ValueType::Bool)),
 			},
 			Value::Null => return Err(failed_cast(&self, ValueType::Bool)),
@@ -121,7 +121,7 @@ impl Cast<f64> for Value {
 impl Cast<String> for Value {
 	fn cast(self) -> Result<String> {
 		Ok(match self {
-			Value::Bool(value) => (if value { "TRUE" } else { "FALSE" }).to_string(),
+			Value::Bool(value) => (if value { "true" } else { "false" }).to_string(),
 			Value::U64(value) => lexical::to_string(value),
 			Value::I64(value) => lexical::to_string(value),
 			Value::F64(value) => lexical::to_string(value),

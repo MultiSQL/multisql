@@ -3,10 +3,10 @@ crate::util_macros::testcase!(
 		{
 			use multisql::{Cast, Value::*};
 			let bool_equivs = vec![
-				(Bool(false), Str(String::from("FALSE"))),
+				(Bool(false), Str(String::from("false"))),
 				(Bool(false), I64(0)),
 				(Bool(false), F64(0.0)),
-				(Bool(true), Str(String::from("TRUE"))),
+				(Bool(true), Str(String::from("true"))),
 				(Bool(true), I64(1)),
 				(Bool(true), F64(1.0)),
 			];
@@ -51,10 +51,10 @@ crate::util_macros::testcase!(
 			});
 
 			let str_equivs = vec![
-				(Str(String::from("FALSE")), Bool(false)),
+				(Str(String::from("false")), Bool(false)),
 				(Str(String::from("0")), I64(0)),
 				(Str(String::from("0.0")), F64(0.0)),
-				(Str(String::from("TRUE")), Bool(true)),
+				(Str(String::from("true")), Bool(true)),
 				(Str(String::from("1")), I64(1)),
 				(Str(String::from("1.0")), F64(1.0)),
 			];
