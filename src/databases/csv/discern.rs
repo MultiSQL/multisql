@@ -1,14 +1,8 @@
 use {
 	super::string_record_to_row,
-	crate::{
-		data::Schema, CSVDatabaseError, CSVSettings, Cast, Column, Result, Value,
-		ValueType,
-	},
+	crate::{data::Schema, CSVDatabaseError, CSVSettings, Cast, Column, Result, Value, ValueType},
 	csv::{Reader, ReaderBuilder, StringRecord},
-	std::{
-		default::Default,
-		fs::{File},
-	},
+	std::{default::Default, fs::File},
 };
 
 impl CSVSettings {

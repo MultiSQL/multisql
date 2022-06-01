@@ -10,11 +10,7 @@ pub use {discern::*, record::*};
 use {
 	crate::{data::Schema, DBFull, Database, Result, WIPError},
 	serde::{Deserialize, Serialize},
-	std::{
-		default::Default,
-		fmt::Debug,
-		fs::{OpenOptions},
-	},
+	std::{default::Default, fmt::Debug, fs::OpenOptions},
 	thiserror::Error,
 };
 
