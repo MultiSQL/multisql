@@ -1,7 +1,8 @@
 use {
 	super::Glue,
 	crate::{
-		recipe::{Recipe, RecipeUtilities}, Payload, Result, Value,
+		recipe::{Recipe, RecipeUtilities},
+		Payload, Result, Value,
 	},
 	futures::executor::block_on,
 };
