@@ -6,7 +6,6 @@ mod fetch;
 mod other;
 mod procedure;
 mod query;
-mod recipe;
 mod set_variable;
 mod types;
 
@@ -17,6 +16,5 @@ pub use {
 	execute::{ExecuteError, Payload},
 	fetch::FetchError,
 	query::{JoinError, ManualError, PlanError, QueryError, SelectError},
-	recipe::*,
 	types::ComplexTableName,
 };
