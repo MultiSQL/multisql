@@ -1,11 +1,11 @@
 use {
 	super::AlterError,
-	crate::{ComplexTableName, Glue, Result, ValueDefault},
+	crate::{types::ComplexTableName, Glue, Result, ValueDefault},
 	sqlparser::ast::{ObjectName, ObjectType},
 };
 
 impl Glue {
-	pub async fn drop(
+	pub async fn ast_drop(
 		&mut self,
 		object_type: &ObjectType,
 		names: &[ObjectName],

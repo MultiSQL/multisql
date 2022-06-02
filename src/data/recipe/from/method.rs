@@ -1,6 +1,8 @@
 use {
-	super::{AggregateOperator, BinaryOperator, FunctionOperator, RecipeError, UnaryOperator},
-	crate::{Result, Value},
+	crate::{
+		recipe::{AggregateOperator, BinaryOperator, FunctionOperator, RecipeError, UnaryOperator},
+		Result, Value,
+	},
 	sqlparser::ast::{BinaryOperator as AstBinaryOperator, UnaryOperator as AstUnaryOperator},
 };
 

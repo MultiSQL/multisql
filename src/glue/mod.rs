@@ -12,11 +12,12 @@ use {
 
 mod database;
 mod error;
+mod insert;
 mod payload;
 mod select;
 mod tempdb;
 
-pub use {error::InterfaceError, tempdb::TempDB};
+pub use {error::InterfaceError, insert::*, tempdb::TempDB};
 
 /// # Glue
 /// Glue is *the* interface for interacting with MultiSQL; a Glue instance comprises any number of stores, each with their own identifier.

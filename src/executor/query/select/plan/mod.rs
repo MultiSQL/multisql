@@ -3,7 +3,7 @@ mod refine_item;
 pub(crate) use refine_item::*;
 use {
 	super::{join::JoinExecute, Manual, Order, SelectItem},
-	crate::{executor::PlannedRecipe, Glue, Result},
+	crate::{recipe::PlannedRecipe, Glue, Result},
 	serde::Serialize,
 	sqlparser::ast::{OrderByExpr, Select},
 	thiserror::Error as ThisError,

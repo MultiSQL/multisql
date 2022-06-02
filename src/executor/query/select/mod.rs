@@ -5,12 +5,10 @@ mod plan;
 
 use {
 	crate::{
-		executor::{
-			types::{LabelsAndRows, Row},
-			PlannedRecipe,
-		},
 		macros::try_option,
-		Glue, RecipeUtilities, Result, Value,
+		recipe::{PlannedRecipe, RecipeUtilities},
+		types::{LabelsAndRows, Row},
+		Glue, Result, Value,
 	},
 	futures::stream::{self, StreamExt, TryStreamExt},
 	rayon::prelude::*,

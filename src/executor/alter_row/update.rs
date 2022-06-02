@@ -2,15 +2,15 @@ use {
 	super::{columns_to_positions, validate},
 	crate::{
 		data::Schema,
-		executor::types::{ColumnInfo, Row as VecRow},
-		Column, ComplexTableName, ExecuteError, Glue, MetaRecipe, Payload, PlannedRecipe,
-		RecipeUtilities, Result, Row, Value,
+		recipe::{MetaRecipe, PlannedRecipe, RecipeUtilities},
+		types::{ColumnInfo, ComplexTableName, Row as VecRow},
+		Column, ExecuteError, Glue, Payload, Result, Row, Value,
 	},
 	sqlparser::ast::{Assignment, Expr, TableFactor, TableWithJoins},
 };
 
 impl Glue {
-	pub async fn update(
+	pub async fn ast_update(
 		&mut self,
 		table: &TableWithJoins,
 		selection: &Option<Expr>,
