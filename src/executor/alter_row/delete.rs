@@ -2,7 +2,8 @@ use {
 	crate::{
 		data::Schema,
 		recipe::{MetaRecipe, PlannedRecipe},
-		Column, types::{ComplexTableName, ColumnInfo}, ExecuteError, Glue, Payload, Result, Value,
+		types::{ColumnInfo, ComplexTableName},
+		Column, ExecuteError, Glue, Payload, Result, Value,
 	},
 	sqlparser::ast::{Expr, ObjectName},
 };

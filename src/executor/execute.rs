@@ -1,5 +1,5 @@
 use {
-	crate::{parse_sql::Query, Glue, Result, Row, types::get_first_name,},
+	crate::{parse_sql::Query, types::get_first_name, Glue, Result, Row},
 	serde::Serialize,
 	sqlparser::ast::{ObjectType, Statement},
 	thiserror::Error as ThisError,

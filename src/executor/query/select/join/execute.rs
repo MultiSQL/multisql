@@ -1,8 +1,8 @@
 use {
 	super::{JoinError, JoinMethod, JoinPlan, JoinType},
 	crate::{
+		recipe::{Ingredient, MetaRecipe, Method, PlannedRecipe, Recipe},
 		types::{ColumnInfo, Row},
-		recipe::{Ingredient, MetaRecipe, Method, PlannedRecipe, Recipe,},
 		Glue, IndexFilter, Result, Value,
 	},
 };

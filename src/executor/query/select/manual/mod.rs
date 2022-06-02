@@ -1,10 +1,8 @@
 use {
 	super::join::JoinManual,
-	crate::{types::{Alias, ObjectName},
-		recipe::{
-
-			MetaRecipe,
-		},
+	crate::{
+		recipe::MetaRecipe,
+		types::{Alias, ObjectName},
 		Glue, Result,
 	},
 	serde::Serialize,

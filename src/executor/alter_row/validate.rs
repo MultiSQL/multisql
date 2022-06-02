@@ -1,7 +1,7 @@
 use {
 	crate::{
-		types::Row,
 		recipe::{Recipe, RecipeUtilities, Resolve, SimplifyBy},
+		types::Row,
 		Column, Error, Result, ValueDefault, ValueType,
 	},
 	rayon::prelude::*,

@@ -7,9 +7,9 @@ mod set_expr;
 pub use select::{join::*, ManualError, Plan, PlanError, SelectError};
 use {
 	crate::{
-		types::LabelsAndRows,
 		recipe::{MetaRecipe, RecipeUtilities},
 		result::Result,
+		types::LabelsAndRows,
 		Cast, Glue, Value,
 	},
 	async_recursion::async_recursion,

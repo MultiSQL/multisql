@@ -1,5 +1,9 @@
 use {
-	crate::{result::Result, Column, DatabaseInner, types::{ColumnInfo, ComplexTableName}},
+	crate::{
+		result::Result,
+		types::{ColumnInfo, ComplexTableName},
+		Column, DatabaseInner,
+	},
 	serde::Serialize,
 	thiserror::Error as ThisError,
 };

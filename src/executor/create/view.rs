@@ -1,5 +1,5 @@
 use {
-	crate::{Column, types::ComplexTableName, Glue, Result, Row, Schema, Value, ValueType},
+	crate::{types::ComplexTableName, Column, Glue, Result, Row, Schema, Value, ValueType},
 	lazy_static::lazy_static,
 	sqlparser::ast::{ObjectName, Query, SetExpr},
 };

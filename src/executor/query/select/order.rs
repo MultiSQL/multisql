@@ -1,7 +1,8 @@
 use {
 	crate::{
+		recipe::{MetaRecipe, PlannedRecipe, RecipeUtilities},
 		types::{ColumnInfo, Row},
-		recipe::{MetaRecipe, PlannedRecipe, RecipeUtilities}, Result, Value,
+		Result, Value,
 	},
 	rayon::prelude::*,
 	sqlparser::ast::OrderByExpr,

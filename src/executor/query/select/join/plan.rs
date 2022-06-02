@@ -1,10 +1,8 @@
 use {
 	super::{JoinManual, JoinType},
-	crate::{types::{ColumnInfo, ComplexTableName},
-		recipe::{
-
-			MetaRecipe,
-		},
+	crate::{
+		recipe::MetaRecipe,
+		types::{ColumnInfo, ComplexTableName},
 		Glue, Result,
 	},
 	std::cmp::Ordering,

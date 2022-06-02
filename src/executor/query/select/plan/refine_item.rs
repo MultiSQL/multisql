@@ -1,6 +1,6 @@
 use {
 	super::SelectItem,
-	crate::{types::ColumnInfo, recipe::PlannedRecipe, Error, PlanError, Result},
+	crate::{recipe::PlannedRecipe, types::ColumnInfo, Error, PlanError, Result},
 };
 
 pub(crate) fn refine_item(

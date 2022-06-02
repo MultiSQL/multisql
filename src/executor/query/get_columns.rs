@@ -1,11 +1,8 @@
 use {
 	super::select::{refine_items, Manual},
 	crate::{
+		executor::fetch::fetch_columns,
 		types::{ColumnInfo, ComplexTableName},
-		executor::{
-			fetch::fetch_columns,
-
-		},
 		Glue, Result,
 	},
 	async_recursion::async_recursion,
