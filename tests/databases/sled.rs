@@ -17,5 +17,6 @@ pub fn sled_database(name: &str) -> multisql::Glue {
 	Glue::new(String::from("main"), database)
 }
 
+crate::util_macros::run!(sled_database, api);
 crate::util_macros::run!(sled_database, functionality);
 crate::util_macros::run!(sled_database, original);

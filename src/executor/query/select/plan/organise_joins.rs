@@ -1,9 +1,7 @@
 use {
 	crate::{
-		executor::{
-			query::select::join::{JoinManual, JoinPlan},
-			types::ColumnInfo,
-		},
+		executor::query::select::join::{JoinManual, JoinPlan},
+		types::ColumnInfo,
 		Glue, Result,
 	},
 	futures::future::join_all,

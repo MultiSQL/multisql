@@ -4,7 +4,7 @@ mod planned;
 mod resolve;
 
 use {
-	crate::{executor::types::ObjectName, Error, Result, Value},
+	crate::{types::ObjectName, Error, Result, Value},
 	serde::Serialize,
 	sqlparser::ast::{DataType, Expr},
 	std::fmt::Debug,

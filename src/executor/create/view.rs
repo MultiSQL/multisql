@@ -1,11 +1,11 @@
 use {
-	crate::{Column, ComplexTableName, Glue, Result, Row, Schema, Value, ValueType},
+	crate::{types::ComplexTableName, Column, Glue, Result, Row, Schema, Value, ValueType},
 	lazy_static::lazy_static,
 	sqlparser::ast::{ObjectName, Query, SetExpr},
 };
 
 impl Glue {
-	pub async fn create_view(
+	pub async fn ast_create_view(
 		&mut self,
 		name: &ObjectName,
 		query: &Box<Query>,

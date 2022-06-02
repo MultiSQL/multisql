@@ -5,7 +5,7 @@ mod mutable;
 mod record;
 mod utils;
 
-pub use {discern::*, record::*};
+pub use record::*;
 
 use {
 	crate::{data::Schema, DBFull, Database, Result, WIPError},
