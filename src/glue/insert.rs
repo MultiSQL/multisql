@@ -13,11 +13,11 @@ pub trait ParameterValue {
 
 #[macro_export]
 macro_rules! INSERT {
-	{$glue:expr, INTO $database:ident.$table:ident ($($column:ident),*) VALUES $(($($value:expr),*)),*} => {
-		$glue.insert(Some(stringify!($database)), stringify!($table), &[$(stringify!($column)),*], vec![$(vec![$($value.into()),*]),*]);
+	{$glue:expr, INTO $database:ident.$table:ident ($($column:ident),+) VALUES $(($($value:expr),+)),+} => {
+		$glue.insert(Some(stringify!($database)), stringify!($table), &[$(stringify!($column)),+], vec![$(vec![$($value.into()),+]),+])
 	};
-	{$glue:expr, INTO $table:ident ($($column:ident),*) VALUES $(($($value:expr),*)),*} => {
-		$glue.insert(None, stringify!($table), &[$(stringify!($column)),*], vec![$(vec![$($value.into()),*]),*]);
+	{$glue:expr, INTO $table:ident ($($column:ident),+) VALUES $(($($value:expr),+)),+} => {
+		$glue.insert(None, stringify!($table), &[$(stringify!($column)),+], vec![$(vec![$($value.into()),+]),+])
 	};
 }
 
@@ -48,4 +48,15 @@ impl Glue {
 			false,
 		))
 	}
+}
+
+#[test]
+fn test() {
+	use crate::{Connection, Glue};
+	let db = Connection::Memory.try_into().unwrap();
+	let mut glue = Glue::new(String::from("test"), db);
+	glue.execute("CREATE TABLE basic (a INT)").unwrap();
+	glue.insert(None, "basic", &["a"], vec![vec![2.into()]])
+		.unwrap();
+	//INSERT! {glue, INTO basic (a) VALUES (2)}.unwrap();
 }
