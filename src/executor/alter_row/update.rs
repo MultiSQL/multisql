@@ -2,9 +2,9 @@ use {
 	super::{columns_to_positions, validate},
 	crate::{
 		data::Schema,
-		executor::types::{ColumnInfo, Row as VecRow},
-		recipe::{MetaRecipe, PlannedRecipe},
-		Column, ComplexTableName, ExecuteError, Glue, Payload, Result, Row, Value,
+		recipe::{MetaRecipe, PlannedRecipe, RecipeUtilities},
+		types::{ColumnInfo, ComplexTableName, Row as VecRow},
+		Column, ExecuteError, Glue, Payload, Result, Row, Value,
 	},
 	sqlparser::ast::{Assignment, Expr, TableFactor, TableWithJoins},
 };

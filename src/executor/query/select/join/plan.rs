@@ -1,8 +1,8 @@
 use {
 	super::{JoinManual, JoinType},
-	crate::{
-		executor::{
-			types::{ColumnInfo, ComplexTableName},
+	crate::{types::{ColumnInfo, ComplexTableName},
+		recipe::{
+
 			MetaRecipe,
 		},
 		Glue, Result,

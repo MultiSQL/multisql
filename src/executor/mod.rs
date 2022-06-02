@@ -5,9 +5,8 @@ mod execute;
 mod fetch;
 mod other;
 mod procedure;
-mod query;
+pub(crate) mod query;
 mod set_variable;
-mod types;
 
 pub use {
 	alter_row::ValidateError,
@@ -16,5 +15,4 @@ pub use {
 	execute::{ExecuteError, Payload},
 	fetch::FetchError,
 	query::{JoinError, ManualError, PlanError, QueryError, SelectError},
-	types::ComplexTableName,
 };

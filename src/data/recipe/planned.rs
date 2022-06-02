@@ -3,7 +3,7 @@ use {
 		Ingredient, MetaRecipe, Method, Recipe, RecipeError, RecipeUtilities, Resolve, SimplifyBy,
 	},
 	crate::{
-		executor::types::{ColumnInfo, Row},
+		types::{ColumnInfo, Row},
 		IndexFilter, Result, Value,
 	},
 	fstrings::*,

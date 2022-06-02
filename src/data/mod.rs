@@ -5,6 +5,7 @@ pub mod recipe;
 mod row;
 pub(crate) mod schema;
 mod table;
+pub(crate) mod types;
 pub(crate) mod value;
 
 pub use {

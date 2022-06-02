@@ -1,5 +1,5 @@
 use {
-	crate::{data::Schema, Column, ComplexTableName, CreateError, Error, Glue, Result},
+	crate::{data::Schema, Column, types::ComplexTableName, CreateError, Error, Glue, Result},
 	sqlparser::ast::{ColumnDef, ObjectName},
 };
 

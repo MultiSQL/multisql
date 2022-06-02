@@ -1,8 +1,8 @@
 use {
 	super::join::JoinManual,
-	crate::{
-		executor::{
-			types::{Alias, ObjectName},
+	crate::{types::{Alias, ObjectName},
+		recipe::{
+
 			MetaRecipe,
 		},
 		Glue, Result,

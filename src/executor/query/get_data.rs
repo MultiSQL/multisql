@@ -1,5 +1,5 @@
 use {
-	crate::{executor::types::LabelsAndRows, Cast, Glue, Result, VIEW_TABLE_NAME},
+	crate::{types::LabelsAndRows, Cast, Glue, Result, VIEW_TABLE_NAME},
 	sqlparser::ast::Select,
 };
 

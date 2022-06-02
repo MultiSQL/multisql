@@ -1,7 +1,8 @@
 use {
 	crate::{
-		data::Schema, executor::types::ColumnInfo, Column, ComplexTableName, ExecuteError, Glue,
-		recipe::{MetaRecipe, PlannedRecipe}, Payload, Result, Value,
+		data::Schema,
+		recipe::{MetaRecipe, PlannedRecipe},
+		Column, types::{ComplexTableName, ColumnInfo}, ExecuteError, Glue, Payload, Result, Value,
 	},
 	sqlparser::ast::{Expr, ObjectName},
 };

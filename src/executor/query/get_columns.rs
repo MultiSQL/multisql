@@ -1,9 +1,10 @@
 use {
 	super::select::{refine_items, Manual},
 	crate::{
+		types::{ColumnInfo, ComplexTableName},
 		executor::{
 			fetch::fetch_columns,
-			types::{ColumnInfo, ComplexTableName},
+
 		},
 		Glue, Result,
 	},

@@ -1,7 +1,7 @@
 use {
 	super::JoinType,
-	crate::{
-		executor::{types::Row, PlannedRecipe},
+	crate::{types::Row,
+		recipe::{PlannedRecipe},
 		macros::try_option,
 		JoinError, NullOrd, Result, Value,
 	},

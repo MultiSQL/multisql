@@ -1,6 +1,6 @@
 use {
 	crate::{
-		executor::types::Row,
+		types::Row,
 		recipe::{Recipe, RecipeUtilities, Resolve, SimplifyBy},
 		Column, Error, Result, ValueDefault, ValueType,
 	},

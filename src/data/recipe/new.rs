@@ -1,8 +1,10 @@
 use {
 	super::{Ingredient, Method, Recipe, RecipeError, TryIntoMethod},
 	crate::{
-		executor::{query::JoinManual, types::ObjectName},
-		Resolve, Result, SimplifyBy, TempDB, Value,
+		query::JoinManual,
+		recipe::{Resolve, SimplifyBy},
+		types::ObjectName,
+		Result, TempDB, Value,
 	},
 	sqlparser::ast::{Expr, FunctionArg, FunctionArgExpr, Ident},
 	std::convert::TryFrom,

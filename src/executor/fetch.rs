@@ -1,6 +1,5 @@
 use {
-	super::types::{ColumnInfo, ComplexTableName},
-	crate::{result::Result, Column, DatabaseInner},
+	crate::{result::Result, Column, DatabaseInner, types::{ColumnInfo, ComplexTableName}},
 	serde::Serialize,
 	thiserror::Error as ThisError,
 };

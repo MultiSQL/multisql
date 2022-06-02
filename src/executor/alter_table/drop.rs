@@ -1,6 +1,6 @@
 use {
 	super::AlterError,
-	crate::{ComplexTableName, Glue, Result, ValueDefault},
+	crate::{types::ComplexTableName, Glue, Result, ValueDefault},
 	sqlparser::ast::{ObjectName, ObjectType},
 };
 

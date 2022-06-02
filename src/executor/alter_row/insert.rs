@@ -1,6 +1,6 @@
 use {
 	super::{columns_to_positions, validate},
-	crate::{data::Schema, ComplexTableName, ExecuteError, Glue, Payload, Result, Row},
+	crate::{data::Schema, types::ComplexTableName, ExecuteError, Glue, Payload, Result, Row},
 	sqlparser::ast::{Ident, ObjectName, Query},
 };
 

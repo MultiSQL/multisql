@@ -1,6 +1,6 @@
 use {
 	super::{Ingredient, Method, Recipe, RecipeError, RecipeUtilities},
-	crate::{executor::types::Row, Result, Value},
+	crate::{types::Row, Result, Value},
 };
 
 #[derive(Clone)]

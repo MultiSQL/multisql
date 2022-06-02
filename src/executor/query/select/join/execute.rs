@@ -1,8 +1,9 @@
 use {
 	super::{JoinError, JoinMethod, JoinPlan, JoinType},
 	crate::{
-		executor::types::{ColumnInfo, Row},
-		Glue, IndexFilter, Ingredient, MetaRecipe, Method, PlannedRecipe, Recipe, Result, Value,
+		types::{ColumnInfo, Row},
+		recipe::{Ingredient, MetaRecipe, Method, PlannedRecipe, Recipe,},
+		Glue, IndexFilter, Result, Value,
 	},
 };
 

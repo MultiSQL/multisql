@@ -1,7 +1,7 @@
 use {
 	super::{JoinError, JoinType},
-	crate::{
-		executor::{types::ComplexTableName, MetaRecipe},
+	crate::{types::ComplexTableName,
+		recipe::{MetaRecipe},
 		Result, TempDB,
 	},
 	sqlparser::ast::{Join as AstJoin, JoinConstraint, JoinOperator, TableFactor},
