@@ -7,7 +7,7 @@ use {
 };
 
 impl Glue {
-	pub async fn create_index(
+	pub async fn ast_create_index(
 		&mut self,
 		table: &ObjectName,
 		name: &ObjectName,

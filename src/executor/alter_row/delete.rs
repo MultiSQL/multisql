@@ -1,13 +1,13 @@
 use {
 	crate::{
 		data::Schema, executor::types::ColumnInfo, Column, ComplexTableName, ExecuteError, Glue,
-		MetaRecipe, Payload, PlannedRecipe, Result, Value,
+		recipe::{MetaRecipe, PlannedRecipe}, Payload, Result, Value,
 	},
 	sqlparser::ast::{Expr, ObjectName},
 };
 
 impl Glue {
-	pub async fn delete(
+	pub async fn ast_delete(
 		&mut self,
 		table_name: &ObjectName,
 		selection: &Option<Expr>,

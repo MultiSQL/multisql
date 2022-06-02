@@ -4,7 +4,7 @@ use {
 };
 
 impl Glue {
-	pub async fn create_table(
+	pub async fn ast_create_table(
 		&mut self,
 		name: &ObjectName,
 		column_defs: &[ColumnDef],

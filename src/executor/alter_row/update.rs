@@ -3,14 +3,14 @@ use {
 	crate::{
 		data::Schema,
 		executor::types::{ColumnInfo, Row as VecRow},
-		Column, ComplexTableName, ExecuteError, Glue, MetaRecipe, Payload, PlannedRecipe,
-		RecipeUtilities, Result, Row, Value,
+		recipe::{MetaRecipe, PlannedRecipe},
+		Column, ComplexTableName, ExecuteError, Glue, Payload, Result, Row, Value,
 	},
 	sqlparser::ast::{Assignment, Expr, TableFactor, TableWithJoins},
 };
 
 impl Glue {
-	pub async fn update(
+	pub async fn ast_update(
 		&mut self,
 		table: &TableWithJoins,
 		selection: &Option<Expr>,

@@ -5,7 +5,7 @@ use {
 };
 
 impl Glue {
-	pub async fn drop(
+	pub async fn ast_drop(
 		&mut self,
 		object_type: &ObjectType,
 		names: &[ObjectName],

@@ -5,7 +5,7 @@ use {
 };
 
 impl Glue {
-	pub async fn create_view(
+	pub async fn ast_create_view(
 		&mut self,
 		name: &ObjectName,
 		query: &Box<Query>,

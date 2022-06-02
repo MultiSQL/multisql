@@ -5,7 +5,7 @@ use {
 };
 
 impl Glue {
-	pub async fn insert(
+	pub async fn ast_insert(
 		&mut self,
 		table_name: &ObjectName,
 		columns: &[Ident],
@@ -28,7 +28,7 @@ impl Glue {
 			.ok_or(ExecuteError::TableNotExists)?;
 
 		// TODO: Multi storage
-		let (labels, mut rows) = self.query(source.clone()).await?;
+		let (labels, mut rows) = self.ast_query(source.clone()).await?;
 		let column_positions = columns_to_positions(&column_defs, columns)?;
 
 		validate(&column_defs, &column_positions, &mut rows)?;

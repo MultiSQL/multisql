@@ -1,7 +1,8 @@
 use {
 	crate::{
-		executor::types::Row, Column, Error, Recipe, RecipeUtilities, Resolve, Result, SimplifyBy,
-		ValueDefault, ValueType,
+		executor::types::Row,
+		recipe::{Recipe, RecipeUtilities, Resolve, SimplifyBy},
+		Column, Error, Result, ValueDefault, ValueType,
 	},
 	rayon::prelude::*,
 	serde::Serialize,

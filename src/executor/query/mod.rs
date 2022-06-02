@@ -7,8 +7,10 @@ mod set_expr;
 pub use select::{join::*, ManualError, Plan, PlanError, SelectError};
 use {
 	crate::{
-		executor::types::LabelsAndRows, result::Result, Cast, Glue, MetaRecipe, RecipeUtilities,
-		Value,
+		executor::types::LabelsAndRows,
+		recipe::{MetaRecipe, RecipeUtilities},
+		result::Result,
+		Cast, Glue, Value,
 	},
 	async_recursion::async_recursion,
 	serde::Serialize,
@@ -38,7 +40,7 @@ pub enum QueryError {
 
 impl Glue {
 	#[async_recursion(?Send)]
-	pub async fn query(&mut self, query: Query) -> Result<LabelsAndRows> {
+	pub async fn ast_query(&mut self, query: Query) -> Result<LabelsAndRows> {
 		let Query {
 			body,
 			order_by,
@@ -83,7 +85,7 @@ impl Glue {
 					columns: _, // TODO: Columns - Check that number is same and then rename labels
 				} = alias;
 				let name = name.value;
-				let data = self.query(query).await?;
+				let data = self.ast_query(query).await?;
 				self.tempdb.set_table(name, data);
 			}
 		}

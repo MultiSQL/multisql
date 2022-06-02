@@ -83,7 +83,7 @@ impl Glue {
 				if_not_exists,
 				..
 			} => self
-				.create_table(name, columns, *if_not_exists)
+				.ast_create_table(name, columns, *if_not_exists)
 				.await
 				.map(|_| Payload::Create),
 			Statement::CreateView {
@@ -92,7 +92,7 @@ impl Glue {
 				or_replace,
 				..
 			} => self
-				.create_view(name, query, *or_replace)
+				.ast_create_view(name, query, *or_replace)
 				.await
 				.map(|_| Payload::Create),
 			Statement::Drop {
@@ -110,17 +110,17 @@ impl Glue {
 					}
 				}
 				object_type => self
-					.drop(object_type, names, *if_exists)
+					.ast_drop(object_type, names, *if_exists)
 					.await
 					.map(|_| Payload::DropTable),
 			},
 			#[cfg(feature = "alter-table")]
 			Statement::AlterTable { name, operation } => self
-				.alter_table(name, operation)
+				.ast_alter_table(name, operation)
 				.await
 				.map(|_| Payload::AlterTable),
 			Statement::Truncate { table_name, .. } => self
-				.truncate(table_name)
+				.ast_truncate(table_name)
 				.await
 				.map(|_| Payload::TruncateTable),
 			Statement::CreateIndex {
@@ -130,7 +130,7 @@ impl Glue {
 				unique,
 				if_not_exists,
 			} => self
-				.create_index(table_name, name, columns, *unique, *if_not_exists)
+				.ast_create_index(table_name, name, columns, *unique, *if_not_exists)
 				.await
 				.map(|_| Payload::Create),
 
@@ -140,22 +140,22 @@ impl Glue {
 				columns,
 				source,
 				..
-			} => self.insert(table_name, columns, source, false).await,
+			} => self.ast_insert(table_name, columns, source, false).await,
 			Statement::Update {
 				table,
 				selection,
 				assignments,
 				// TODO
 				from: _,
-			} => self.update(table, selection, assignments).await,
+			} => self.ast_update(table, selection, assignments).await,
 			Statement::Delete {
 				table_name,
 				selection,
-			} => self.delete(table_name, selection).await,
+			} => self.ast_delete(table_name, selection).await,
 
 			//- Selection
 			Statement::Query(query_value) => {
-				let result = self.query(*query_value.clone()).await?;
+				let result = self.ast_query(*query_value.clone()).await?;
 				let (labels, rows) = result;
 				let rows = rows.into_iter().map(Row).collect(); // I don't like this. TODO
 				let payload = Payload::Select { labels, rows };
@@ -166,13 +166,13 @@ impl Glue {
 			Statement::SetVariable {
 				variable, value, ..
 			} => self
-				.set_variable(variable, value)
+				.set_variable(variable.into(), value)
 				.await
 				.map(|_| Payload::Success),
 
 			Statement::ExplainTable { table_name, .. } => self.explain(table_name).await,
 
-			Statement::Execute { name, parameters } => self.procedure(name, parameters).await,
+			Statement::Execute { name, parameters } => self.ast_procedure(name, parameters).await,
 			_ => Err(ExecuteError::QueryNotSupported.into()),
 		}
 	}
