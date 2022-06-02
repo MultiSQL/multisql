@@ -6,7 +6,6 @@ use {
 	},
 	rayon::prelude::*,
 	serde::Serialize,
-	sqlparser::ast::Ident,
 	thiserror::Error as ThisError,
 };
 
