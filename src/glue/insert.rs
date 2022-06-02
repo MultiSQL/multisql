@@ -14,15 +14,18 @@ pub trait ParameterValue {
 #[macro_export]
 macro_rules! INSERT {
 	{$glue:expr, INTO $database:ident.$table:ident ($($column:ident),*) VALUES $(($($value:expr),*)),*} => {
-		$glue.insert(stringify!($database), stringify!($table), &[$(stringify!($column)),*], vec![$(vec![$($value.into()),*]),*]);
-	}
+		$glue.insert(Some(stringify!($database)), stringify!($table), &[$(stringify!($column)),*], vec![$(vec![$($value.into()),*]),*]);
+	};
+	{$glue:expr, INTO $table:ident ($($column:ident),*) VALUES $(($($value:expr),*)),*} => {
+		$glue.insert(None, stringify!($table), &[$(stringify!($column)),*], vec![$(vec![$($value.into()),*]),*]);
+	};
 }
 
 /// ## Insert (`INSERT`)
 impl Glue {
 	pub fn insert(
 		&mut self,
-		database: &str,
+		database: Option<&str>,
 		table: &str,
 		columns: &[&str],
 		recipes: Vec<Vec<Recipe>>,
@@ -37,7 +40,7 @@ impl Glue {
 			})
 			.collect::<Result<Vec<Vec<Value>>>>()?;
 		block_on(self.true_insert(
-			&Some(database.to_string()),
+			&database.map(|db| db.to_string()),
 			table,
 			columns,
 			values,
