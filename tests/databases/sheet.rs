@@ -16,6 +16,7 @@ pub fn sheet_database(name: &str) -> multisql::Glue {
 	Glue::new(String::from("main"), database)
 }
 
+crate::util_macros::run!(sheet_database, api);
 crate::util_macros::run!(sheet_database, original);
 crate::util_macros::run!(sheet_database, functionality::statement::create::table);
 crate::util_macros::run!(sheet_database, functionality::statement::simple_insert);

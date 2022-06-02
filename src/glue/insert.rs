@@ -4,12 +4,19 @@ use {
 	serde_json::{json, value::Value as JSONValue},
 };
 
-trait ParameterValue {
+pub trait ParameterValue {
 	fn into_recipe(self) -> Recipe;
 }
-impl ParameterValue for Value {
+impl<T: Into<Recipe>> ParameterValue for T {
 	fn into_recipe(self) -> Recipe {
-		unimplemented!()
+		self.into()
+	}
+}
+
+#[macro_export]
+macro_rules! INSERT {
+	{$glue:expr, INTO $table:ident ($($column:ident),*) VALUES $(($($value:expr),*)),*} => {
+		$glue.insert(stringify!($table), &[$(stringify!($column)),*], vec![$(vec![$(multisql::ParameterValue::into_recipe($value)),*]),*]);
 	}
 }
 
@@ -19,7 +26,7 @@ impl Glue {
 		&mut self,
 		table: &str,
 		columns: &[&str],
-		values: Vec<Recipe>,
+		values: Vec<Vec<Recipe>>,
 	) -> Result<Payload> {
 		unimplemented!()
 	}

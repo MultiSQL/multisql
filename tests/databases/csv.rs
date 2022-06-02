@@ -20,6 +20,7 @@ pub fn csv_database(name: &str) -> multisql::Glue {
 	Glue::new(String::from("main"), database)
 }
 
+crate::util_macros::run!(csv_database, api);
 crate::util_macros::run!(csv_database, functionality::statement::create::table);
 crate::util_macros::run!(csv_database, functionality::statement::simple_insert);
 crate::util_macros::run!(csv_database, functionality::statement::data_query);
