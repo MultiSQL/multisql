@@ -1,22 +1,21 @@
 use {
 	super::Glue,
-	crate::{recipe::Recipe, Cast, ExecuteError, Payload, Result, Value},
+	crate::{
+		recipe::{Recipe, RecipeUtilities},
+		Cast, ExecuteError, Payload, Result, Value,
+	},
+	futures::executor::block_on,
 	serde_json::{json, value::Value as JSONValue},
 };
 
 pub trait ParameterValue {
 	fn into_recipe(self) -> Recipe;
 }
-impl<T: Into<Recipe>> ParameterValue for T {
-	fn into_recipe(self) -> Recipe {
-		self.into()
-	}
-}
 
 #[macro_export]
 macro_rules! INSERT {
-	{$glue:expr, INTO $table:ident ($($column:ident),*) VALUES $(($($value:expr),*)),*} => {
-		$glue.insert(stringify!($table), &[$(stringify!($column)),*], vec![$(vec![$(multisql::ParameterValue::into_recipe($value)),*]),*]);
+	{$glue:expr, INTO $database:ident.$table:ident ($($column:ident),*) VALUES $(($($value:expr),*)),*} => {
+		$glue.insert(stringify!($database), stringify!($table), &[$(stringify!($column)),*], vec![$(vec![$($value.into()),*]),*]);
 	}
 }
 
@@ -24,10 +23,27 @@ macro_rules! INSERT {
 impl Glue {
 	pub fn insert(
 		&mut self,
+		database: &str,
 		table: &str,
 		columns: &[&str],
-		values: Vec<Vec<Recipe>>,
+		recipes: Vec<Vec<Recipe>>,
 	) -> Result<Payload> {
-		unimplemented!()
+		let values = recipes
+			.into_iter()
+			.map(|recipes| {
+				recipes
+					.into_iter()
+					.map(|recipe| recipe.simplify_by_basic()?.confirm())
+					.collect::<Result<Vec<Value>>>()
+			})
+			.collect::<Result<Vec<Vec<Value>>>>()?;
+		block_on(self.true_insert(
+			&Some(database.to_string()),
+			table,
+			columns,
+			values,
+			None,
+			false,
+		))
 	}
 }

@@ -28,7 +28,7 @@ pub enum ValidateError {
 	UnreachableUniqueValues,
 }
 
-pub fn columns_to_positions(column_defs: &[Column], columns: &[Ident]) -> Result<Vec<usize>> {
+pub fn columns_to_positions(column_defs: &[Column], columns: &[&str]) -> Result<Vec<usize>> {
 	if columns.is_empty() {
 		Ok((0..column_defs.len()).collect())
 	} else {
@@ -37,10 +37,8 @@ pub fn columns_to_positions(column_defs: &[Column], columns: &[Ident]) -> Result
 			.map(|stated_column| {
 				column_defs
 					.iter()
-					.position(|column_def| stated_column.value == column_def.name)
-					.ok_or_else(|| {
-						ValidateError::ColumnNotFound(stated_column.value.clone()).into()
-					})
+					.position(|column_def| column_def.name.as_str() == *stated_column)
+					.ok_or_else(|| ValidateError::ColumnNotFound(stated_column.to_string()).into())
 			})
 			.collect::<Result<Vec<usize>>>()
 	}
