@@ -103,9 +103,19 @@ impl From<i64> for Value {
 		Value::I64(from)
 	}
 }
+impl From<i32> for Value {
+	fn from(from: i32) -> Value {
+		Value::I64(from as i64)
+	}
+}
 impl From<u64> for Value {
 	fn from(from: u64) -> Value {
 		Value::U64(from)
+	}
+}
+impl From<u32> for Value {
+	fn from(from: u32) -> Value {
+		Value::U64(from as u64)
 	}
 }
 impl From<f64> for Value {

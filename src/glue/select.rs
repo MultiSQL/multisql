@@ -1,7 +1,7 @@
 use {
 	super::Glue,
 	crate::{Cast, ExecuteError, Payload, Result},
-	serde_json::{json, value::Value as JSONValue},
+	serde_json::value::Value as JSONValue,
 };
 
 /// ## Select (`SELECT`)
