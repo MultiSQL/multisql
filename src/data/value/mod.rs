@@ -103,6 +103,11 @@ impl From<i64> for Value {
 		Value::I64(from)
 	}
 }
+impl From<u64> for Value {
+	fn from(from: u64) -> Value {
+		Value::U64(from)
+	}
+}
 impl From<f64> for Value {
 	fn from(from: f64) -> Value {
 		Value::F64(from)
@@ -113,8 +118,15 @@ impl From<String> for Value {
 		Value::Str(from)
 	}
 }
+
+impl<T: Into<Value>> From<Option<T>> for Value {
+	fn from(from: Option<T>) -> Value {
+		from.map(|v| v.into()).unwrap_or(Value::Null)
+	}
+}
+
 impl From<Value> for String {
-	// unsafe
+	// assumes all can be cast to string
 	fn from(from: Value) -> String {
 		from.cast().unwrap()
 	}
@@ -124,6 +136,7 @@ impl PartialEq for Value {
 	fn eq(&self, other: &Value) -> bool {
 		match (self, other) {
 			(Value::Bool(l), Value::Bool(r)) => l == r,
+			(Value::U64(l), Value::U64(r)) => l == r,
 			(Value::I64(l), Value::I64(r)) => l == r,
 			(Value::F64(l), Value::F64(r)) => l == r,
 			(Value::Str(l), Value::Str(r)) => l == r,
