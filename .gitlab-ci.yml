@@ -67,14 +67,20 @@ coverage:
         coverage_format: cobertura
         path: cobertura.xml
 
-licensing:
+licenses:
   stage: benchmark
-  script: cargo license
+  script:
+    - cargo license -tsv > licenses.tsv
+    - cat licenses.tsv
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  artifacts:
+    path: licenses.tsv
 
 updates:
   stage: benchmark
-  script: cargo outdated
+  script: cargo outdated > updates.txt
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  artifacts:
+    path: updates.txt
