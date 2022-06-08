@@ -1,11 +1,27 @@
 use {
 	super::Glue,
-	crate::{Cast, ExecuteError, Payload, Result},
+	crate::{recipe::Recipe, Cast, ExecuteError, Payload, Result},
 	serde_json::value::Value as JSONValue,
 };
 
+#[macro_export]
+macro_rules! SELECT {
+	{$glue:expr, $($column:ident),+ FROM $database:ident.$table:ident} => {
+		$glue.select(Some(stringify!($database)), stringify!($table), &[$(stringify!($column)),+], None)
+	};
+}
+
 /// ## Select (`SELECT`)
 impl Glue {
+	pub fn select(
+		&mut self,
+		_database: Option<&str>,
+		_table: &str,
+		_columns: &[&str],
+		_filter: Option<Recipe>,
+	) -> Result<Payload> {
+		unimplemented!()
+	}
 	/// Only for `SELECT` queries.
 	///
 	/// Output is one big [serde_json::Value], wrapped in a [Result].

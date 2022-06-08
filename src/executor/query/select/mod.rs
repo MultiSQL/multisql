@@ -40,7 +40,7 @@ pub enum SelectError {
 }
 
 impl Glue {
-	pub async fn select(&self, plan: Plan) -> Result<LabelsAndRows> {
+	pub async fn select_plan(&self, plan: Plan) -> Result<LabelsAndRows> {
 		let Plan {
 			joins,
 			select_items,
@@ -141,7 +141,7 @@ impl Glue {
 		order_by: Vec<OrderByExpr>,
 	) -> Result<LabelsAndRows> {
 		let plan = Plan::new(self, query, order_by).await?;
-		self.select(plan).await
+		self.select_plan(plan).await
 	}
 }
 

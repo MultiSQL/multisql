@@ -7,10 +7,6 @@ use {
 	futures::executor::block_on,
 };
 
-pub trait ParameterValue {
-	fn into_recipe(self) -> Recipe;
-}
-
 #[macro_export]
 macro_rules! INSERT {
 	{$glue:expr, INTO $database:ident.$table:ident ($($column:ident),+) VALUES $(($($value:expr),+)),+} => {
