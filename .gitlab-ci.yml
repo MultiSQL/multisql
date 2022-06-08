@@ -8,37 +8,49 @@ stages:
   - audit
   - release
 
-tag:
-  stage: prepare
-  rules:
-    - if: $CI_COMMIT_TAG
-      when: never
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_TITLE =~ /\d\.\d\.\d/
-  script:
-    - echo "TAG=v$CI_COMMIT_TITLE" >> variables.env
-  artifacts:
-    reports:
-      dotenv: variables.env
-
 build:
   stage: build
-  script: cargo build --target-dir ~/.cache/build-output/
+  script: cargo build
+  cache:
+  - key:
+      files:
+        - Cargo.lock
+    paths:
+      - target/
   artifacts:
     paths:
-      - ~/.cache/build-output/debug/*
+      - target/debug/
 
 test:
   stage: test
-  script: cargo test --tests --target-dir ~/.cache/build-output/
+  script: cargo test --tests
+  cache:
+  - key:
+      files:
+        - Cargo.lock
+    paths:
+      - target/
 
 doc-test:
   stage: test
-  script: cargo test --doc --target-dir ~/.cache/build-output/
+  script: cargo test --doc
+  cache:
+  - key:
+      files:
+        - Cargo.lock
+    paths:
+      - target/
 
 check-clippy:
   stage: lint
-  script: cargo clippy --target-dir ~/.cache/build-output/
+  script: cargo clippy
   allow_failure: true
+  cache:
+  - key:
+      files:
+        - Cargo.lock
+    paths:
+      - target/
 
 check-fmt:
   stage: lint
@@ -47,28 +59,46 @@ check-fmt:
 
 publish:
   stage: publish
-  script: cargo publish --target-dir ~/.cache/build-output/
+  script: cargo publish
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_TITLE =~ /\d\.\d\.\d/
   artifacts:
     paths:
-      - release/
+      - target/release/
+  cache:
+  - key:
+      files:
+        - Cargo.lock
+    paths:
+      - target/
 
 benchmark:
   stage: benchmark
-  script: cargo bench --target-dir ~/.cache/build-output/
+  script: cargo bench
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_TITLE =~ /\d\.\d\.\d/
   needs:
     - job: publish
+  cache:
+  - key:
+      files:
+        - Cargo.lock
+    paths:
+      - target/
   artifacts:
     paths:
-      - bench/
+      - criterion/
 
 coverage:
   stage: benchmark
-  script: cargo tarpaulin --out Xml --target-dir ~/.cache/build-output/
+  script: cargo tarpaulin --out Xml
   coverage: '/^\d+.\d+% coverage/'
+  cache:
+    - key:
+        files:
+          - Cargo.lock
+      paths:
+        - target/
   artifacts:
     reports:
       coverage_report:
