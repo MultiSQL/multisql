@@ -76,7 +76,35 @@
 [dev-dependencies]
 	tokio = { version = "0.3.3", features = ["macros", "rt"] }
 	criterion = {version = "0.3.5", features = ["html_reports"] }
+	# Testing
+	inventory = "0.2.3"
+	indicatif = "0.16.2"
 
 [[bench]]
 	name = "bench"
+	harness = false
+
+[[test]]
+	name = "query"
+	path = "tests/query_main.rs"
+	harness = false
+
+[[test]]
+	name = "misc"
+	path = "tests/misc_main.rs"
+	harness = false
+
+[[test]]
+	name = "api"
+	path = "tests/api_main.rs"
+	harness = false
+
+[[test]]
+	name = "functionality"
+	path = "tests/functionality_main.rs"
+	harness = false
+
+[[test]]
+	name = "databases"
+	path = "tests/databases_main.rs"
 	harness = false

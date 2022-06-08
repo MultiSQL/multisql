@@ -109,7 +109,7 @@ impl DBMut for SheetDatabase {
 		let sheet = self.get_sheet_mut(sheet_name)?;
 		rows.into_iter().try_for_each::<_, Result<()>>(|key| {
 			let row_num: u64 = key.cast()?;
-			sheet.remove_row(&(row_num as u32), &1);
+			sheet.remove_row(&((row_num as u32) + 1), &1);
 			Ok(())
 		})?;
 		self.save()
