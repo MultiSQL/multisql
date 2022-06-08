@@ -41,7 +41,7 @@
 
 [dependencies]
 	async-trait = "0.1.41"
-	async-recursion = "0.3.1"
+	async-recursion = "1"
 	boolinator = "2.4.0"
 	futures = "0.3"
 	serde = { version = "1.0.117", features = ["derive"] }
@@ -56,7 +56,7 @@
 	fastrand = "1.7.0"
 	rayon = "1.5.1"
 	serde_json = "1.0.0"
-	uuid = { version = "0.8", features = ["serde", "v4"] }
+	uuid = { version = "1.1.1", features = ["serde", "v4"] }
 	serde_yaml = "0.8.23"
 	lazy_static = "1.4.0"
 
@@ -74,7 +74,7 @@
 				odbc-api = { version = "0.40.1", optional = true }
 
 [dev-dependencies]
-	tokio = { version = "0.3.3", features = ["macros", "rt"] }
+	tokio = { version = "1", features = ["macros", "rt"] }
 	criterion = {version = "0.3.5", features = ["html_reports"] }
 	# Testing
 	inventory = "0.2.3"
