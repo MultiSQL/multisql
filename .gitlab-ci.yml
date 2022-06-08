@@ -6,6 +6,7 @@ stages:
   - publish
   - benchmark
   - audit
+  - release
 
 tag:
   stage: prepare
@@ -92,7 +93,7 @@ updates:
   script:
     - cargo outdated > updates.txt
     - cat updates.txt
-    - "[[ $(wc -l <updates.txt) != 2 ]] && exit 0"
+    - "[[ $(wc -l <updates.txt) != 2 ]] && exit 1"
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   artifacts:
@@ -101,8 +102,10 @@ updates:
 
 release:
   stage: release
-  needs:
-    - job: publish
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  script:
+    - echo Releasing $TAG
   release:
     name: '$TAG'
     description: 'Automatic Release: $EXTRA_DESCRIPTION'
