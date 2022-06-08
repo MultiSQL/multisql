@@ -1,8 +1,8 @@
 stages:
-  - tag
   - build
   - test
   - lint
+  - tag
   - release
   - audit
   - benchmark
@@ -92,8 +92,6 @@ benchmark:
   script: cargo bench
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-  needs:
-    - job: publish
   cache:
   - key:
       files:
