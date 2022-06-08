@@ -37,7 +37,7 @@ doc-test:
     paths:
       - target/
 
-check-clippy:
+clippy:
   stage: lint
   script: cargo clippy
   allow_failure: true
@@ -48,7 +48,7 @@ check-clippy:
     paths:
       - target/
 
-check-fmt:
+format:
   stage: lint
   script: cargo fmt --check
   allow_failure: true
