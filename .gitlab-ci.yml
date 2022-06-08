@@ -108,7 +108,7 @@ release:
   script:
     - echo Releasing $TAG
   release:
-    name: '$TAG'
-    description: 'Automatic Release: $EXTRA_DESCRIPTION'
-    tag_name: '$TAG'
-    ref: '$CI_COMMIT_SHA'
+    name: v$CI_COMMIT_TITLE
+    description: "Automatic Release: v$CI_COMMIT_TITLE"
+    tag_name: v$CI_COMMIT_TITLE
+    ref: $CI_COMMIT_SHA
