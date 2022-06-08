@@ -92,6 +92,9 @@ benchmark:
     paths:
       - target/
       - Cargo.lock
+  artifacts:
+    paths:
+      - target/criterion/
 
 coverage:
   stage: audit
