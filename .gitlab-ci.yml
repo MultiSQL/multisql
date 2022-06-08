@@ -99,6 +99,7 @@ updates:
   artifacts:
     paths:
       - updates.txt
+  allow_failure: true
 
 release:
   stage: release
