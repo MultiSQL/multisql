@@ -66,3 +66,15 @@ coverage:
       coverage_report:
         coverage_format: cobertura
         path: cobertura.xml
+
+licencing:
+  stage: benchmark
+  script: cargo licence
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+updates:
+  stage: benchmark
+  script: cargo outdated
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
