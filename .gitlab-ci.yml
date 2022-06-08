@@ -48,4 +48,9 @@ benchmark:
 
 coverage:
   stage: benchmark
-  script: cargo tarpaulin
+  script: cargo tarpaulin --out Xml
+  coverage: '/^\d+.\d+% coverage/'
+  artifacts:
+    reports:
+      cobertura:
+        - cobertura.xml 
