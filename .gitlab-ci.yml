@@ -19,7 +19,7 @@ doc-test:
 
 check-clippy:
   stage: lint
-  script: cargo clippy
+  script: cargo clippy --target-dir ~/.cache/build-output/
   allow_failure: true
 
 check-fmt:
@@ -29,7 +29,7 @@ check-fmt:
 
 publish:
   stage: release
-  script: cargo publish
+  script: cargo publish --target-dir ~/.cache/build-output/
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_TITLE =~ /\d\.\d\.\d/
 #  release:
@@ -40,7 +40,7 @@ publish:
 
 benchmark:
   stage: benchmark
-  script: cargo bench
+  script: cargo bench --target-dir ~/.cache/build-output/
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_TITLE =~ /\d\.\d\.\d/
   needs:
@@ -48,7 +48,7 @@ benchmark:
 
 coverage:
   stage: benchmark
-  script: cargo tarpaulin --out Xml
+  script: cargo tarpaulin --out Xml --target-dir ~/.cache/build-output/
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   coverage: '/^\d+.\d+% coverage/'
