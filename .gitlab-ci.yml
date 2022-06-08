@@ -49,6 +49,8 @@ benchmark:
 coverage:
   stage: benchmark
   script: cargo tarpaulin --out Xml
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   coverage: '/^\d+.\d+% coverage/'
   artifacts:
     reports:
