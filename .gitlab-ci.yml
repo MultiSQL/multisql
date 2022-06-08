@@ -70,17 +70,21 @@ coverage:
 licenses:
   stage: benchmark
   script:
-    - cargo license -tsv > licenses.tsv
+    - cargo license --tsv > licenses.tsv
     - cat licenses.tsv
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   artifacts:
-    path: licenses.tsv
+    paths:
+      - licenses.tsv
 
 updates:
   stage: benchmark
-  script: cargo outdated > updates.txt
+  script:
+    - cargo outdated > updates.txt
+    - cat updates.txt
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   artifacts:
-    path: updates.txt
+    paths:
+      - updates.txt
