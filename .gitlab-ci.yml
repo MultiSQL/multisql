@@ -1,6 +1,6 @@
 variables:
-  CACHE_COMPRESSION_LEVEL: fastest
-  ARTIFACT_COMPRESSION_LEVEL: fast
+  CACHE_COMPRESSION_LEVEL: 'fastest'
+  ARTIFACT_COMPRESSION_LEVEL: 'fast'
 
 stages:
   - build
@@ -17,7 +17,7 @@ build:
   cache:
   - key: $CI_PROJECT_ID
     paths:
-      - target/
+      - target/debug/
       - Cargo.lock
 
 test:
@@ -26,7 +26,7 @@ test:
   cache:
   - key: $CI_PROJECT_ID
     paths:
-      - target/
+      - target/debug/
       - Cargo.lock
 
 doc-test:
