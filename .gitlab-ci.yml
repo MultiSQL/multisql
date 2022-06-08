@@ -14,6 +14,7 @@ build:
   - key: $CI_PROJECT_ID
     paths:
       - target/
+      - Cargo.lock
 
 test:
   stage: test
@@ -22,6 +23,7 @@ test:
   - key: $CI_PROJECT_ID
     paths:
       - target/
+      - Cargo.lock
 
 doc-test:
   stage: test
@@ -30,6 +32,7 @@ doc-test:
   - key: $CI_PROJECT_ID
     paths:
       - target/
+      - Cargo.lock
 
 clippy:
   stage: lint
@@ -39,6 +42,7 @@ clippy:
   - key: $CI_PROJECT_ID
     paths:
       - target/
+      - Cargo.lock
 
 format:
   stage: lint
@@ -64,6 +68,7 @@ publish:
   - key: $CI_PROJECT_ID
     paths:
       - target/
+      - Cargo.lock
 
 release:
   stage: release
@@ -86,6 +91,7 @@ benchmark:
   - key: $CI_PROJECT_ID
     paths:
       - target/
+      - Cargo.lock
 
 coverage:
   stage: audit
@@ -95,6 +101,7 @@ coverage:
   - key: $CI_PROJECT_ID
     paths:
       - target/
+      - Cargo.lock
   artifacts:
     reports:
       coverage_report:
