@@ -83,6 +83,7 @@ updates:
   script:
     - cargo outdated > updates.txt
     - cat updates.txt
+    - "[[ $(wc -l <updates.txt) != 2 ]] && exit 0"
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   artifacts:
