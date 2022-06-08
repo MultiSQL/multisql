@@ -4,6 +4,7 @@ stages:
   - lint
   - release
   - benchmark
+  - audit
 
 build:
   stage: build
@@ -79,7 +80,7 @@ licenses:
       - licenses.tsv
 
 updates:
-  stage: benchmark
+  stage: audit
   script:
     - cargo outdated > updates.txt
     - cat updates.txt
