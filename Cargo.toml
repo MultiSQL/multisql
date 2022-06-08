@@ -45,7 +45,7 @@
 	boolinator = "2.4.0"
 	futures = "0.3"
 	serde = { version = "1.0.117", features = ["derive"] }
-	sqlparser = { version = "0.18.0", features = ["serde"] }
+	sqlparser = { version = "0.16.0", features = ["serde"] }
 	thiserror = "1.0.21"
 	fstrings = "0.2.3"
 	chrono = { version = "0.4.19", features = ["serde", "unstable-locales"] }
