@@ -18,7 +18,7 @@ build:
   cache:
   - key: $CI_PROJECT_ID
     paths:
-      - target/debug/
+      - target/
       - Cargo.lock
 
 test:
@@ -27,7 +27,7 @@ test:
   cache:
   - key: $CI_PROJECT_ID
     paths:
-      - target/debug/
+      - target/
       - Cargo.lock
 
 doc-test:
