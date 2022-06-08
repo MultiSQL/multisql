@@ -24,10 +24,12 @@ fn main() {
 			database.name
 		);
 		for test in inventory::iter::<Test> {
-			if !database.exceptions.iter().any(|exception| {
-				test.name
-					.starts_with(&format!("databases::ability::{}", exception))
-			}) {
+			let name = test.name.strip_prefix(concat!(module_path!(), "::", "ability::")).unwrap();
+			if !database
+				.exceptions
+				.iter()
+				.any(|exception| name.starts_with(exception))
+			{
 				run!(test, database.init);
 			}
 		}

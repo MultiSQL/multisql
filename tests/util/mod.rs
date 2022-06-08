@@ -24,14 +24,19 @@ macro_rules! run {
 			indicatif::{ProgressBar, ProgressStyle},
 			std::panic::catch_unwind,
 		};
-		let progress = ProgressBar::new_spinner().with_message($test.name);
+		let progress = ProgressBar::new_spinner().with_message(
+			$test
+				.name
+				.strip_prefix(concat!(module_path!(), "::"))
+				.unwrap(),
+		);
 		progress.set_style(
 			ProgressStyle::default_spinner()
 				.template("[Running]\t {msg:50.yellow} {spinner}")
 				.tick_chars("|/—\\*"),
 		);
 		progress.enable_steady_tick(100);
-//		progress.tick(); // Aesthetic -- in case too fast
+		//		progress.tick(); // Aesthetic -- in case too fast
 		match catch_unwind(|| ($test.test)($storage($test.name))) {
 			Ok(_) => {
 				progress.set_style(
