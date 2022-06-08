@@ -10,7 +10,7 @@ build:
   script: cargo build --target-dir ~/.cache/build-output/
   artifacts:
     paths:
-      - ~/.cache/build-output/debug/
+      - ~/.cache/build-output/debug/*
 
 test:
   stage: test
