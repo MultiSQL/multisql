@@ -62,7 +62,7 @@ tag:
       when: never
   script:
     - git tag -a v$CI_COMMIT_TITLE $CI_COMMIT_ID -m "CI automated tag"
-    - git push $CI_DEFAULT_BRANCH v$CI_COMMIT_TITLE
+    - git push https://kyra.nz/multisql/multisql.git v$CI_COMMIT_TITLE
 
 publish:
   stage: release
