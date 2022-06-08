@@ -5,7 +5,16 @@ use {
 };
 
 fn setup_glue() -> Glue {
-	let storage = Connection::Memory
+	let path = "data/sled_bench";
+
+	match std::fs::remove_dir_all(&path) {
+		Ok(()) => (),
+		Err(e) => {
+			println!("fs::remove_file {:?}", e);
+		}
+	}
+
+	let storage = Connection::Sled(String::from("data/example_location/lib_example"))
 		.try_into()
 		.expect("Storage Creation Failed");
 
