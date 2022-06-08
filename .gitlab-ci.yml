@@ -17,9 +17,6 @@ build:
         - Cargo.lock
     paths:
       - target/
-  artifacts:
-    paths:
-      - target/debug/
 
 test:
   stage: test
@@ -62,9 +59,6 @@ publish:
   script: cargo publish
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_TITLE =~ /\d\.\d\.\d/
-  artifacts:
-    paths:
-      - target/release/
   cache:
   - key:
       files:
@@ -85,9 +79,6 @@ benchmark:
         - Cargo.lock
     paths:
       - target/
-  artifacts:
-    paths:
-      - criterion/
 
 coverage:
   stage: benchmark
@@ -104,6 +95,8 @@ coverage:
       coverage_report:
         coverage_format: cobertura
         path: cobertura.xml
+    paths:
+      - cobertura.xml
 
 licenses:
   stage: benchmark
@@ -122,12 +115,12 @@ updates:
     - cargo outdated > updates.txt
     - cat updates.txt
     - "[[ $(wc -l <updates.txt) != 2 ]] && exit 1"
+  allow_failure: true
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   artifacts:
     paths:
       - updates.txt
-  allow_failure: true
 
 release:
   stage: release
