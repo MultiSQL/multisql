@@ -2,10 +2,7 @@ mod ability;
 mod databases;
 mod util;
 
-use {
-	multisql::Glue,
-	util::{run, Test},
-};
+use {multisql::Glue, util::*};
 
 inventory::collect!(Test);
 inventory::collect!(TestDatabase);
@@ -16,15 +13,14 @@ struct TestDatabase {
 }
 
 fn main() {
+	announce_test_suite!();
 	for database in inventory::iter::<TestDatabase> {
-		println!(
-			"- - -\t- - -\t- - -\t- - -\t- - -\t- - -\t- - -\t- - -\t- - -
-			\nTesting database:\t {}
-			\n- - -\t- - -\t- - -\t- - -\t- - -\t- - -\t- - -\t- - -\t- - -",
-			database.name
-		);
+		announce!(format!("[Database]\t{}", database.name));
 		for test in inventory::iter::<Test> {
-			let name = test.name.strip_prefix(concat!(module_path!(), "::", "ability::")).unwrap();
+			let name = test
+				.name
+				.strip_prefix(concat!(module_path!(), "::", "ability::"))
+				.unwrap();
 			if !database
 				.exceptions
 				.iter()

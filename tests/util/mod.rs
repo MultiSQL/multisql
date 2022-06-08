@@ -32,7 +32,7 @@ macro_rules! run {
 		);
 		progress.set_style(
 			ProgressStyle::default_spinner()
-				.template("[Running]\t {msg:50.yellow} {spinner}")
+				.template("\t[Running]\t{msg:.yellow} {spinner}")
 				.tick_chars("|/—\\*"),
 		);
 		progress.enable_steady_tick(100);
@@ -40,13 +40,13 @@ macro_rules! run {
 		match catch_unwind(|| ($test.test)($storage($test.name))) {
 			Ok(_) => {
 				progress.set_style(
-					ProgressStyle::default_spinner().template("[Passed]\t {msg:50.green}"),
+					ProgressStyle::default_spinner().template("\t[Passed]\t{msg:.green}"),
 				);
 				progress.finish();
 			}
 			Err(err) => {
 				progress.set_style(
-					ProgressStyle::default_spinner().template("[Failed]\t {msg:50.red} {spinner}"),
+					ProgressStyle::default_spinner().template("\t[Failed]\t{msg:.red} {spinner}"),
 				);
 				progress.finish();
 				panic!("Test Failed; Error: {:?}", err);
@@ -55,6 +55,20 @@ macro_rules! run {
 	};
 }
 pub(crate) use run;
+
+macro_rules! announce {
+	($content: expr) => {
+		println!("\t{}", $content)
+	};
+}
+pub(crate) use announce;
+
+macro_rules! announce_test_suite {
+	() => {
+		announce!(format!("[Suite]\t\t{}", module_path!()))
+	};
+}
+pub(crate) use announce_test_suite;
 
 macro_rules! make_basic_table {
 	($glue: expr) => {

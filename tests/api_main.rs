@@ -3,12 +3,13 @@ mod util;
 
 use {
 	multisql::{Connection, Glue},
-	util::{run, Test},
+	util::*,
 };
 
 inventory::collect!(Test);
 
 fn main() {
+	announce_test_suite!();
 	for test in inventory::iter::<Test> {
 		run!(test, init_storage);
 	}
