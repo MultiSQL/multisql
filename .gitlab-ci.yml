@@ -1,3 +1,7 @@
+variables:
+  CACHE_COMPRESSION_LEVEL: fastest
+  ARTIFACT_COMPRESSION_LEVEL: fast
+
 stages:
   - build
   - test
