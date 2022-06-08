@@ -25,10 +25,13 @@ macro_rules! run {
 			std::panic::catch_unwind,
 		};
 		let progress = ProgressBar::new_spinner().with_message($test.name);
+		progress.set_style(
+			ProgressStyle::default_spinner()
+				.template("[Running]\t {msg:50.yellow} {spinner}")
+				.tick_chars("|/—\\*"),
+		);
 		progress.enable_steady_tick(100);
-
-		progress
-			.set_style(ProgressStyle::default_spinner().template("[Running]\t {msg:50} {spinner}"));
+//		progress.tick(); // Aesthetic -- in case too fast
 		match catch_unwind(|| ($test.test)($storage($test.name))) {
 			Ok(_) => {
 				progress.set_style(
@@ -40,9 +43,8 @@ macro_rules! run {
 				progress.set_style(
 					ProgressStyle::default_spinner().template("[Failed]\t {msg:50.red} {spinner}"),
 				);
-				println!("-\t Error:\t {:?}", err);
 				progress.finish();
-				break;
+				panic!("Test Failed; Error: {:?}", err);
 			}
 		}
 	};

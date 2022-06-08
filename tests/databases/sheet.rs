@@ -1,6 +1,7 @@
 inventory::submit!(crate::TestDatabase {
 	init: database,
 	name: "Sheet",
+	exceptions: &["alter", "column_option::auto_increment", "index"]
 });
 pub fn database(name: &str) -> multisql::Glue {
 	use multisql::*;

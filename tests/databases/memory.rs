@@ -1,6 +1,7 @@
 inventory::submit!(crate::TestDatabase {
 	init: database,
-	name: "Memory"
+	name: "Memory",
+	exceptions: &["base", "alter", "column_option", "index"]
 });
 pub fn database(_name: &str) -> multisql::Glue {
 	use multisql::*;

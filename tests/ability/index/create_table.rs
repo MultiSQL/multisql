@@ -10,6 +10,7 @@ fn test(mut glue: multisql::Glue) {
 	)
 	.expect("CREATE TABLE basic_keyed");
 
+	// TODO
 	/*glue.execute(
 		r#"
 			CREATE TABLE basic_indexed_a (
@@ -17,7 +18,7 @@ fn test(mut glue: multisql::Glue) {
 			)
 		"#,
 	)
-	.expect("CREATE TABLE basic_indexed_a");*/
+	.expect("CREATE TABLE basic_indexed_a");
 
 	glue.execute(
 		r#"
@@ -28,4 +29,5 @@ fn test(mut glue: multisql::Glue) {
 		"#,
 	)
 	.expect("CREATE TABLE basic_indexed_b");
+	*/
 }
