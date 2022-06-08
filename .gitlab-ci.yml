@@ -1,10 +1,23 @@
 stages:
+  - prepare
   - build
   - test
   - lint
-  - release
+  - publish
   - benchmark
   - audit
+
+tag:
+  stage: prepare
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_TITLE =~ /\d\.\d\.\d/
+  script:
+    - echo "TAG=v$CI_COMMIT_TITLE" >> variables.env
+  artifacts:
+    reports:
+      dotenv: variables.env
 
 build:
   stage: build
@@ -32,18 +45,13 @@ check-fmt:
   allow_failure: true
 
 publish:
-  stage: release
+  stage: publish
   script: cargo publish --target-dir ~/.cache/build-output/
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_TITLE =~ /\d\.\d\.\d/
   artifacts:
     paths:
       - release/
-#  release:
-#    name: $CI_COMMIT_TITLE
-#    tag_name: '$CI_COMMIT_TITLE'
-#    ref: '$CI_COMMIT_TITLE'
-#    description: '$CI_COMMIT_TITLE - Automatically Released'
 
 benchmark:
   stage: benchmark
@@ -90,3 +98,13 @@ updates:
   artifacts:
     paths:
       - updates.txt
+
+release:
+  stage: release
+  needs:
+    - job: publish
+  release:
+    name: '$TAG'
+    description: 'Automatic Release: $EXTRA_DESCRIPTION'
+    tag_name: '$TAG'
+    ref: '$CI_COMMIT_SHA'
