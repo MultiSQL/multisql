@@ -1,12 +1,11 @@
 stages:
-  - prepare
+  - tag
   - build
   - test
   - lint
-  - publish
-  - benchmark
-  - audit
   - release
+  - audit
+  - benchmark
 
 build:
   stage: build
@@ -54,11 +53,21 @@ check-fmt:
   script: cargo fmt --check
   allow_failure: true
 
+tag:
+  stage: tag
+  rules:
+    - if: $CI_COMMIT_TITLE =~ /\d\.\d\.\d/
+    - if: $CI_COMMIT_TAG
+      when: never
+  script:
+    - git tag -a v$CI_COMMIT_TITLE $CI_COMMIT_ID -m "CI automated tag"
+    - git push $CI_DEFAULT_BRANCH v$CI_COMMIT_TITLE
+
 publish:
-  stage: publish
+  stage: release
   script: cargo publish
   rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_TITLE =~ /\d\.\d\.\d/
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_TAG
   cache:
   - key:
       files:
@@ -66,11 +75,23 @@ publish:
     paths:
       - target/
 
+release:
+  stage: release
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_TAG
+  script:
+    - echo releasing version
+  release:
+    name: v$CI_COMMIT_TAG
+    description: "Automatic Release: v$CI_COMMIT_TAG"
+    tag_name: $CI_COMMIT_TAG
+    ref: $CI_COMMIT_SHA
+
 benchmark:
   stage: benchmark
   script: cargo bench
   rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_TITLE =~ /\d\.\d\.\d/
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   needs:
     - job: publish
   cache:
@@ -81,7 +102,7 @@ benchmark:
       - target/
 
 coverage:
-  stage: benchmark
+  stage: audit
   script: cargo tarpaulin --out Xml
   coverage: '/^\d+.\d+% coverage/'
   cache:
@@ -99,12 +120,10 @@ coverage:
       - cobertura.xml
 
 licenses:
-  stage: benchmark
+  stage: audit
   script:
     - cargo license --tsv > licenses.tsv
     - cat licenses.tsv
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   artifacts:
     paths:
       - licenses.tsv
@@ -116,22 +135,6 @@ updates:
     - cat updates.txt
     - "[[ $(wc -l <updates.txt) != 2 ]] && exit 1"
   allow_failure: true
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   artifacts:
     paths:
       - updates.txt
-
-release:
-  stage: release
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_TITLE =~ /\d\.\d\.\d/
-  needs:
-    - job: publish
-  script:
-    - echo Releasing $TAG
-  release:
-    name: v$CI_COMMIT_TITLE
-    description: "Automatic Release: v$CI_COMMIT_TITLE"
-    tag_name: v$CI_COMMIT_TITLE
-    ref: $CI_COMMIT_SHA
