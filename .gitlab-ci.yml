@@ -45,3 +45,7 @@ benchmark:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_TITLE =~ /\d\.\d\.\d/
   needs:
     - job: publish
+
+coverage:
+  stage: benchmark
+  script: cargo tarpaulin
