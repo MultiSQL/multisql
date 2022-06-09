@@ -17,3 +17,8 @@ pub use self::sheet::{SheetDatabase, SheetDatabaseError};
 mod memory;
 #[cfg(feature = "memory-database")]
 pub use self::memory::{MemoryDatabase, MemoryDatabaseError};
+
+#[cfg(feature = "odbc-database")]
+mod odbc;
+#[cfg(feature = "odbc-database")]
+pub use self::odbc::ODBCDatabase;

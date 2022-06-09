@@ -113,7 +113,7 @@ impl Value {
 	}
 	pub fn function_uuid(arguments: Vec<Self>) -> Result<Self> {
 		expect_arguments!(arguments, 0);
-		Ok(Self::Str(Uuid::new_v4().to_hyphenated().to_string())) // TODO: Custom type
+		Ok(Self::Str(Uuid::new_v4().as_hyphenated().to_string())) // TODO: Custom type
 	}
 
 	pub fn function_pow(mut arguments: Vec<Self>) -> Result<Self> {

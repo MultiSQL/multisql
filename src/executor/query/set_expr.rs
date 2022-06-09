@@ -1,8 +1,11 @@
 use {
 	super::QueryError,
 	crate::{
-		executor::types::LabelsAndRows, macros::warning, result::Result, Glue, MetaRecipe, Payload,
-		RecipeUtilities, Value,
+		macros::warning,
+		recipe::{MetaRecipe, RecipeUtilities},
+		result::Result,
+		types::LabelsAndRows,
+		Error, Glue, Payload, Value,
 	},
 	async_recursion::async_recursion,
 	sqlparser::ast::{OrderByExpr, SetExpr, SetOperator, Statement},
@@ -32,7 +35,7 @@ impl Glue {
 							.into_iter()
 							.map(|cell| {
 								MetaRecipe::new(cell)?
-									.simplify_by_context(&*self.get_context()?)?
+									.simplify_by_tempdb(&self.tempdb)?
 									.confirm_or_err(QueryError::MissingComponentsForValues.into())
 							})
 							.collect::<Result<Vec<Value>>>()
@@ -83,14 +86,16 @@ impl Glue {
 				source,
 				..
 			}) => {
-				let inserted = self.insert(&table_name, &columns, &source, true).await?;
+				let inserted = self
+					.ast_insert(&table_name, &columns, &source, true)
+					.await?;
 				if let Payload::Select { labels, rows } = inserted {
 					Ok((labels, rows.into_iter().map(|row| row.0).collect()))
 				} else {
 					unreachable!(); // TODO: Handle
 				}
 			}
-			_ => Err(QueryError::QueryNotSupported.into()), // TODO: Other queries
+			_ => Err(Error::Query(QueryError::QueryNotSupported)),
 		}
 	}
 }

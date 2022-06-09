@@ -1,11 +1,16 @@
+mod get_columns;
+mod get_data;
+mod get_rows;
 mod select;
 mod set_expr;
 
-pub use select::{join::*, ManualError, PlanError, SelectError};
+pub use select::{join::*, ManualError, Plan, PlanError, SelectError};
 use {
 	crate::{
-		executor::types::LabelsAndRows, result::Result, Cast, Glue, MetaRecipe, RecipeUtilities,
-		Value,
+		recipe::{MetaRecipe, RecipeUtilities},
+		result::Result,
+		types::LabelsAndRows,
+		Cast, Glue, Value,
 	},
 	async_recursion::async_recursion,
 	serde::Serialize,
@@ -35,7 +40,7 @@ pub enum QueryError {
 
 impl Glue {
 	#[async_recursion(?Send)]
-	pub async fn query(&mut self, query: Query) -> Result<LabelsAndRows> {
+	pub async fn ast_query(&mut self, query: Query) -> Result<LabelsAndRows> {
 		let Query {
 			body,
 			order_by,
@@ -50,7 +55,7 @@ impl Glue {
 		let limit: Option<usize> = limit
 			.map(|expression| {
 				MetaRecipe::new(expression)?
-					.simplify_by_context(&*self.get_context()?)?
+					.simplify_by_tempdb(&self.tempdb)?
 					.confirm_or_err(QueryError::MissingComponentsForLimit.into())?
 					.cast()
 			})
@@ -58,7 +63,7 @@ impl Glue {
 		let offset: Option<usize> = offset
 			.map(|offset| {
 				MetaRecipe::new(offset.value)?
-					.simplify_by_context(&*self.get_context()?)?
+					.simplify_by_tempdb(&self.tempdb)?
 					.confirm_or_err(QueryError::MissingComponentsForOffset.into())?
 					.cast()
 			})
@@ -80,8 +85,8 @@ impl Glue {
 					columns: _, // TODO: Columns - Check that number is same and then rename labels
 				} = alias;
 				let name = name.value;
-				let data = self.query(query).await?;
-				self.get_mut_context()?.set_table(name, data);
+				let data = self.ast_query(query).await?;
+				self.tempdb.set_table(name, data);
 			}
 		}
 

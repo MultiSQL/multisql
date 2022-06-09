@@ -3,7 +3,7 @@ mod manual;
 mod method;
 mod plan;
 use {
-	crate::executor::types::ComplexTableName, serde::Serialize, std::fmt::Debug,
+	crate::types::ComplexTableName, serde::Serialize, std::fmt::Debug,
 	thiserror::Error as ThisError,
 };
 pub use {execute::JoinExecute, manual::JoinManual, method::JoinMethod, plan::JoinPlan};

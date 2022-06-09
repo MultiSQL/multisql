@@ -12,8 +12,8 @@ use {
 
 #[derive(Error, Serialize, Debug, PartialEq)]
 pub enum SheetDatabaseError {
-	#[error("FSError")]
-	FSError,
+	#[error("File System Error: {0}")]
+	FSError(String),
 	#[error("failed to parse column information")]
 	FailedColumnParse,
 	#[error("failed to create sheet")]
@@ -38,7 +38,9 @@ impl SheetDatabase {
 	}
 	pub(crate) fn save(&self) -> Result<()> {
 		writer::xlsx::write(&self.book, Path::new(&self.path))
-			.map_err(|_| SheetDatabaseError::FSError.into())
+			.map_err(|e| format!("{:?}", e))
+			.map_err(SheetDatabaseError::FSError)
+			.map_err(crate::Error::SheetDatabase)
 	}
 
 	pub(crate) fn get_sheet_mut(&mut self, sheet_name: &str) -> Result<&mut Worksheet> {

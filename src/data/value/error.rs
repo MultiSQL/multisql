@@ -1,4 +1,9 @@
-use {super::Value, serde::Serialize, std::fmt::Debug, thiserror::Error};
+use {
+	crate::{Value, ValueType},
+	serde::Serialize,
+	std::fmt::Debug,
+	thiserror::Error,
+};
 
 #[derive(Error, Serialize, Debug, PartialEq)]
 pub enum ValueError {
@@ -30,6 +35,8 @@ pub enum ValueError {
 
 	#[error("impossible cast")]
 	ImpossibleCast, // Bad error-- phase out
+	#[error("failed to cast {0:?} into {1:?}")]
+	FailedCast(Value, ValueType),
 
 	#[error("date time failed to parse: {0}")]
 	DateTimeParseError(String),

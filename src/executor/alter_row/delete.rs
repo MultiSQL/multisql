@@ -1,13 +1,15 @@
 use {
 	crate::{
-		data::Schema, executor::types::ColumnInfo, Column, ComplexTableName, ExecuteError, Glue,
-		MetaRecipe, Payload, PlannedRecipe, Result, Value,
+		data::Schema,
+		recipe::{MetaRecipe, PlannedRecipe},
+		types::{ColumnInfo, ComplexTableName},
+		Column, ExecuteError, Glue, Payload, Result, Value,
 	},
 	sqlparser::ast::{Expr, ObjectName},
 };
 
 impl Glue {
-	pub async fn delete(
+	pub async fn ast_delete(
 		&mut self,
 		table_name: &ObjectName,
 		selection: &Option<Expr>,
@@ -36,7 +38,7 @@ impl Glue {
 			.clone()
 			.map(|selection| {
 				PlannedRecipe::new(
-					MetaRecipe::new(selection)?.simplify_by_context(&*self.get_context()?)?,
+					MetaRecipe::new(selection)?.simplify_by_tempdb(&self.tempdb)?,
 					&columns,
 				)
 			})

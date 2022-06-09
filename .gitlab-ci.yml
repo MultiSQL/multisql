@@ -1,0 +1,140 @@
+variables:
+  FF_USE_FASTZIP: "true"
+  CACHE_COMPRESSION_LEVEL: "fastest"
+  ARTIFACT_COMPRESSION_LEVEL: "fast"
+
+stages:
+  - build
+  - test
+  - lint
+  - tag
+  - release
+  - audit
+  - benchmark
+
+build:
+  stage: build
+  script: cargo build
+  cache:
+  - key: $CI_PROJECT_ID
+    paths:
+      - target/
+      - Cargo.lock
+
+test:
+  stage: test
+  script: cargo test --tests
+  cache:
+  - key: $CI_PROJECT_ID
+    paths:
+      - target/
+      - Cargo.lock
+
+doc-test:
+  stage: test
+  script: cargo test --doc
+  cache:
+  - key: $CI_PROJECT_ID
+    paths:
+      - target/
+      - Cargo.lock
+
+clippy:
+  stage: lint
+  script: cargo clippy
+  allow_failure: true
+  cache:
+  - key: $CI_PROJECT_ID
+    paths:
+      - target/
+      - Cargo.lock
+
+format:
+  stage: lint
+  script: cargo fmt --check
+  allow_failure: true
+
+tag:
+  stage: tag
+  rules:
+    - if: $CI_COMMIT_TITLE =~ /\d\.\d\.\d/
+    - if: $CI_COMMIT_TAG
+      when: never
+  script:
+    - git tag -a v$CI_COMMIT_TITLE $CI_COMMIT_ID -m "CI automated tag"
+    - git push https://kyra.nz/multisql/multisql.git v$CI_COMMIT_TITLE
+
+publish:
+  stage: release
+  script: cargo publish
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_TAG
+  cache:
+  - key: $CI_PROJECT_ID
+    paths:
+      - target/
+      - Cargo.lock
+
+release:
+  stage: release
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_TAG
+  script:
+    - echo releasing version
+  release:
+    name: v$CI_COMMIT_TAG
+    description: "Automatic Release: v$CI_COMMIT_TAG"
+    tag_name: $CI_COMMIT_TAG
+    ref: $CI_COMMIT_SHA
+
+benchmark:
+  stage: benchmark
+  script: cargo bench
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  cache:
+  - key: $CI_PROJECT_ID
+    paths:
+      - target/
+      - Cargo.lock
+  artifacts:
+    paths:
+      - target/criterion/
+
+coverage:
+  stage: audit
+  script: cargo tarpaulin --out Xml
+  coverage: '/^\d+.\d+% coverage/'
+  cache:
+  - key: $CI_PROJECT_ID
+    paths:
+      - target/
+      - Cargo.lock
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: cobertura.xml
+    paths:
+      - cobertura.xml
+
+licenses:
+  stage: audit
+  script:
+    - cargo license --tsv > licenses.tsv
+    - cat licenses.tsv
+  artifacts:
+    paths:
+      - licenses.tsv
+
+updates:
+  stage: audit
+  script:
+    - cargo outdated > updates.txt
+    - cat updates.txt
+    - "[[ $(wc -l <updates.txt) != 2 ]] && exit 1"
+  allow_failure: true
+  artifacts:
+    when: always
+    paths:
+      - updates.txt

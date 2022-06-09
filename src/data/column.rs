@@ -6,9 +6,10 @@ use {
 		dialect::keywords::Keyword,
 		tokenizer::{Token, Word},
 	},
+	std::fmt::Debug,
 };
 
-#[derive(Default, Clone, Serialize, Deserialize)]
+#[derive(Default, Clone, Serialize, Deserialize, Debug)]
 pub struct Column {
 	pub name: String,
 	pub data_type: ValueType,
@@ -71,7 +72,7 @@ impl From<ColumnDef> for Column {
 	}
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub enum ValueDefault {
 	Recipe(Expr), // TODO: Recipe serialisation
 	AutoIncrement(u64),

@@ -1,11 +1,11 @@
 use {
 	crate::{
-		executor::types::Row, Column, Ingredient, Recipe, RecipeUtilities, Resolve, Result,
-		SimplifyBy, Value, ValueDefault, ValueType,
+		recipe::{Recipe, RecipeUtilities, Resolve, SimplifyBy},
+		types::Row,
+		Column, Error, Result, ValueDefault, ValueType,
 	},
 	rayon::prelude::*,
 	serde::Serialize,
-	sqlparser::ast::Ident,
 	thiserror::Error as ThisError,
 };
 
@@ -27,7 +27,7 @@ pub enum ValidateError {
 	UnreachableUniqueValues,
 }
 
-pub fn columns_to_positions(column_defs: &[Column], columns: &[Ident]) -> Result<Vec<usize>> {
+pub fn columns_to_positions(column_defs: &[Column], columns: &[&str]) -> Result<Vec<usize>> {
 	if columns.is_empty() {
 		Ok((0..column_defs.len()).collect())
 	} else {
@@ -36,10 +36,8 @@ pub fn columns_to_positions(column_defs: &[Column], columns: &[Ident]) -> Result
 			.map(|stated_column| {
 				column_defs
 					.iter()
-					.position(|column_def| stated_column.value == column_def.name)
-					.ok_or_else(|| {
-						ValidateError::ColumnNotFound(stated_column.value.clone()).into()
-					})
+					.position(|column_def| column_def.name.as_str() == *stated_column)
+					.ok_or_else(|| ValidateError::ColumnNotFound(stated_column.to_string()).into())
 			})
 			.collect::<Result<Vec<usize>>>()
 	}
@@ -76,42 +74,22 @@ pub fn validate(columns: &[Column], stated_columns: &[usize], rows: &mut Vec<Row
 			column_info
 				.iter()
 				.map(|(index, failure_recipe, nullable, data_type)| {
-					index
-						.map(|index| {
-							row.get(index).map(|value| {
-								let mut value = value.clone();
-								if let Err(error) = value.validate_null(*nullable) {
-									value = if let Some(fallback) = failure_recipe.clone() {
-										if !matches!(
-											fallback,
-											Recipe::Ingredient(Ingredient::Value(Value::NULL))
-										) {
-											fallback
-												.simplify(SimplifyBy::Basic)?
-												.as_solution()
-												.ok_or(ValidateError::BadDefault)?
-										} else {
-											return Err(error);
-										}
-									} else {
-										return Err(error);
-									}
-								}
-								value.is(data_type)?;
-								Ok(value)
-							})
-						})
-						.flatten()
-						.unwrap_or({
-							if let Some(recipe) = failure_recipe.clone() {
-								recipe
-									.simplify(SimplifyBy::Basic)?
-									.as_solution()
-									.ok_or_else(|| ValidateError::BadDefault.into())
-							} else {
-								Err(ValidateError::MissingValue.into())
-							}
-						})
+					let mut value = index
+						.and_then(|index| row.get(index).cloned())
+						.ok_or(Error::Validate(ValidateError::MissingValue))
+						.and_then(|value| value.validate_null(*nullable).map(|_| value))
+						.or_else(|_| {
+							let recipe = failure_recipe
+								.clone()
+								.ok_or(Error::Validate(ValidateError::MissingValue))?;
+							recipe
+								.simplify(SimplifyBy::Basic)?
+								.as_solution()
+								.ok_or(Error::Validate(ValidateError::BadDefault))
+						})?;
+
+					value.is(data_type)?;
+					Ok(value)
 				})
 				.collect::<Result<Row>>()
 		})

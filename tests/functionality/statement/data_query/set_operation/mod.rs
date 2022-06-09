@@ -1,4 +1,3 @@
-crate::util_macros::make_all!(
-	functionality::statement::data_query::set_operation,
-	[union, except]
-);
+mod except;
+mod intersect;
+mod union;

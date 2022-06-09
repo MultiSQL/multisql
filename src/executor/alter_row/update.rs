@@ -2,15 +2,15 @@ use {
 	super::{columns_to_positions, validate},
 	crate::{
 		data::Schema,
-		executor::types::{ColumnInfo, Row as VecRow},
-		Column, ComplexTableName, ExecuteError, Glue, MetaRecipe, Payload, PlannedRecipe,
-		RecipeUtilities, Result, Row, Value,
+		recipe::{MetaRecipe, PlannedRecipe, RecipeUtilities},
+		types::{ColumnInfo, ComplexTableName, Row as VecRow},
+		Column, ExecuteError, Glue, Payload, Result, Row, Value,
 	},
 	sqlparser::ast::{Assignment, Expr, TableFactor, TableWithJoins},
 };
 
 impl Glue {
-	pub async fn update(
+	pub async fn ast_update(
 		&mut self,
 		table: &TableWithJoins,
 		selection: &Option<Expr>,
@@ -39,13 +39,17 @@ impl Glue {
 			.clone()
 			.into_iter()
 			.map(|Column { name, .. }| ColumnInfo::of_name(name))
+			.map(|mut col| {
+				col.table.name = table.clone();
+				col
+			})
 			.collect::<Vec<ColumnInfo>>();
 
 		let filter = selection
 			.clone()
 			.map(|selection| {
 				PlannedRecipe::new(
-					MetaRecipe::new(selection)?.simplify_by_context(&*self.get_context()?)?,
+					MetaRecipe::new(selection)?.simplify_by_tempdb(&self.tempdb)?,
 					&columns,
 				)
 			})
@@ -65,7 +69,7 @@ impl Glue {
 					.position(|column| column == &column_compare)
 					.ok_or(ExecuteError::ColumnNotFound)?;
 				let recipe = PlannedRecipe::new(
-					MetaRecipe::new(value.clone())?.simplify_by_context(&*self.get_context()?)?,
+					MetaRecipe::new(value.clone())?.simplify_by_tempdb(&self.tempdb)?,
 					&columns,
 				)?;
 				Ok((index, recipe))
@@ -77,29 +81,32 @@ impl Glue {
 			.scan_data(&table)
 			.await?
 			.into_iter()
-			.filter_map(|(key, row)| {
-				let row = row.0;
-
-				let confirm_constraint = filter.confirm_constraint(&row);
-				if let Ok(false) = confirm_constraint {
-					return None;
-				} else if let Err(error) = confirm_constraint {
-					return Some(Err(error));
-				}
-				let row = row
-					.iter()
-					.enumerate()
-					.map(|(index, old_value)| {
-						assignments
-							.iter()
-							.find(|(assignment_index, _)| assignment_index == &index)
-							.map(|(_, assignment_recipe)| {
-								assignment_recipe.clone().simplify_by_row(&row)?.confirm()
-							})
-							.unwrap_or_else(|| Ok(old_value.clone()))
-					})
-					.collect::<Result<VecRow>>();
-				Some(row.map(|row| (key, row)))
+			.filter_map(|(key, Row(row))| match filter.confirm_constraint(&row) {
+				Ok(false) => None,
+				Err(error) => Some(Err(error)),
+				Ok(true) => Some(
+					row.iter()
+						.enumerate()
+						.map(|(index, old_value)| {
+							assignments
+								.iter()
+								.find_map(|(assignment_index, assignment_recipe)| {
+									if assignment_index == &index {
+										Some(
+											assignment_recipe
+												.clone()
+												.simplify_by_row(&row)
+												.and_then(|recipe| recipe.confirm()),
+										)
+									} else {
+										None
+									}
+								})
+								.unwrap_or(Ok(old_value.clone()))
+						})
+						.collect::<Result<VecRow>>()
+						.map(|row| (key, row)),
+				),
 			})
 			.collect::<Result<Vec<(Value, VecRow)>>>()?;
 
@@ -112,8 +119,8 @@ impl Glue {
 		#[cfg(feature = "auto-increment")]
 		self.auto_increment(&database, table, &column_defs, &mut rows)
 			.await?;
-		self.validate_unique(&database, table, &column_defs, &rows, Some(&keys))
-			.await?;
+		/*self.validate_unique(&database, table, &column_defs, &rows, Some(&keys))
+		.await?;*/
 		let keyed_rows: Vec<(Value, Row)> = keys.into_iter().zip(rows).collect();
 		let num_rows = keyed_rows.len();
 

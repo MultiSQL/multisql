@@ -1,9 +1,7 @@
 use {
 	super::JoinType,
 	crate::{
-		executor::{types::Row, PlannedRecipe},
-		macros::try_option,
-		JoinError, NullOrd, Result, Value,
+		macros::try_option, recipe::PlannedRecipe, types::Row, JoinError, NullOrd, Result, Value,
 	},
 	rayon::prelude::*,
 	std::{cmp::Ordering, fmt::Debug},

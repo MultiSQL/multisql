@@ -1,6 +1,8 @@
 use crate::DatabaseError;
 use {
-	crate::{Cast, Column, DBBase, Plane, Result, Row, Schema, SheetDatabase, Value},
+	crate::{
+		Cast, Column, DBBase, Plane, Result, Row, Schema, SheetDatabase, SheetDatabaseError, Value,
+	},
 	async_trait::async_trait,
 	std::convert::TryFrom,
 	umya_spreadsheet::{Cell, Worksheet},
@@ -23,7 +25,10 @@ impl DBBase for SheetDatabase {
 			.collect()
 	}
 	async fn scan_data(&self, sheet_name: &str) -> Result<Plane> {
-		let sheet = self.book.get_sheet_by_name(sheet_name).unwrap();
+		let sheet = self
+			.book
+			.get_sheet_by_name(sheet_name)
+			.map_err(|_| SheetDatabaseError::FailedToGetSheet)?;
 		let Schema { column_defs, .. } = schema_from_sheet(sheet)?;
 
 		let row_count = sheet.get_highest_row();
@@ -67,10 +72,11 @@ impl TryFrom<Cell> for Value {
 	type Error = crate::Error;
 	fn try_from(cell: Cell) -> Result<Self> {
 		Ok(match cell.get_data_type() {
-			Cell::TYPE_STRING | Cell::TYPE_STRING2 => Value::Str(cell.get_value().to_string()),
-			Cell::TYPE_BOOL => Value::Bool(Value::Str(cell.get_value().to_string()).cast()?),
-			Cell::TYPE_NUMERIC => Value::F64(Value::Str(cell.get_value().to_string()).cast()?),
-			Cell::TYPE_NULL => Value::NULL,
+			// Temp: TODO: Umya needs to expose its enums
+			"s" => Value::Str(cell.get_value().to_string()),
+			"b" => Value::Bool(Value::Str(cell.get_value().to_string()).cast()?),
+			"n" => Value::F64(Value::Str(cell.get_value().to_string()).cast()?),
+			"" => Value::NULL,
 			_ => return Err(DatabaseError::Unimplemented.into()),
 		})
 	}
@@ -85,7 +91,7 @@ fn schema_from_sheet(sheet: &Worksheet) -> Result<Schema> {
 			if coordinate.get_row_num() == &1 {
 				let col = coordinate.get_col_num();
 				let text = comment.get_text().get_text();
-				let column_def: Column = serde_yaml::from_str(text).unwrap_or_default();
+				let column_def: Column = serde_yaml::from_str(&text).unwrap_or_default();
 				Some(Ok((col, column_def)))
 			} else {
 				None

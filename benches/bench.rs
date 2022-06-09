@@ -1,6 +1,6 @@
 use {
 	criterion::*,
-	multisql::{Glue, SledStorage, Storage, Value},
+	multisql::{Connection, Glue, Value},
 	std::time::Duration,
 };
 
@@ -14,9 +14,9 @@ fn setup_glue() -> Glue {
 		}
 	}
 
-	let storage = SledStorage::new(path)
-		.map(Storage::new_sled)
-		.expect("Create Storage");
+	let storage = Connection::Sled(String::from("data/example_location/lib_example"))
+		.try_into()
+		.expect("Storage Creation Failed");
 
 	Glue::new(String::from("main"), storage)
 }

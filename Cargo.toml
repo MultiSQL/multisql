@@ -1,11 +1,11 @@
 [package]
 	name = "multisql"
-	version = "0.2.0"
+	version = "0.4.4"
 	authors = ["Kyran Gostelow <kyran@gostelow.me>", "Taehoon Moon <taehoon.moon@outlook.com>"]
 	edition = "2021"
 	description = "MultiSQL"
 	license = "Apache-2.0"
-	repository = "https://github.com/MultiSQL/multisql"
+	repository = "https://kyra.nz/MultiSQL/multisql"
 	readme = "README.md"
 	keywords = ["database", "database-engine", "sql", "modular", "multi-threaded"]
 	metadata.docs.rs.all-features = true
@@ -29,6 +29,7 @@
 		csv-database = ["csv", "linecount"]
 		sheet-database = ["umya-spreadsheet"]
 		memory-database = []
+		odbc-database = ["odbc-api"]
 
 	# Functionality
 		alter-table = []
@@ -40,7 +41,7 @@
 
 [dependencies]
 	async-trait = "0.1.41"
-	async-recursion = "0.3.1"
+	async-recursion = "1"
 	boolinator = "2.4.0"
 	futures = "0.3"
 	serde = { version = "1.0.117", features = ["derive"] }
@@ -55,9 +56,10 @@
 	fastrand = "1.7.0"
 	rayon = "1.5.1"
 	serde_json = "1.0.0"
-	uuid = { version = "0.8", features = ["serde", "v4"] }
+	uuid = { version = "1.1.1", features = ["serde", "v4"] }
 	serde_yaml = "0.8.23"
 	enum_dispatch = "0.3.8"
+	lazy_static = "1.4.0"
 
 	# OPTIONAL DEPENDENCIES
 		# Storages
@@ -68,12 +70,42 @@
 				csv = { version = "1.1.6", optional = true }
 				linecount = { version = "0.1.0", optional = true }
 			# Sheet
-				umya-spreadsheet = { version = "0.7.0", optional = true }
+				umya-spreadsheet = { version = "=0.7.1", optional = true }
+			# ODBC
+				odbc-api = { version = "0.44.0", optional = true }
 
 [dev-dependencies]
-	tokio = { version = "0.3.3", features = ["macros", "rt"] }
+	tokio = { version = "1", features = ["macros", "rt"] }
 	criterion = {version = "0.3.5", features = ["html_reports"] }
+	# Testing
+	inventory = "0.2.3"
+	indicatif = "0.16.2"
 
 [[bench]]
 	name = "bench"
+	harness = false
+
+[[test]]
+	name = "query"
+	path = "tests/query_main.rs"
+	harness = false
+
+[[test]]
+	name = "misc"
+	path = "tests/misc_main.rs"
+	harness = false
+
+[[test]]
+	name = "api"
+	path = "tests/api_main.rs"
+	harness = false
+
+[[test]]
+	name = "functionality"
+	path = "tests/functionality_main.rs"
+	harness = false
+
+[[test]]
+	name = "databases"
+	path = "tests/databases_main.rs"
 	harness = false

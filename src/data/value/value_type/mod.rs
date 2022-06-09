@@ -4,9 +4,10 @@ use {
 	crate::Value,
 	serde::{Deserialize, Serialize},
 	sqlparser::ast::DataType,
+	std::fmt::Debug,
 };
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub enum ValueType {
 	Bool,
 	U64,
@@ -21,8 +22,8 @@ impl Default for ValueType {
 		Self::Any
 	}
 }
-impl From<Value> for ValueType {
-	fn from(value: Value) -> Self {
+impl From<&Value> for ValueType {
+	fn from(value: &Value) -> Self {
 		match value {
 			Value::Bool(_) => ValueType::Bool,
 			Value::U64(_) => ValueType::U64,

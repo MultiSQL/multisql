@@ -1,40 +1,23 @@
-use std::sync::Mutex;
-
-use crate::ExecuteError;
 use {
 	crate::{
-		parse, parse_single, CSVSettings, Connection, Database, Payload, Query, Result, Value,
-		WIPError,
+		parse, parse_single, CSVSettings, Connection, Database, ExecuteError, Payload, Query,
+		Result, Value, WIPError,
 	},
 	futures::executor::block_on,
 	sqlparser::ast::{
 		Expr, Ident, ObjectName, Query as AstQuery, SetExpr, Statement, Value as AstValue, Values,
 	},
-	std::{collections::HashMap, fmt::Debug},
+	std::collections::HashMap,
 };
 
 mod database;
 mod error;
+mod insert;
 mod payload;
 mod select;
+mod tempdb;
 
-pub use error::InterfaceError;
-
-pub(crate) type Variables = HashMap<String, Value>;
-
-#[derive(Default, Debug, Clone)]
-pub struct Context {
-	pub variables: Variables,
-	pub tables: HashMap<String, (Vec<String>, Vec<Vec<Value>>)>,
-}
-impl Context {
-	pub fn set_variable(&mut self, name: String, value: Value) {
-		self.variables.insert(name, value);
-	}
-	pub fn set_table(&mut self, name: String, data: (Vec<String>, Vec<Vec<Value>>)) {
-		self.tables.insert(name, data);
-	}
-}
+pub use {error::InterfaceError, insert::*, tempdb::TempDB};
 
 /// # Glue
 /// Glue is *the* interface for interacting with MultiSQL; a Glue instance comprises any number of stores, each with their own identifier.
@@ -50,7 +33,7 @@ impl Context {
 pub struct Glue {
 	pub primary: String,
 	databases: HashMap<String, Database>,
-	context: Mutex<Context>,
+	pub tempdb: TempDB,
 }
 
 /// ## Creation of new interfaces
@@ -64,11 +47,10 @@ impl Glue {
 	/// Creates a [Glue] instance with access to all provided storages.
 	/// Argument is: [Vec]<(Identifier, [Database])>
 	pub fn new_multi(databases: HashMap<String, Database>) -> Self {
-		let context = Mutex::new(Context::default());
 		let primary = databases.keys().next().cloned().unwrap_or_default();
 		Self {
 			databases,
-			context,
+			tempdb: TempDB::default(),
 			primary,
 		}
 	}
@@ -164,22 +146,6 @@ impl Glue {
 			self.databases.remove(database_name);
 		}
 		database_present
-	}
-}
-
-/// Internal: Modify
-impl Glue {
-	/*pub(crate) fn take_context(&mut self) -> Result<Context> {
-		self.context
-			.take()
-			.ok_or(InterfaceError::ContextUnavailable.into())
-	}
-	pub(crate) fn replace_context(&mut self, context: Context) {
-		self.context.replace(context);
-	}*/
-	#[allow(dead_code)]
-	fn set_context(&mut self, context: Context) {
-		self.context = Mutex::new(context);
 	}
 }
 

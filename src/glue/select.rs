@@ -1,20 +1,20 @@
 use {
 	super::Glue,
 	crate::{Cast, ExecuteError, Payload, Result},
-	serde_json::{json, value::Value as JSONValue},
+	serde_json::value::Value as JSONValue,
 };
 
 /// ## Select (`SELECT`)
 impl Glue {
 	/// Only for `SELECT` queries.
 	///
-	/// Output is one big [String] of [JSON](https://json.org), wrapped in a [Result] in case it fails.
+	/// Output is one big [serde_json::Value], wrapped in a [Result].
 	///
 	/// Generally useful for webby interactions.
-	pub fn select_as_json(&mut self, query: &str) -> Result<String> {
+	pub fn select_json(&mut self, query: &str) -> Result<JSONValue> {
 		// TODO: Make this more efficient and not affect database if not select by converting earlier
 		if let Payload::Select { labels, rows } = self.execute(query)? {
-			let array = JSONValue::Array(
+			let rows = JSONValue::Array(
 				rows.into_iter()
 					.map(|row| {
 						JSONValue::Object(
@@ -27,47 +27,10 @@ impl Glue {
 					})
 					.collect(),
 			);
-			Ok(array.to_string())
+			Ok(rows)
 		} else {
 			Err(ExecuteError::QueryNotSupported.into())
 		}
-	}
-
-	/// Only for `SELECT` queries.
-	///
-	/// Output is one big [String] of [JSON](https://json.org), failures will be converted to json of `{error: [error]}`.
-	///
-	/// Generally useful for webby interactions.
-	pub fn select_as_json_with_headers(&mut self, query: &str) -> String {
-		// TODO: Make this more efficient and not affect database if not select by converting earlier
-		let mut result = || -> Result<_> {
-			if let Payload::Select { labels, rows } = self.execute(query)? {
-				let array = JSONValue::Array(
-					rows.into_iter()
-						.map(|row| {
-							JSONValue::Object(
-								row.0
-									.into_iter()
-									.enumerate()
-									.map(|(index, cell)| (labels[index].clone(), cell.into()))
-									.collect::<serde_json::map::Map<String, JSONValue>>(),
-							)
-						})
-						.collect(),
-				);
-				Ok(json!({
-					"labels": JSONValue::from(labels),
-					"data": array
-				}))
-			} else {
-				Err(ExecuteError::QueryNotSupported.into())
-			}
-		};
-		match result() {
-			Ok(result) => result,
-			Err(error) => json!({"error": error.to_string()}),
-		}
-		.to_string()
 	}
 
 	/// Only for `SELECT` queries.

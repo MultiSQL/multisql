@@ -4,7 +4,7 @@ use {
 };
 
 impl Glue {
-	pub async fn procedure(&mut self, name: &Ident, parameters: &[Expr]) -> Result<Payload> {
+	pub async fn ast_procedure(&mut self, name: &Ident, parameters: &[Expr]) -> Result<Payload> {
 		return match name.value.as_str() {
 			"FILE" => {
 				if let Some(Ok(query)) = parameters.get(0).map(|path| {

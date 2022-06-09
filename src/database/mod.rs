@@ -33,6 +33,8 @@ pub enum Connection {
 	CSV(String, crate::CSVSettings),
 	#[cfg(feature = "sheet-database")]
 	Sheet(String),
+	#[cfg(feature = "odbc-database")]
+	ODBC(String),
 }
 impl Default for Connection {
 	fn default() -> Self {
@@ -42,19 +44,21 @@ impl Default for Connection {
 impl TryFrom<Connection> for Database {
 	type Error = crate::Error;
 	fn try_from(connection: Connection) -> Result<Database> {
-		use {
-			crate::{CSVDatabase, MemoryDatabase, SheetDatabase, SledDatabase},
-			Connection::*,
-		};
+		use Connection::*;
 		let database: Mutex<Box<DatabaseInner>> = Mutex::new(match &connection {
 			#[cfg(feature = "memory-database")]
-			Memory => Box::new(MemoryDatabase::new()),
+			Memory => Box::new(crate::MemoryDatabase::new()),
 			#[cfg(feature = "sled-database")]
-			Sled(path) => Box::new(SledDatabase::new(path)?),
+			Sled(path) => Box::new(crate::SledDatabase::new(path)?),
 			#[cfg(feature = "csv-database")]
-			CSV(path, settings) => Box::new(CSVDatabase::new_with_settings(path, settings.clone())?),
+			CSV(path, settings) => Box::new(crate::CSVDatabase::new_with_settings(
+				path,
+				settings.clone(),
+			)?),
 			#[cfg(feature = "sheet-database")]
-			Sheet(path) => Box::new(SheetDatabase::new(path)?),
+			Sheet(path) => Box::new(crate::SheetDatabase::new(path)?),
+			#[cfg(feature = "odbc-database")]
+			ODBC(connection_string) => Box::new(crate::ODBCDatabase::new(connection_string)?),
 			Unknown => return Err(DatabaseError::UnknownConnection.into()),
 		});
 		Ok(Database {

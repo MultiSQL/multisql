@@ -5,7 +5,7 @@ use {
 };
 
 impl Glue {
-	pub async fn alter_table(
+	pub async fn ast_alter_table(
 		&mut self,
 		name: &ObjectName,
 		operation: &AlterTableOperation,
